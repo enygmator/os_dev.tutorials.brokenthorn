@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Getting Setup for OS Development | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Getting Setup for OS Development | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="getting-setup-for-os-development">Getting Setup for OS Development</h1>
+
+<p>In developing low level code, we will need specialized low level software to help us out. Some of these tools are not needed, however, they are highly recommended as they can significantly aid in development.</p>
+<h2 id="nasm---the-assembler">NASM - The Assembler</h2>
+<p>The Netwide Assembler (NASM) can generate flat binary 16bit programs, while most other assemblers (Turbo Assembler (TASM), Microsoft's Macro Assembler (MASM)) cannot. During the development of the OS, some programs must be pure binary executables. Because of this, NASM is a great choice to use.</p>
+<p>You can download NASM from <a href="http://nasm.sourceforge.net/">here</a>.</p>
+<h2 id="microsoft-visual-c">Microsoft Visual C++</h2>
+<p>Because portability is a concern, most of the code for our operating system will be developed in C.<br>
+During OS Development, there are some things that we must have control over that not all compilers may support, however. For example, say good bye to all runtime compiler support (templates, exceptions) and the good old standard library! Depending on the design of your system, you may also need to support or change more detailed properties: Such as loading at a specific address, adding your own internal sections in your programs' binary, etc.</p>
+<p>The basic idea is that not all compilers out there are capable of generating operating system machine/binary code.</p>
+<p>I will be using Microsoft Visual C++ for developing the system. However, it is also possible to develop in other compilers such as DJGPP, GCC or even Cygwin. Cygwin is a command shell program that is designed to emulate Linux command shell. There is a GCC port for Cygwin.</p>
+<p>You can download Visual Studio <a href="https://visualstudio.com/">here</a> and then select <code>Desktop development with C++</code> workload during it's installation.</p>
+<h2 id="tool-for-copying-the-boot-loader">Tool for Copying the Boot Loader</h2>
+<p>The bootloader is a pure binary program that is stored in a single 512 byte sector. It is a very important program as it is impossible to create an OS without it. It is the very first program of your OS that is loaded directly by the BIOS, and executed directly by the processor.<br>
+We can use NASM to assemble the program, but how do we get it on a floppy disk? We cannot just copy the file. Instead, we have to overwrite the boot record that Windows places (after formatting the virtual/real disk) with our bootloader.<br>
+Why do we need to do this? Remember that the BIOS only looks at the bootsector when finding a bootable disk. The bootsector, and the &quot;boot record&quot; are both in the same sector! Hence, we have to overwrite it.</p>
+<p>There are a lot of ways we can do this. Here, I will present two. If you are unable to get one method working on your system, our readers may try the other method.</p>
+<div class="WARNING">
+<h5>Warning</h5>
+<p>Do Not attempt to play with the following software until I explain how to use it. Using this software incorrectly can corrupt the data on your disk or make your PC unbootable.</p>
+</div>
+<h3 id="partcopy---low-level-disk-copier">PartCopy - Low Level Disk Copier</h3>
+<p>PartCopy allows the copying of sectors from one drive to another. PartCopy stands for &quot;Partial copy&quot;. Its function is to copy a certain number of sectors from one location to another, to and from a specific address.</p>
+<p>You can download it from <a href="../../resources/OSDev_tools/pcopy02.zip">here</a>.</p>
+<h3 id="windows-debug-command">Windows DEBUG Command</h3>
+<p>Windows provides a small command line debugger that may be used through the command line. There are quite a bit of different things that we can do with this software, but all we need it to do is copy our boot loader to the first 512 bytes on disk.<br>
+Go to the command prompt, and type <strong>debug</strong>. You will be greeted by a little prompt (-):</p>
+<pre><code class="lang-powershell">C:\Documents and Settings\Michael&gt;debug
+-
+</code></pre>
+<p>Here is where you enter your commands. <strong>h</strong> is the help command, <strong>q</strong> is the quit command. The <strong>w (write)</strong> command is the most important for us.<br>
+You can have debug load a file into memory such as, say, our boot loader:</p>
+<pre><code class="lang-powershell">C:\Documents and Settings\Michael&gt;debug boot_loader.bin
+-
+</code></pre>
+<p>This allows us to perform operations on it. (We can also use debugs <strong>L (Load)</strong> command to load the file is we wanted to). In the above example, <strong>boot_loader.bin</strong> will be loaded at address 0x100.<br>
+To write the file to the first sector of our disk, we need to use the <strong>W (Write)</strong> command which takes the following form:</p>
+<pre><code class="lang-powershell">W [address] [drive] [firstsector] [number]
+</code></pre>
+<p>Okay... so let's see: The file is at address 0x100. We want the floppy drive (Drive 0). The first sector is the first sector on the disk (sector 0) and the number of sectors is ehm... 1.
+Putting this together, this is our command to write <strong>boot_loader.bin</strong> to the boot sector of a floppy:</p>
+<pre><code class="lang-powershell">C:\Documents and Settings\Michael&gt;debug boot_loader.bin
+-w 100 0 0 1
+-q
+</code></pre>
+<h2 id="vfd---virtual-floppy-drive">VFD - Virtual Floppy Drive</h2>
+<p>Weather you have a floppy drive or not, this program is very useful. It can simulate a real floppy drive from a stored floppy image, or even in RAM. This program creates a virtual floppy image, allows formatting, and copying files (Such as, your kernel perhaps?) directly using Windows Explorer.</p>
+<p>You can download it from <a href="http://sourceforge.net/projects/vfd/">here</a>.</p>
+<h2 id="bochs-emulator---pc-emulator-and-debugger">Bochs Emulator - PC Emulator and Debugger</h2>
+<p>You pop in a floppy disk into a computer, hoping that it works. You boot your computer and look in awe at your greatest creation! ...Until your floppy motor dies out because you forgot to send the command to the controller in your bootloader.</p>
+<p>When working with low level code, it is possible to destroy hardware if you are not careful. Also, to test your OS, you will need to reboot your computers hundreds of times during development.</p>
+<p>Also, what do you do if the computer just reboots? What do you do if your Kernel crashes? Because there is no debugger for your OS, it is virtually impossible to debug.</p>
+<p>The solution? A PC Emulator. There are plenty available, two of them being VMWare and Bochs Emulator. I will be using Bochs and Microsoft Virtual PC for testing.</p>
+<p>You can download Bochs from <a href="http://bochs.sourceforge.net/">here</a>.</p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>You do not need to know how to use the software I listed. I will explain how to use them as we start using them.</p>
+</div>
+<div class="TIP">
+<h5>Tip</h5>
+<p>If you would like to run your system on a real computer that does not have a floppy drive, it is still possible to boot from CD even though it is a floppy image. This is done through Floppy Emulation that which most of BIOSs support.<br>
+Simply get a CD burning software (I personally use MagicISO) that can create a bootable ISO from a floppy image. Then, simply burn the ISO image to a CD and it should work.</p>
+</div>
+<h2 id="the-build-process">The Build Process</h2>
+<p>There are a lot of tools listed above. To better understand how they can be useful, we should take a look at the entire build process of the OS:</p>
+<ul>
+<li><p>Setting everything up</p>
+<ol>
+<li>Use VFD to create and format a virtual floppy image to use.</li>
+<li>Set up Bochs Emulator to boot from the floppy image.</li>
+</ol>
+</li>
+<li><p>The bootloader</p>
+<ol>
+<li>Assemble the bootloader with NASM to create a flat binary program.</li>
+<li>Use PartCopy or the DEBUG command to copy the bootloader to the bootsector of the virtual floppy image.</li>
+</ol>
+</li>
+<li><p>The Kernel (And basically all other programs)</p>
+<ol>
+<li>Assembly and/or compile all sources into an object format (Such as ELF or PE) that can be loaded and executed by the boot loader.</li>
+<li>Copy kernel into floppy disk using Windows Explorer.</li>
+</ol>
+</li>
+<li><p>Test it!</p>
+<ol>
+<li>Using Bochs emulator and debugger, using a real floppy disk, or by using MagicISO to create a bootable CD.</li>
+</ol>
+</li>
+</ul>
+<p>Some of the terms and concepts listed here may be new to you. Do not worry!😀 everything will be explained in the upcoming sections.</p>
+<p>The purpose of this section is to create a stepping stone for the rest of the series. This page provides a basic introduction, and a listing of the tools we will be using. I will explain how to use these programs as we need to, so you do not need a tutorial on anything listed here besides what has been listed in the Requirements page.</p>
+<p>We also have taken a look at the building process for developing an operating system. For the most part, its fairly simple, however it provides a way to see when the programs listed will be used.</p>
+<p>In the next page we are going to go back in time from the first Disk Operating System (DOS) and take a little tour through history. We will also look at some basic OS concepts.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/01_Intro_to_OSDev/5_OSDev_setup.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v1.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>The C Programming Language | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="The C Programming Language | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="the-c-programming-language">The C Programming Language</h1>
+
+<p>It is assumed that you already know how to program in C. This is a quick overview of some of the more important parts of the language, and also how they will work for us.</p>
+<h2 id="using-c-in-bootloaders-and-kernels">Using C in Bootloaders and Kernels</h2>
+<h3 id="16-bit-and-32-bit-c">16 bit and 32 bit C</h3>
+<p>In the beginning, while programming your system you will find out that there is nothing at all to help you. When powered on, the system is operating in 16 bit real mode which 32 bit compilers do not support. This is the first important thing: If you want to create a 16 bit real mode OS, you must use a 16 bit C compiler. If, however, you decide that you would like to create a 32 bit OS, you must use a 32 bit C compiler. 16 bit C code is not compatible with 32 bit C code.</p>
+<p>In the series, we will be creating a 32 bit operating system. Because of this, we will be using a 32 bit C compiler.</p>
+<h3 id="c-and-its-executable-formats">C and its executable formats</h3>
+<p>A problem with C is that it does not support the ability to output <strong>flat binary programs</strong>. A flat binary program can basically be defined as a program where the <strong>entry point routine</strong> (such as <code>main()</code>) is always at the first byte of the program file.</p>
+<p>Wait, what? Why would we want this?</p>
+<p>This goes back to the good old days of DOS COM programming. DOS COM programs were flat binary - they had no well-defined entry point nor <strong>symbolic names</strong> at all. To execute the program, all that needed to be done was to <strong>&quot;jump&quot;</strong> to the first byte of the program. Flat binary programs have no special internal format, so there was no standard. Its just a bunch of 1's and 0's.</p>
+<p>When the PC is powered on, the <strong>system BIOS ROM</strong> takes control. When it is ready to start an OS, it has no idea how to do it. Because of this, it runs another program - the <strong>Boot Loader</strong> to load an OS. The BIOS does not at all know what internal format this program file is or what it does. Because of this, it treats the Boot Loader as a <strong>flat binary program</strong>. It loads whatever is on the Boot Sector of the Boot Disk and &quot;jumps&quot; to the first byte of that program file and begins to simple &quot;execute&quot; the 1s and 0s.</p>
+<p>Because of this, the first part of the boot loader, also called the Boot Code or <strong>Bootloader Stage 1</strong> cannot be in C. This is because all C compilers output a program file that has a special internal format - they can be library files, object files, or executable files. There is only one language that natively supports flat binary generation - <strong>assembly language</strong>.</p>
+<h3 id="how-to-use-c-in-a-boot-loader">How to use C in a boot loader</h3>
+<p>While it is true that the first part of the boot loader must be in assembly language, it is <strong>possible</strong> to use C in a boot loader. There are different ways of doing this. One way is used in both Windows and our own in-house operating system, Neptune. We combine an assembly stub program and the C program in a single file. The assembly stub program sets up the system and calls our C program. Because both of these programs are combined into a single file, Stage 1 only needs to load a single file - which in turn loads both our stub program and C program.</p>
+<p>This is one method - there are others. Most real boot loaders use C, including GRUB, Neptunes boot loader, Microsoft's NTLDR and Boot Manager. Because we are using 32 bit C, there are also ways that will allow us to mix 16 bit code with our 32 bit C code.</p>
+<p>Doing this can be fairly complicated and tricky to implement. Because of this, we stick with just using assembly language in the series boot loader. We might cover an advanced tutorial later that can describe methods of using C later on however if the reader demand is great enough.</p>
+<h3 id="calling-a-c-kernel">Calling a C kernel</h3>
+<p>When the boot loader is ready, it loads and executes our C kernel by calling its entry point routine. Because the C program follows a specific internal format, the boot loader must know how to parse the file and locate the entry point routine to call it. In the series, we cover how to do this a little later. This allows us to use C for the kernel and other libraries that we build.</p>
+<h2 id="pointers-in-c">Pointers in C</h2>
+<h3 id="introduction">Introduction</h3>
+<p>Because you are reading this, I assume that you are already good with pointers. In system software, they are used everywhere since we are constantly referring to memory locations in various parts of the system memory (RAM, hard-disk, CPU caches). Because of this, it is very important to master pointers.</p>
+<p>A pointer is simply a variable that holds the address of something. To define a pointer, we use the * operator:</p>
+<pre><code class="lang-c">char* pointer;
+</code></pre>
+<p>Remember that a pointer stores an &quot;address&quot;. We do not set the above pointer to anything, so what &quot;address&quot; does it refer to? The above code is an example of a wild pointer. A wild pointer is a pointer that can point to anything. <strong>Remember that C does not initialize anything for you</strong>. Because of this, the above pointer can point to anything. Another variable, address 0, some other piece of data, your own code, a hardware address.</p>
+<h3 id="the-physical-address-space-pas">The Physical Address Space (PAS)</h3>
+<p>The Physical Address Space (PAS) defines all of the &quot;Addresses&quot; that you can use. These addresses can refer to anything that is inside of the PAS. This includes physical memory (RAM), hardware devices, or even nothingness. This is very different then in applications programming in a protected mode OS, like Windows, where all &quot;addresses&quot; are memory.
+Here is an example. In <em>applications programming</em>, the following would cause a segmentation fault error and crash your program:</p>
+<pre><code class="lang-c">char* pointer = 0;
+*pointer = 0;
+</code></pre>
+<p>This creates a pointer and points it to memory address 0, which you do not &quot;own&quot;. Because of this, the system does not allow you to write to it.
+Now, if we try that same exact code again in our future C kernel ... no crash! Instead of crashing, it overwrites the first byte of the <strong>Interrupt Vector Table</strong> (IVT) which resides at that location in memory.</p>
+<p>From this, we can make a few important differences:</p>
+<ul>
+<li>The system will not crash if you use null pointers</li>
+<li>Pointers can point to any &quot;address&quot; in the PAS, which may or may not be memory</li>
+</ul>
+<p>If you attempt to read from a memory address that does not exist, you will get garbage (whatever was on the system data bus at that time). An attempt to write to a memory address that does not exist does nothing. Writing to a non existent memory address and immediately reading it back may or may not give you the same result just &quot;written&quot;...It depends if the data &quot;written&quot; is still on the data bus or not.</p>
+<p>Things get more interesting here. ROM devices are mapped into the same PAS. This means that it is possible for you to read or write certain parts of ROM devices using pointers. A good example of a ROM device is the system BIOS. Because ROM devices are read only, writing to a ROM device is the same effect as writing to a non existent memory location. You can read from ROM devices, however.</p>
+<p>Other devices may also be mapped into the PAS. This depends on your system configuration. This means reading or writing different parts of the PAS may yield different types of results.</p>
+<p>As you can tell, pointers play a much bigger role in systems programming then they did in the applications programming world. It may be easier to think of pointers not as a &quot;variable that points to a memory location&quot; but rather a &quot;variable that points to an address in the PAS&quot; as it may or may not be RAM.</p>
+<h3 id="dynamic-memory-allocation">Dynamic Memory Allocation</h3>
+<p>In the application programming world, you would normally call <strong>malloc()</strong> and <strong>free()</strong> or <strong>new</strong> and <strong>delete</strong> to allocate a block of memory from the heap. This is different in the system programming world. To allocate memory, we do this:</p>
+<pre><code class="lang-c">char* pointer = (char*)0x5000;
+</code></pre>
+<p>That is it. Cool, huh? Because we have control over everything, we can just point a pointer to some address in the PAS (would have to be RAM) and say &quot;there's our new buffer of 1024 bytes&quot; or something like that.<br>
+The important thing here is that there is no dynamic memory allocation. Dynamic memory allocation in C and C++ are <strong>system services</strong> and require an OS to be running.<br>
+But, wait! Aren't we developing our own OS? That is the problem 😁 We will need to write our own memory management services and routines in order to be able to provide a  <strong>malloc()</strong> and <strong>free()</strong> or <strong>new</strong> and <strong>delete</strong>. Until then, the only way to &quot;allocate&quot; a buffer is to use some unused location in the address space.</p>
+<h2 id="inline-assembly-using-assembly-inside-a-c-program">Inline Assembly (Using assembly inside a C Program)</h2>
+<p>There are some things that C cannot natively do. We will be needing to use assembly language for system services and talking to hardware devices.</p>
+<p>Most compilers provide a keyword that allows inline assembly. For example, Microsoft Visual C++ uses _asm:</p>
+<pre><code class="lang-C">_asm cli ; disable interrupts&gt;
+</code></pre>
+<p>We can also have blocks of assembly code:</p>
+<pre><code class="lang-C">_asm {
+    cli
+    hlt
+}
+</code></pre>
+<h2 id="standard-library-and-the-run-time-library-rtl">Standard Library and the Run Time Library (RTL)</h2>
+<p>You can use external libraries - if and only if those routines do not use system services. Anything like <code>printf()</code>, <code>scanf()</code>, memory routines, or, virtually everything but the bare minimum routines can be used. About 90% of it will be needed to be rewritten for your own OS, so it is best to write your own.</p>
+<p>The RTL is the set of services and routines that your application program uses at run time. These, by their nature, require an OS to already be running and to support them. Because of this, you will need to develop your own RTL.</p>
+<p><strong>The startup RTL code is responsible for calling C++ constructors and destructors</strong>. If you are wanting to use C++, you must develop the RTL code to support it. This uses compiler extensions.</p>
+<p>In the series, we develop both an RTL that supports C and C++ features as well as a basic standard library as needed.</p>
+<h2 id="fixing-errors-debugging">Fixing Errors (Debugging)</h2>
+<p>Because there is no <code>printf()</code> or any way to use a debugger, what are you going to do if something is not working? The series uses (and explains) how to use the <strong>Bochs Debugger</strong>, which is a debugger that comes with the <strong>Bochs emulator</strong>. This can be used to run your OS as well as for aiding in fixing most of the more common errors that you may run into.</p>
+<p>The only other way is to develop your own routines that will allow you to output information. At the most this might be able to tell you how far the software gets to before crashing.</p>
+<p>This is certainly going to be an exciting, one-of-its-kind journey!</p>
+<p>Next, we will enter the waters of OS Development and setup the tool chain to develop OSes.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/01_Intro_to_OSDev/3_C_lang.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v1.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

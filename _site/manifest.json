@@ -1,0 +1,369 @@
+{
+  "homepages": [],
+  "source_base_path": "N:/ENYGMATOR/PROJECTS/BrokenThorn_OS_Dev_Series/BrokenThorn-OS-Dev-Series_(github)/docfx_base",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Resource",
+      "output": {
+        "resource": {
+          "relative_path": "index.json"
+        }
+      },
+      "is_incremental": false
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/1_Overview.html",
+          "hash": "7jl+4nQvmZULyAvlhd72Mw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/2_Programming.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/2_Programming.html",
+          "hash": "g+ome1BhNHeJ4ND/MIWkhg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/3_C_lang.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/3_C_lang.html",
+          "hash": "rqD1w5nBSUp5XhdOuOuPPA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/4_About_OSDev.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/4_About_OSDev.html",
+          "hash": "YndjTKmD8IitwAgkpTi0QA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/5_OSDev_setup.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/5_OSDev_setup.html",
+          "hash": "PX9CSq5MEw2LmD9C+2Oi9g=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/6_OSDev_History.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/6_OSDev_History.html",
+          "hash": "FX+wgQxKY6SpQU8aZm84vA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/7_Basic_OS_Concepts.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/7_Basic_OS_Concepts.html",
+          "hash": "7zNpbQZRzHPoHXpeWXd1xg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/02_Bootloader_Stage_1/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/02_Bootloader_Stage_1/1_Overview.html",
+          "hash": "8wqiaHdZ5NupNuratiMnqw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/02_Bootloader_Stage_1/2_Booting_Process.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/02_Bootloader_Stage_1/2_Booting_Process.html",
+          "hash": "1akfjYyrU4AUN8X11EjyBQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/03_Bootloader_Stage_2/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/03_Bootloader_Stage_2/1_Overview.html",
+          "hash": "ejwpCbMYYVAb/hLTwX/nlw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/51_Using_the_Toolchain/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/51_Using_the_Toolchain/1_Overview.html",
+          "hash": "IAQDq40t6ji7+ouNnjsbAg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/About/About_BrokenThorn.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/About/About_BrokenThorn.html",
+          "hash": "rR2TCmQhaI6RE6DerpMlzw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/About/About_This_Project.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/About/About_This_Project.html",
+          "hash": "dBBHXIMEuSYdGJXsjlleZw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "articles/About/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "articles/About/toc.html",
+          "hash": "s7zZCyKW3zFKjeoQ/HWilQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/Forums.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/Forums.html",
+          "hash": "AfvlHtrw6w4LrKyDGH7Tmg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/More_articles.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/More_articles.html",
+          "hash": "TrPVjze8nNIEClFvMX5VzQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "articles/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "articles/toc.html",
+          "hash": "b4+paWuRl9ofZxzVIPyFVA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html",
+          "hash": "D6IT3hY6ziL8Fxt/A99j/g=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/pcopy02.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/pcopy02.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/DOS[1].gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/DOS[1].gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/SHARE.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/SHARE.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Windows1.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Windows1.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Windows2.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Windows2.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Windows3.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Windows3.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/vintage-computer.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/vintage-computer.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html",
+          "hash": "U51z/XXlo1K50IJW8d6joQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    }
+  ],
+  "incremental_info": [
+    {
+      "status": {
+        "can_incremental": true,
+        "incrementalPhase": "build",
+        "total_file_count": 0,
+        "skipped_file_count": 0
+      },
+      "processors": {
+        "ConceptualDocumentProcessor": {
+          "can_incremental": true,
+          "incrementalPhase": "build",
+          "total_file_count": 16,
+          "skipped_file_count": 16
+        },
+        "ResourceDocumentProcessor": {
+          "can_incremental": false,
+          "details": "Processor ResourceDocumentProcessor cannot support incremental build because the processor doesn't implement ISupportIncrementalDocumentProcessor interface.",
+          "incrementalPhase": "build",
+          "total_file_count": 0,
+          "skipped_file_count": 0
+        },
+        "TocDocumentProcessor": {
+          "can_incremental": false,
+          "details": "Processor TocDocumentProcessor cannot support incremental build because the processor doesn't implement ISupportIncrementalDocumentProcessor interface.",
+          "incrementalPhase": "build",
+          "total_file_count": 0,
+          "skipped_file_count": 0
+        }
+      }
+    },
+    {
+      "status": {
+        "can_incremental": false,
+        "details": "Cannot support incremental post processing, the reason is: should not trace intermediate info.",
+        "incrementalPhase": "postProcessing",
+        "total_file_count": 0,
+        "skipped_file_count": 0
+      },
+      "processors": {}
+    }
+  ],
+  "version_info": {},
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}
