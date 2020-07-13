@@ -1,0 +1,14 @@
+###############
+#    folder   #
+###############
+docfx_base/**/DROP/
+docfx_base/**/TEMP/
+docfx_base/**/packages/
+docfx_base/**/bin/
+docfx_base/**/obj/
+
+docfx_base/_exported_templates/
+
+docfx_base/_site/
+docfx_base/_site/**
+
