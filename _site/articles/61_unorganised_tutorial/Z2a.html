@@ -1,0 +1,1267 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>8259A PIC Microcontroller | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="8259A PIC Microcontroller | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="8259a-pic-microcontroller">8259A PIC Microcontroller</h1>
+
+<p><img src="../../resources/images/Intel-D8259A-2.jpg" alt="8259A PIC Microcontrollers with all pins labeled">
+8259A PIC Microcontrollers with all pins labeled.</p>
+<p>This tutorial covers a very important topic: The <strong>Programmable Interrupt Controller</strong>. We will need to initialize this microcontroller by mapping it to our IRQ's. This will be needed when setting up interrupts, and handling interrupt requests.</p>
+<p>This is our first controller tutorial. All of these controller tutorials go very deep in each device, while building a workable interface to handling them. Remember that, as we are in protected mode, we have nothing to guide us. One wrong move can cause unpredictable results. As we have no helping hand, we have to communicate with each controller directly. Because of this, we have emphasized hardware programming concepts all throughout this series so our readers have more experience and better understanding of hardware level programming.</p>
+<p>This tutorial puts everything we learned to the test. I will do my best to keep things simple. the <strong>8259A Microcontroller</strong>, Also known as the <strong>Programmable Interrupt Controller (PIC)</strong>.</p>
+<h2 id="get-ready">Get Ready</h2>
+<p>This is our first of many microcontroller programming tutorials. We will cover nearly every asset of each microcontroller as we cover them. The main series will reference these tutorials on an as needed bases to help cover what we need these controllers for.</p>
+<p>This tutorial is fairly complicated. We will cover the 8259A Microcontroller from both hardware and software perspectives, and understand exactly how it connects and interacts with the PC. We will also cover every command, register, and part of this microcontroller.</p>
+<h2 id="history">History</h2>
+<p><em><em>To do - We plan on adding this section soon</em></em></p>
+<p>Because the 8259A PIC handles hardware interrupts, we should first have a basic understanding of what interrupts are, and how they work.</p>
+<h2 id="interrupts">Interrupts</h2>
+<p>An <strong>Interrupt</strong> is an external asynchronous signal requiring a need for attention by software or hardware. It allows a way of interrupting the current task so that we can execute something more important.</p>
+<p>Not to hard. Interrupts provide a way to help trap problems, such as divide by zeros. If the processor find a problem with the currently executing code, it provides the processor alternative code to execute to fix that problem.</p>
+<p>Other interrupts may be used to provide a way to service software as routines. These interrupts can be called by any software from within the system. This is used a lot for System API's, which provide a way for ring 3 applications to execute ring 0 level routines.</p>
+<p>Interrupts provide a lot of use, especially as a way of receiving information from hardware that may change its state at asynchronous times.</p>
+<h3 id="interrupt-types">Interrupt Types</h3>
+<p>There are two types of interrupts: <strong>Software Interrupts</strong> and <strong>Hardware Interrupts</strong>.</p>
+<h4 id="software-interrupts">Software Interrupts</h4>
+<p>Software Interrupts are interrupts implemented and triggered in software. Normally, the processor's instruction set will provide an instruction to service software interrupts. For the x86 architectures, these are normally <strong>INT imm</strong>, and <strong>INT 3</strong>. It also uses <strong>IRET</strong> and <strong>IRETD</strong> instructions.</p>
+<p>For example, here we generate an interrupt through a software instruction:</p>
+<pre><code class="lang-armasm">    int    3    ; generates interrupt 3
+</code></pre>
+<p>These instructions may be used to generate software interrupts and execute <strong>Interrupt Routines (IR)'s</strong> through software.</p>
+<p>We will not cover software interrupts here. The 8259A PIC Microcontroller only services hardware interrupts. Software interrupts will be covered in another tutorial.</p>
+<h4 id="hardware-interrupts">Hardware Interrupts</h4>
+<p>A hardware interrupt is an interrupt triggered by a hardware device. Normally, these are hardware devices that require attention. The hardware Interrupt handler will be required to service this hardware request.</p>
+<p><strong>Spurious Interrupt</strong>: This is a hardware interrupt generated by electrical interference in the interrupt line, or faulty hardware. We do NOT want this!</p>
+<h3 id="interrupt-modes">Interrupt Modes</h3>
+<p>There are several modes and classes of interrupts that we will need to cover. In programming the PIC, we will need to choose a mode.</p>
+<p><strong>Note: This section may require some knowledge of the 8259A PIC hardware pin layout. this is discussed in the next section.</strong></p>
+<h4 id="level-triggered">Level Triggered</h4>
+<p>A <strong>Level Triggered</strong> interrupt is determined to happen when the <strong>Interrupt Request (IR) line on the PIC</strong> has current (1). A device sends a signal (Setting this line to active), and keeps it at that state until the interrupt is serviced.</p>
+<p>Level Triggered interrupt lines may be shared by multiple interrupts if the circuit is designed to handle it.</p>
+<p>This mode is the preferred mode because of how the lines are shared. When an IR line is active, the CPU searches through all of the devices sharing the same line until it finds what device is activating the signal. After finding the device, the CPU rechecks all of the devices again to insure there are no other devices that also need service.</p>
+<p>A problem with this approach is, if there is an interrupt with higher priority that needs to be serviced, all other interrupts will be permanently blocked until the other interrupts are serviced. After all, only one line can be active at a given time.</p>
+<h4 id="edge-triggered">Edge Triggered</h4>
+<p><strong>Edged Triggered</strong> interrupts are determined to happen when the <strong>Interrupt Request (IR) line on the PIC</strong> has current (1). A device sends a signal (Setting this line to active) through a single pulse, and returns the line to its previous state.</p>
+<p>Edged Triggered interrupt lines may be shared by multiple interrupts if the circuit is designed to handle it.</p>
+<p>If the pulse is too short to be detected, then it will not be detected.</p>
+<p>As these are only pulses of current that signals interrupt requests, Edged triggered mode does not have the same problems that Level triggered does with shared IRQ lines.</p>
+<p>Of course, we still run into the possibility of an interrupt being missed, as it is just a single pulse of current being sent through the IRQ line. This has caused early computer lockups of the CPU.</p>
+<p>However, through recent times, these lockups have decreased through time.</p>
+<h4 id="hybrid">Hybrid</h4>
+<p>Both of these modes have their pros and cons. a lot of systems implement a hybrid of both of them. More specifically, Most systems check for both Edge triggered and Level triggered interrupts on the <strong>Non Maskable Interrupt (NMI)</strong> pin on the CPU. <strong>The purpose of this is that the NMI pin is used to signal major problems with the system that can cause big problems, or entire system malfunctions, possibly hardware damage.</strong></p>
+<p>The Non Maskable Interrupt is just that -- It cannot be disabled or masked off by any device. This insures, along with having a hybrid setup, that if the NMI pin is set, the system can die peacefully without big problems.</p>
+<h4 id="message-signaled">Message Signaled</h4>
+<p>These types of hardware interrupts do not use a physical interrupt line. Instead, they rely on another medium, such as the system bus, to send messages over.</p>
+<p>These types of interrupts cause the device to only send a pulse of current over the medium, similar to edge triggered interrupts.</p>
+<p>These types of systems may use a special interrupt line on its control bus indicating a message signaled interrupt number. As these numbers are sent over the medium as a series of bits, they do not have the limitations of the other interrupt types, which are limited to a single interrupt line. As such, they can manage as much interrupts as the underlaying system allows. These types of interrupts also support sharing of interrupt vectors. PCI Express uses these types of interrupts a lot.</p>
+<h4 id="thats-all">Thats all</h4>
+<p>Okay, a lot of info here 😀 The 8259A only has support for Level triggered and Edge triggered interrupts. Because of this, Those should be your primary focus when working with the 8259A Microcontrollers.</p>
+<h2 id="interrupt-vector-table">Interrupt Vector Table</h2>
+<p>The <strong>Interrupt Vector Table (IVT)</strong> is a list of <strong>Interrupt Vectors</strong>. <strong>There are 256 Interrupts in the IVT.</strong></p>
+<h3 id="interrupt-routines-ir">Interrupt Routines (IR)</h3>
+<p>An <strong>Interrupt Routine (IR)</strong> is a special function used to handle an <strong>Interrupt Request (IRQ)</strong>.</p>
+<p>When the processor executes an <strong>interrupt instruction</strong>, such as <strong>INT</strong>, it executes the <strong>Interrupt Routine (IR)</strong> at that location within the <strong>Interrupt Vector Table (IVT)</strong>.</p>
+<p>This means, it simply executes a routine that we define. Not to hard, huh? This special routine determines the <strong>Interrupt Function</strong> to execute normally based off of the value in the AX register. This allows us to define multiple functions in an interrupt call. Such as, the DOS INT 21h function 0x4c00.</p>
+<p><strong>Remember: Executing an interrupt simply executes an interrupt routine that you created.</strong> For example, the instruction <strong>INT 2</strong> will execute the IR at index 2 in the IVT. Cool?</p>
+<h3 id="ivt-map">IVT Map</h3>
+<p>The IVT is located in the first 1024 bytes of physical memory, from addresses 0x0 through 0x3FF. Each entry inside of the IVT is 4 bytes, in the following format:</p>
+<ul>
+<li><strong>Byte 0:</strong> Offset Low Address of the <strong>Interrupt Routine (IR)</strong></li>
+<li><strong>Byte 1:</strong> Offset High Address of the IR</li>
+<li><strong>Byte 2:</strong> Segment Low Address of the IR</li>
+<li><strong>Byte 3:</strong> Segment High Address of the IR</li>
+</ul>
+<p><strong>Notice that each entry in the IVT simply contain the address of the IR to call.</strong> This allows us to create a simple function anywhere in memory (Our IR). As long as the IVT contains the addresses of our functions, everything will work fine.</p>
+<p>Okay, Lets take a look at the IVT. The first few interrupts are reserved, and stay the same.</p>
+<h4 id="x86-interrupt-vector-table-ivt">x86 Interrupt Vector Table (IVT)</h4>
+<table>
+<thead>
+<tr>
+<th>Base Address</th>
+<th>Interrupt Number</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x000</td>
+<td>0</td>
+<td>Divide by 0</td>
+</tr>
+<tr>
+<td>0x004</td>
+<td>1</td>
+<td>Single step (Debugger)</td>
+</tr>
+<tr>
+<td>0x008</td>
+<td>2</td>
+<td>Non Maskable Interrupt (NMI) Pin</td>
+</tr>
+<tr>
+<td>0x00C</td>
+<td>3</td>
+<td>Breakpoint (Debugger)</td>
+</tr>
+<tr>
+<td>0x010</td>
+<td>4</td>
+<td>Overflow</td>
+</tr>
+<tr>
+<td>0x014</td>
+<td>5</td>
+<td>Bounds check</td>
+</tr>
+<tr>
+<td>0x018</td>
+<td>6</td>
+<td>Undefined Operation Code (OPCode) instruction</td>
+</tr>
+<tr>
+<td>0x01C</td>
+<td>7</td>
+<td>No coprocessor</td>
+</tr>
+<tr>
+<td>0x020</td>
+<td>8</td>
+<td>Double Fault</td>
+</tr>
+<tr>
+<td>0x024</td>
+<td>9</td>
+<td>Coprocessor Segment Overrun</td>
+</tr>
+<tr>
+<td>0x028</td>
+<td>10</td>
+<td>Invalid Task State Segment (TSS)</td>
+</tr>
+<tr>
+<td>0x02C</td>
+<td>11</td>
+<td>Segment Not Present</td>
+</tr>
+<tr>
+<td>0x030</td>
+<td>12</td>
+<td>Stack Segment Overrun</td>
+</tr>
+<tr>
+<td>0x034</td>
+<td>13</td>
+<td>General Protection Fault (GPF)</td>
+</tr>
+<tr>
+<td>0x038</td>
+<td>14</td>
+<td>Page Fault</td>
+</tr>
+<tr>
+<td>0x03C</td>
+<td>15</td>
+<td>Unassigned</td>
+</tr>
+<tr>
+<td>0x040</td>
+<td>16</td>
+<td>Coprocessor error</td>
+</tr>
+<tr>
+<td>0x044</td>
+<td>17</td>
+<td>Alignment Check (486+ Only)</td>
+</tr>
+<tr>
+<td>0x048</td>
+<td>18</td>
+<td>Machine Check (Pentium/586+ Only)</td>
+</tr>
+<tr>
+<td>0x05C</td>
+<td>19-31</td>
+<td>Reserved exceptions</td>
+</tr>
+<tr>
+<td>0x068 - 0x3FF</td>
+<td>32-255</td>
+<td>Interrupts free for software use</td>
+</tr>
+</tbody>
+</table>
+<p>Not to hard. Each of these interrupts are located at a base address within the IVT.</p>
+<h3 id="interrupt-handling-in-protected-mode-pmode">Interrupt Handling in Protected Mode (PMode)</h3>
+<p>Protected Mode requires each IVT entry to point to an interrupt routine (IR) defined within an <strong>Interrupt Descriptor Table (IDT)</strong>. The IDT will be explained further in another tutorial, as it is not directly related to this tutorial.</p>
+<p>The IDT is an array of <strong>Interrupt Descriptors</strong>, that describe the base address of the Interrupt Routine (IR) to execute, that contains extra information about it's protection level, segment information, etc. PMode uses a Global Descriptor Table (GDT) that defines the memory map that is being used. Most of the interrupt routines will be inside of a code descriptor, mapped by the GDT. This is why the IDT is required in PMode.</p>
+<p>Do not worry if you do not understand this right now. For now, just think of it as an array of 256 function pointers, mapped exactly like that of the IVT (It normally is, anyways.)</p>
+<h2 id="hardware-interrupts-detailed">Hardware Interrupts (Detailed)</h2>
+<p>There are two types of interrupts, those generated by software (Usually by an instruction, such as <strong>INT, INT 3, BOUND, INTO</strong>), and an interrupt generated by hardware.</p>
+<p>Hardware interrupts are very important for PC's. It allows other hardware devices to signal the CPU that something is about to happen. For example, a keystroke on the keyboard, or a single clock tick on the internal timer, for example.</p>
+<p>We will need to map what <strong>Interrupt Request (IRQ)</strong> to generate when these interrupts happen. This way, we have a way to track these hardware changes.</p>
+<p>Lets take a look at these hardware interrupts.</p>
+<h3 id="x86-hardware-interrupts">x86 Hardware Interrupts</h3>
+<table>
+<thead>
+<tr>
+<th>8259A Input pin</th>
+<th>Interrupt Number</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IRQ0</td>
+<td>0x08</td>
+<td>Timer</td>
+</tr>
+<tr>
+<td>IRQ1</td>
+<td>0x09</td>
+<td>Keyboard</td>
+</tr>
+<tr>
+<td>IRQ2</td>
+<td>0x0A</td>
+<td>Cascade for 8259A Slave controller</td>
+</tr>
+<tr>
+<td>IRQ3</td>
+<td>0x0B</td>
+<td>Serial port 2</td>
+</tr>
+<tr>
+<td>IRQ4</td>
+<td>0x0C</td>
+<td>Serial port 1</td>
+</tr>
+<tr>
+<td>IRQ5</td>
+<td>0x0D</td>
+<td>AT systems: Parallel Port 2. PS/2 systems: reserved</td>
+</tr>
+<tr>
+<td>IRQ6</td>
+<td>0x0E</td>
+<td>Diskette drive</td>
+</tr>
+<tr>
+<td>IRQ7</td>
+<td>0x0F</td>
+<td>Parallel Port 1</td>
+</tr>
+<tr>
+<td>IRQ8/IRQ0</td>
+<td>0x70</td>
+<td>CMOS Real time clock</td>
+</tr>
+<tr>
+<td>IRQ9/IRQ1</td>
+<td>0x71</td>
+<td>CGA vertical retrace</td>
+</tr>
+<tr>
+<td>IRQ10/IRQ2</td>
+<td>0x72</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td>IRQ11/IRQ3</td>
+<td>0x73</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td>IRQ12/IRQ4</td>
+<td>0x74</td>
+<td>AT systems: reserved. PS/2: auxiliary device</td>
+</tr>
+<tr>
+<td>IRQ13/IRQ5</td>
+<td>0x75</td>
+<td>FPU</td>
+</tr>
+<tr>
+<td>IRQ14/IRQ6</td>
+<td>0x76</td>
+<td>Hard disk controller</td>
+</tr>
+<tr>
+<td>IRQ15/IRQ7</td>
+<td>0x77</td>
+<td>Reserved</td>
+</tr>
+</tbody>
+</table>
+<p>You do not need to worry to much about each device just yet. The 8259A Pins will be described in detail within the next section. The Interrupt Numbers listed in this table are the default DOS <strong>interrupt requests (IRQ)</strong> to execute when these events trigger.</p>
+<p>In most cases, we will need to recreate a new interrupt table. As such, most operating systems need to remap the interrupts the PIC's use to insure they call the proper IRQ within their IVT. This is done for us by the BIOS for the real mode IVT. We will cover how to do this later in this tutorial as well.</p>
+<h2 id="8259-programmable-interrupt-controller">8259 Programmable Interrupt Controller</h2>
+<p>The 8259 Microcontroller familiy is a set of <strong>Programmable Interrupt Controller (PIC) Integrated Circuits (ICs)</strong>. Look back again at <strong>Tutorial 7</strong>... Under the <strong>Processor Architecture</strong> section, <strong>Notice that the processor has it's own internal PIC Microcontroller.</strong> This is very important to note.</p>
+<p>Do to limitations in the circuit design, <strong>a PIC only supports 8 IRQ's</strong>. This is a big limitation. As additional devices were created, IBM quickly realized that this limitation is very bad. Because of this, <strong>Most motherboards contain a secondary (Slave) PIC microcontroller to work with the primary PIC inside the processor.</strong> Today, this is very common. A single PIC can be &quot;cascaded&quot; (capable of working with) another PIC. This makes it possible to support more IRQ's with additional PICs.</p>
+<p>The More PIC's supported, the more IRQ's can be handled. They can be cascaded to support up to 64 IRQ's. Cool?</p>
+<p><strong>Remember: Most computers have 2 PIC's, 1 inside the processor, and 1 on the motherboard. Some systems may not have this.</strong><br>
+<strong>Remember: Each PIC can only support up to 8 IRQ's.</strong><br>
+<strong>Remember: Each PIC can communicate with each other, allowing up to 64 IRQ's depending on the number of PIC's.</strong></p>
+<p>Not to hard 😀</p>
+<h2 id="8259-hardware">8259 Hardware</h2>
+<p>Understanding how microcontrollers work at the hardware level will help in understanding how the software side of things work. <strong>Remember that the PIC's are only used during a hardware interrupt.</strong></p>
+<h3 id="8259a-microcontroller">8259A Microcontroller</h3>
+<p>At the top of this tutorial, there is an image of an actual 8259 <strong>Dual Inline Package (DIP)</strong>, with all of the electronic pins labeled. To make things more understandable, we are going to represent the controller using a simpler graphic. <strong>The only pins these graphics do not display that the 8259 has are GND (Ground) and Vcc (Input Voltage).</strong> You can see these pins labeled in the picture on the top of this tutorial.</p>
+<p>Lets first look at what we are going to be programming:</p>
+<p><img src="../../resources/images/8086_interrupts-11.gif" alt="8259A Microcontroller ports"></p>
+<p>That's it. The 8259A Programmable Interrupt Controller.</p>
+<p>Each of the lines in the above image displays each of the controllers electronic pins. These electronic pins are the connections between the controller and the rest of the system.</p>
+<p>This is the chip that we will need to program in order to handle IRQ's within an operating system. Let's look at this closer at each pin. I <strong>bolded</strong> the important pins.</p>
+<ul>
+<li><strong>WR Pin:</strong> This pin connects to a write strobe signal (One of 8 on a Pentium)</li>
+<li><strong>RD Pin:</strong> This connects to the <strong>IOCR (Input Output Control Routine)</strong> signal.</li>
+<li><strong>INT Pin: Connects to the INTR pin on the microprocessor.</strong></li>
+<li><strong>INTA Pin: Connects to the INTA pin on the microprocessor.</strong></li>
+<li><strong>A0 Pin: Selects different Command WORDS</strong></li>
+<li><strong>CS Pin:</strong> Enables the chip for programming and control.</li>
+<li><strong>SP/EN Pin:</strong> Slave program (SP) / Enable Buffer (EN).
+<ul>
+<li>Slave Program (1=Master, 0=Slave)</li>
+<li>Enable Buffer (Controls data bus transceivers when in buffered mode)</li>
+</ul>
+</li>
+<li><strong>CAS0, CAS1, CAS2 Pins: Used to output from master to slave PIC controllers in cascaded systems.</strong></li>
+<li><strong>D0 - D7 Pins: 8 bit Data connector pins.</strong></li>
+</ul>
+<p>There are a couple of important pins here. Pins D0-D7 provide a way for an external device to communicate with the PIC. This is like a small data bus--It provides a way to send data over to the PIC, like...An interrupt number, perhaps?</p>
+<p>Remember that we can connect PIC's together. This allows us to provide support for up to 64 IR numbers. In other words--64 hardware interrupts. CAS0, CAS1, and CAS2 pins provide a way to send signals between these PIC's.</p>
+<p>Look at the INT and INTA pins. Remember from the <strong>Processor Perspective</strong> section that the processors' own INT and INTA pins connect to these pins on the PIC. Remember that, when about to execute an interrupt, the processor clears the Interrupt (IF) and Trap flags (TF) from the FLAGS register, which disables the INTR pin. <strong>The PIC's INT pin connects to the processors' INTR pin.</strong></p>
+<p>This means that the processor, essentially, disables the PIC's INT pin when executing an interrupt.</p>
+<p>With this, the pins IR0-IR7 can be streamed to other PIC's. These 8 pins represent the 8 bit interrupt number to be executed. Notice that this, as being an 8 bit value, provides a way to allow up to 256 hardware interrupts. these lines provide a way to send the interrupt number to another PIC controller, so that controller could handle it instead.</p>
+<p>The important thing to note is that <strong>We can combine multiple PIC's to support more interrupt routine numbers.</strong> The IR lines connect to another PIC's data lines to transfer data over. As there are only 8 lines (8 bits), we can only connect up to 8 PIC's together, providing support for up to 64 interrupt numbers.</p>
+<p>Okay... a lot of stuff here, huh? We have described how the processor connects to the primary PIC, and how the PIC's can combine with other PIC's to create a chain of PIC's.</p>
+<p>This is great, but completely useless. How does an interrupt execute through hardware? What makes this controller &quot;programmable&quot;? How can we program the PIC to work for our needs?</p>
+<p>Programming the PIC revolves around the use of sending <strong>Command Bytes</strong> through the 8 bit data line that the PIC's have. This 8 bit command byte follows specific formats that describe what the PIC is to do. We will need to know these commands in order to program the PICs. We w8ill cover this later.</p>
+<p>Lets take a closer look at how the PIC works. This will help in better understanding of the 8259A pins, and how interrupt signals are sent.</p>
+<h3 id="8259a-connections">8259A Connections</h3>
+<p><strong>Note: This section may require some knowledge in Digital Logic Electronics.</strong></p>
+<p>Okay... So far we have looked at the 8259A PIC pins. Lets try to look at these pins from another perspective, and see what it looks like within a typical computer.</p>
+<h4 id="connecting-the-pics-to-the-processor">Connecting the PICs to the processor</h4>
+<p>First, remember when I said that most computers today have 2 8259A PICs? This is only half true. Remember from the <strong>Processor Architecture</strong> that the primary PIC is integrated into the processor. There is a reason for this, as you will soon see.</p>
+<p>To make things simple, lets imagine the system we are on actually have 2 PIC controllers, both directly on the motherboard (None of them are integrated with the processor.)</p>
+<p>Looking at this graphically, this is what we might see:</p>
+<p><img src="../../resources/images/8086_interrupts-18.gif" alt="8259A Microcontroller connections on motherboard"></p>
+<p>Okay... There is a lot going on here. This displays a part of the IO Subsystem and ISA bus, and how the 8259A controllers connect to the system bus through the common 16L8.</p>
+<p>Do not worry at all if you do not understand this, as digital logic electronics is not a prerequisite for this series ;) This image is also missing more details as well. Nonetheless, it displays the basic links and connections between the components. Looking at the above image, there are a few important notes.**Notice how the slave controller connects to the primary controller.**<strong>Notice that only the primary PIC needs direct connection with the processor. Because of this tight integration, modern computers usually have the primary PIC integrated directly inside of the processor to eliminate this dependency.</strong></p>
+<p><strong>Also notice how the CAS0-CAS2 pins directly connect to the second PIC. This allows the primary PIC to send commands to the secondary PIC.</strong></p>
+<p>And, as we all know, the IR lines connect to other controllers that control that line. For example, <strong>Hardware Interrupt 0 represents a timer interrupt. The 8254 Programmable Interval Timer (PIT) Controller will send a signal through the IR0 line to the primary PIC, as it is directly connected to it.</strong> This signal will either be a current that stays active until the interrupt has been serviced, or may be a single pulse that is held for a certain time. <strong>We can control what we want the PIC to watch for. This is described in more detail later.</strong></p>
+<p>So...There you have it 😀 The infamous 8259A PIC Microcontroller.</p>
+<h3 id="how-hardware-interrupts-execute">How hardware interrupts execute</h3>
+<p>On the underside of all microprocessors contain connectors. These can be flat, or in the form of pins, that connects to the motherboard. Two of these pins are the INTR and NMI pins. With this, there is another pin for acknowledges the completion of the interrupt - INTA.</p>
+<p>Software interrupts are handled differently then hardware interrupts. Both of these types of interrupts are inside of the <strong>Interrupt Vector Table</strong> located at address 0 through 0x3ff in memory.</p>
+<p><strong>Remember: Only hardware interrupts are handled through the Programmable Interrupt Controller.</strong></p>
+<h4 id="the-interrupt-is-generated">The interrupt is generated</h4>
+<p>When a device controller needs to generate an interrupt, it needs to signal the PIC somehow. Lets say, for purposes of discussion, that this device is the timer, which uses interrupt line 0.</p>
+<ol>
+<li>The timer controller signals the PIC by activating the IR0 line. This changes its state from a 0 (No power) to a 1 (Power is going through the line.)</li>
+<li>The PIC sets the bit representing the IRQ inside of the <strong>Interrupt Request Register (IRR)</strong>. In this example, bit 0 will be set to 1.</li>
+<li>The PIC examines the <strong>Interrupt Mask Register (IMR)</strong> to see if the interrupt can be serviced.
+<ol>
+<li>If the interrupt can be serviced, the PIC determines if there are any higher priority interrupts waiting to be serviced. If there is, the interrupt request is ignored until the higher priority interrupts are serviced.</li>
+<li>If the interrupt can be serviced, and there are no higher priority interrupts, the PIC continues to the next step.</li>
+</ol>
+</li>
+<li>The PIC signals the processor through the INTA pin to inform the processor an interrupt has been fired.</li>
+</ol>
+<p>The processor now knows that an interrupt has been fired.</p>
+<h4 id="the-processor-acknowledges-the-interrupt">The processor acknowledges the interrupt</h4>
+<ol>
+<li>The CPU completes execution of the current instruction.</li>
+<li>The CPU examines the <strong>Interrupt Flag (IF)</strong> within <strong>RFLAGS</strong>.
+<ol>
+<li>If IF is set, the CPU acknowledges the interrupt request through the INTR pin back to the PIC.</li>
+<li>If IF is cleared, the interrupt request is ignored.</li>
+</ol>
+</li>
+<li>The PIC receives the acknowledgment signal through INTR.</li>
+<li>The PIC places the interrupt vector number into the D0-D7 pins.
+<ol>
+<li>This interrupt vector number is obtained from the <strong>Initialization Control Word (ICW) 2</strong> during initialization of the PIC. We will cover this later.</li>
+</ol>
+</li>
+<li>The PIC also places the IRQ number into D0-D7</li>
+<li>The PIC sets the correct bit inside of the <strong>In Service Register (ISR)</strong>. In this case, it is bit 0. This indicates that Interrupt 0 is currently being serviced.</li>
+</ol>
+<p>Now the processor has the IRQ number and the interrupt vector number to execute.</p>
+<h4 id="interruption">Interruption</h4>
+<ol>
+<li>The processor interrupts the current process. It pushes EFLAGS, CS, and EIP on the stack.</li>
+<li>The processor uses the interrupt vector number (given by the PIC).
+<ul>
+<li>In real mode, the CPU offsets into the IVT. In Protected Mode, The Processor offsets into the IDT.</li>
+<li>Real Mode:
+<ul>
+<li>The CPU offsets into the correct entry into the IVT</li>
+<li>The CPU loads the base address of the interrupt to call into CS:IP</li>
+<li>The interrupt takes control.</li>
+</ul>
+</li>
+<li>Protected Mode:
+<ul>
+<li>The CPU uses the loaded IDT to offset into</li>
+<li>The selector field of the gate descriptor is loaded into the CS segment selector.</li>
+<li>The offset field of the gate descriptor is loaded into EIP.</li>
+<li>If paging is enabled, this address is translated from a linear address to a physical address.</li>
+<li>Now, the CPU will perform architecture specific security checks on the current state.</li>
+<li>The interrupt routine can now take control from gate descriptor + CS:EIP.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h4 id="the-interrupt-service-routine">The Interrupt Service Routine</h4>
+<p>Now the ISR is executing to handle the hardware interrupt. It can perform whatever action needed to service the specific device. For example, reading or writing data to/from the device, reading status registers, sending commands, et al.</p>
+<p>During this time, all interrupts are masked out by the <strong>Interrupt Mask Register (IMR)</strong>. In other words, this disables all hardware interrupts until a request has been made to end the interrupt. this requires an <strong>End of Interrupt (EOI)</strong> command to be sent to the PIC.</p>
+<p>After the EOI signal has been sent to the PIC through the Primary PIC's <strong>Command Register</strong>, The PIC clears the appropriate bit in the <strong>In Service Register (IRR)</strong>, and is now ready to service new interrupts.</p>
+<p>the interrupt service routine then performs a <strong>IRETD</strong> instruction, popping EFLAGS, CS, and EIP registers, which were pushed by the processor when the interrupt was fired.</p>
+<p>This transfers control back to the initial task.</p>
+<h2 id="8259a-registers">8259A Registers</h2>
+<p>The 8259A has several internal registers, similar to the processor.</p>
+<h3 id="command-register">Command Register</h3>
+<p>This is a write only register that is used to send commands to the microcontroller. There are a lot of different commands that you can send. Some commands are used to read from other registers, while other command are used to initialize and sending data, such as End of Interrupt (EOI). We will cover these commands later.</p>
+<h3 id="status-register">Status register</h3>
+<p>This is a read only register that can be accessed to determine the status of the PIC.</p>
+<h3 id="interrupt-request-register-irr">Interrupt Request Register (IRR)</h3>
+<p>This register specifies which interrupts are pending acknowledgment.</p>
+<p><strong>Note: This register is internal, and cannot be accessed directly.</strong></p>
+<h4 id="interrupt-request-register-table">Interrupt Request Register Table</h4>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>IRQ Number (Primary controller)</th>
+<th>IRQ Number (Slave controller)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>IRQ0</td>
+<td>IRQ8</td>
+</tr>
+<tr>
+<td>1</td>
+<td>IRQ1</td>
+<td>IRQ9</td>
+</tr>
+<tr>
+<td>2</td>
+<td>IRQ2</td>
+<td>IRQ10</td>
+</tr>
+<tr>
+<td>3</td>
+<td>IRQ3</td>
+<td>IRQ11</td>
+</tr>
+<tr>
+<td>4</td>
+<td>IRQ4</td>
+<td>IRQ12</td>
+</tr>
+<tr>
+<td>5</td>
+<td>IRQ5</td>
+<td>IRQ13</td>
+</tr>
+<tr>
+<td>6</td>
+<td>IRQ6</td>
+<td>IRQ14</td>
+</tr>
+<tr>
+<td>7</td>
+<td>IRQ7</td>
+<td>IRQ15</td>
+</tr>
+</tbody>
+</table>
+<p>If a bit is set, the interrupt has been signaled by a device, and the PIC has signaled the CPU, but is awaiting acknowledgment from the CPU to go ahead with the interrupt.</p>
+<h3 id="in-service-register-isr">In-Service Register (ISR)</h3>
+<p>This register specifies which interrupts have already been acknowledged, but are awaiting for the <strong>End of Interrupt (EOI)</strong> signal. The EOI signal is very important as it determines the end of an interrupt.</p>
+<p><strong>Note: We will need to send the EOI signal upon completion of the interrupt to let the 8259A acknowledge the interrupt. Not doing so will result in undefined behavior or malfunction.</strong> More on this later.</p>
+<p><strong>Note: This register is internal, and cannot be accessed directly.</strong></p>
+<h4 id="in-service-register-table">In Service Register Table</h4>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>IRQ Number (Primary controller)</th>
+<th>IRQ Number (Slave controller)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>IRQ0</td>
+<td>IRQ8</td>
+</tr>
+<tr>
+<td>1</td>
+<td>IRQ1</td>
+<td>IRQ9</td>
+</tr>
+<tr>
+<td>2</td>
+<td>IRQ2</td>
+<td>IRQ10</td>
+</tr>
+<tr>
+<td>3</td>
+<td>IRQ3</td>
+<td>IRQ11</td>
+</tr>
+<tr>
+<td>4</td>
+<td>IRQ4</td>
+<td>IRQ12</td>
+</tr>
+<tr>
+<td>5</td>
+<td>IRQ5</td>
+<td>IRQ13</td>
+</tr>
+<tr>
+<td>6</td>
+<td>IRQ6</td>
+<td>IRQ14</td>
+</tr>
+<tr>
+<td>7</td>
+<td>IRQ7</td>
+<td>IRQ15</td>
+</tr>
+</tbody>
+</table>
+<p>If a bit is set, the current IRQ has been acknowledged by the CPU to go ahead and begin executing. The PIC uses this register to determine what IRQ is currently being executed.</p>
+<h3 id="interrupt-mask-register-imr">Interrupt Mask Register (IMR)</h3>
+<p>This specifies what interrupts are to be ignored, and not acknowledged. this allows us to focus on executing certain, more important interrupts before executing the interrupts specified in this register.</p>
+<p>This is an 8 bit register, where each bit determines if an interrupt is disabled or not. If the bit is 0, it is enabled. If it is a 1, the interrupt device is disabled.</p>
+<h4 id="interrupt-mask-register-table">Interrupt Mask Register Table</h4>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>IRQ Number (Primary controller)</th>
+<th>IRQ Number (Slave controller)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>IRQ0</td>
+<td>IRQ8</td>
+</tr>
+<tr>
+<td>1</td>
+<td>IRQ1</td>
+<td>IRQ9</td>
+</tr>
+<tr>
+<td>2</td>
+<td>IRQ2</td>
+<td>IRQ10</td>
+</tr>
+<tr>
+<td>3</td>
+<td>IRQ3</td>
+<td>IRQ11</td>
+</tr>
+<tr>
+<td>4</td>
+<td>IRQ4</td>
+<td>IRQ12</td>
+</tr>
+<tr>
+<td>5</td>
+<td>IRQ5</td>
+<td>IRQ13</td>
+</tr>
+<tr>
+<td>6</td>
+<td>IRQ6</td>
+<td>IRQ14</td>
+</tr>
+<tr>
+<td>7</td>
+<td>IRQ7</td>
+<td>IRQ15</td>
+</tr>
+</tbody>
+</table>
+<p>This is an important register, as it allows us to enable and disable interrupts from certain devices. Each of these IRQ's represent the device listed in the <strong>x86 Hardware Interrupts</strong> table shown above.</p>
+<p>For example, lets say we want to enable COM1 (Serial Port 1). Looking at the x86 Hardware Interrupt Table, we can see that this is mapped to IRQ 4. So, in order to enable COM1 interrupts, all we need to do is set the IRQ4 bit for the primary PIC's Interrupt Mask Register. This register is mapped to the software port number 0x21 (We will cover this later.) So, all we need to do is set the bit by writing to this port location.</p>
+<pre><code class="lang-armasm">in    al, 0x21        ; read in the primary PIC Interrupt Mask Register (IMR)
+and   al, 0xEF        ; 0xEF =11101111b. This sets the IRQ4 bit (Bit 5) in AL
+out   0x21, al        ; write the value back into IMR
+</code></pre>
+<p>Too cool for school 😁</p>
+<p>When a hardware interrupt occurs, <strong>The 8259A Masks out all other interrupts until it receives an End of Interrupt (EOI) signal.</strong> We will need to send the EOI upon completion of the interrupt. We will look at this later.</p>
+<h2 id="8259a-software-port-mappings">8259A Software Port Mappings</h2>
+<p>Like all hardware controllers, the BIOS POST maps each controller to use a specific region of software ports. Because of this, in order to communicate with the PIC controllers, we need to use software ports.</p>
+<h3 id="8259a-software-port-map">8259A Software Port Map</h3>
+<table>
+<thead>
+<tr>
+<th>Port Address</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x20</td>
+<td>Primary PIC Command and Status Register</td>
+</tr>
+<tr>
+<td>0x21</td>
+<td>Primary PIC Interrupt Mask Register and Data Register</td>
+</tr>
+<tr>
+<td>0xA0</td>
+<td>Secondary (Slave) PIC Command and Status Register</td>
+</tr>
+<tr>
+<td>0xA1</td>
+<td>Secondary (Slave) PIC Interrupt Mask Register and Data Register</td>
+</tr>
+</tbody>
+</table>
+<p>Notice the Primary PIC's Interrupt Mask Register is mapped to Port 0x21. We have seen this before, haven't we?</p>
+<p>The <strong>Command Register</strong> and <strong>Status Register</strong> are to different registers that share the same port number. The command register is write only, while the status register is read only. This is an important difference, as the PIC determines what register to access depending on weather the write or read lines are set.</p>
+<p>We will need to be able to write to these ports to communicate with individual device registers and control the PICs. Lets now take a look at the commands for the PIC.</p>
+<h2 id="8259a-commands">8259A Commands</h2>
+<p>Setting up the PIC is fairly complex. It is done through a series of <strong>Command Words</strong>, which are a bit pattern that contains various of states used for initialization and operation. This might seem a little complex, but it is not to hard.</p>
+<p>Because of this, lets first look at how to initialize the PIC controllers for our use, followed by operating and controlling the PICs.</p>
+<h3 id="initialization-control-words-icw">Initialization Control Words (ICW)</h3>
+<p>The purpose of initializing the PIC is to remap the PIC's IRQ numbers to our own. this insures the proper IRQ is generated when a hardware interrupt happens.</p>
+<p>In order to initialize the PIC, we must send a command byte (Known as an <strong>Initialization Control Word (ICW)</strong>) to the primary PIC Command Register. <strong>This is ICW 1</strong>.</p>
+<p>There can be up to 4 Initialization Control Words. These are not required, but are often needed. Lets take a look at them.</p>
+<p><strong>Note: If there are multiple PICs in the system that are to be cascaded with each other, we must send the ICW's to both of the PICs!</strong></p>
+<h4 id="icw-1">ICW 1</h4>
+<p>This is the primary control word used to initialize the PIC. this is a 7 bit value that must be put in the primary PIC command register. This is the format:</p>
+<h5 id="icw-1-table">ICW 1 table</h5>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>IC4</td>
+<td>If set(1), the PIC expects to receive IC4 during initialization.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>SNGL</td>
+<td>If set(1), only one PIC in system. If cleared, PIC is cascaded with slave PICs, and ICW3 must be sent to controller.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ADI</td>
+<td>If set (1), CALL address interval is 4, else 8. This is usually ignored by x86, and is default to 0</td>
+</tr>
+<tr>
+<td>3</td>
+<td>LTIM</td>
+<td>If set (1), Operate in Level Triggered Mode. If Not set (0), Operate in Edge Triggered Mode</td>
+</tr>
+<tr>
+<td>4</td>
+<td>1</td>
+<td>Initialization bit. Set 1 if PIC is to be initialized</td>
+</tr>
+<tr>
+<td>5</td>
+<td>0</td>
+<td>MCS-80/85: Interrupt Vector Address. x86 Architecture: Must be 0</td>
+</tr>
+<tr>
+<td>6</td>
+<td>0</td>
+<td>MCS-80/85: Interrupt Vector Address. x86 Architecture: Must be 0</td>
+</tr>
+<tr>
+<td>7</td>
+<td>0</td>
+<td>MCS-80/85: Interrupt Vector Address. x86 Architecture: Must be 0</td>
+</tr>
+</tbody>
+</table>
+<p>As you can see, there is a lot going on here. We have seen some of these before. This is not as hard as it seems, as most of these bits are not used on the x86 platform.</p>
+<p>To initialize the primary PIC, all we need to do is create the initial ICW and set the appropriate bits. So, lessee...</p>
+<ul>
+<li><strong>Bit 0</strong> - Set to 1 so we can sent ICW 4</li>
+<li><strong>Bit 1</strong> - PIC cascading bit. x86 architectures have 2 PICs, so we need the primary PIC cascaded with the slave. Keep it 0</li>
+<li><strong>Bit 2</strong> - CALL address interval. Ignored by x86 and kept at 8, so keep it 0</li>
+<li><strong>Bit 3</strong> - Edge triggered/Level triggered mode bit. By default, we are in edge triggered, so leave it 0</li>
+<li><strong>Bit 4</strong> - Initialization bit. Set to 1</li>
+<li><strong>Bits 5...7</strong> - Unused on x86, set to 0.</li>
+</ul>
+<p>Looking at the above, the final bit pattern becomes <strong>00010001</strong>, or 0x11. So, to initialize the PIC, send 0x11 to the primary PIC controller register, mapped to port 0x20...</p>
+<pre><code class="lang-armasm">    ; Setup to initialize the primary PIC. Send ICW 1
+    mov    al, 0x11
+    out    0x20, al
+
+    ; Remember that we have 2 PICs. Because we are cascading with this second PIC, send ICW 1 to second PIC command register
+    out    0xA0, al    ; slave PIC command register
+</code></pre>
+<p>Because we have enabled cascading, we need to send ICW 3 to the controller as well. Also, because we have set bit 0, we must also send ICW 4. More on those later. For now, lets take a look at ICW 2.</p>
+<h4 id="icw-2">ICW 2</h4>
+<p>This control word is used to map the base address of the IVT of which the PIC are to use. <strong>This is important!</strong></p>
+<h5 id="icw-2-table">ICW 2 table</h5>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-2</td>
+<td>A8/A9/A10</td>
+<td>Address bits A8-A10 for IVT when in MCS-80/85 mode.</td>
+</tr>
+<tr>
+<td>3-7</td>
+<td>A11(T3)/A12(T4)/A13(T5)/A14(T6)/A15(T7)</td>
+<td>Address bits A11-A15 for IVT when in MCS-80/85 mode. In 80x86 mode, specifies the interrupt vector address. May be set to 0 in x86 mode.</td>
+</tr>
+</tbody>
+</table>
+<p>During initialization, we need to send ICW 2 to the PICs to tell them where the base address of the IRQ's to use. If an ICW1 was sent to the PICs (With the initialization bit set), you must send ICW2 next. <strong>Not doing so can result in undefined results.</strong> Most likley the incorrect interrupt handler will be executed.</p>
+<p>Unlike ICW 1, which is placed into the PIC's data registers, ICW 2 is sent to the data Registers, as software ports 0x21 for the primary PIC, and port 0xA1 for the secondary PIC. (Please see the <strong>8259A Software Port Map</strong> table for a complete listing of PIC software ports).</p>
+<p>Okay, so assuming we have just sent an ICW 1 to both PICs (Please see the above section), lets send an ICW 2 to both PICs. This will map a base IRQ address to both PICs.</p>
+<p>This is very simple, but we must be careful at where we map the PICs to. Remember that the first 31 interrupts (0x0-0x1F) are reserved (Please see the above <strong>x86 Interrupt Vector Table (IVT)</strong> table). As such, we have to insure we do not use any of these IRQ numbers.</p>
+<p>Instead, lets map them to IRQs 32-47, right after these reserved interrupts. the first 8 IRQ's are handled by the primary PIC, so we map the primary PIC to the base address of 0x20 (32 decimal), and the secondary PIC at 0x28 (40 decimal). Remember there are 8 IRQ's for each PIC.</p>
+<pre><code class="lang-armasm">    ; send ICW 2 to primary PIC
+    mov    al, 0x20        ; Primary PIC handled IRQ 0..7. IRQ 0 is now mapped to interrupt number 0x20
+    out    0x21, al
+
+    ; send ICW 2 to secondary controller
+    mov    al, 0x28        ; Secondary PIC handles IRQ's 8..15. IRQ 8 is now mapped to use interrupt 0x28
+    out    0xA1, al
+</code></pre>
+<p>That is simple, huh? Onto the next one!</p>
+<h4 id="icw-3">ICW 3</h4>
+<p>This is an important command word. It is used to let the PICs know what IRQ lines to use when communicating with each other.</p>
+<h5 id="icw-3---primary-pic-table">ICW 3 - Primary PIC table</h5>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-7</td>
+<td>S0-S7</td>
+<td>Specifies what Interrupt Request (IRQ) is connected to slave PIC</td>
+</tr>
+</tbody>
+</table>
+<h5 id="icw-3---secondary-pic-table">ICW 3 - Secondary PIC table</h5>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-2</td>
+<td>ID0</td>
+<td>IRQ number the master PIC uses to connect to (In binary notation)</td>
+</tr>
+<tr>
+<td>3-7</td>
+<td>0</td>
+<td>Reserved, must be 0</td>
+</tr>
+</tbody>
+</table>
+<p>We must send an ICW 3 whenever we enable cascading within ICW 1. this allows us to set which IRQ to use to communicate with each other. Remember that the 8259A Microcontroller relies on the IR0-IR7 pins to connect to other PIC devices. With this, it uses the CAS0-CAS2 pins to communicate with each other.</p>
+<p>We need to let each PIC know about each other and how they are connected. We do this by sending the ICW 3 to both PICs containing which IRQ line to use for both the master and associated PICs.</p>
+<p><strong>Remember: The 80x86 architecture uses IRQ line 2 to connect the master PIC to the slave PIC.</strong></p>
+<p>Knowing this, and remembering that we need to write this to the data registers for both PICs, we need to follow the formats shown above.</p>
+<p>Note that, in the ICW 3 for the primary PIC, <strong>Each bit represents an interrupt request.</strong> That is...</p>
+<h5 id="irq-lines-for-icw-3-primary-pic">IRQ Lines for ICW 3 (Primary PIC)</h5>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>IRQ Line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>IR0</td>
+</tr>
+<tr>
+<td>1</td>
+<td>IR1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>IR2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>IR3</td>
+</tr>
+<tr>
+<td>4</td>
+<td>IR4</td>
+</tr>
+<tr>
+<td>5</td>
+<td>IR5</td>
+</tr>
+<tr>
+<td>6</td>
+<td>IR6</td>
+</tr>
+<tr>
+<td>7</td>
+<td>IR7</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notice that IRQ 2 is Bit 2 within ICW 3</strong>. So, in order to set IRQ 2, we need to set bit 2 (Which is at 0100 binary, or 0x4).</p>
+<p>Here is an example of sending ICW 3 to the primary PIC:</p>
+<pre><code class="lang-armasm">    ; Send ICW 3 to primary PIC
+    mov  al, 0x4     ; 0x4 = 0100 Second bit (IR Line 2)
+    out  0x21, al    ; write to data register of primary PIC
+</code></pre>
+<p>To send this to the secondary PIC, we must remember that we must send this in <strong>binary notation</strong>. Please refer to the table above. Note that only Bits 0...2 are used to represent the IRQ line. By using binary notation, we can refer to the 8 IRQ lines to choose from:</p>
+<h5 id="irq-lines-for-icw-3-secondary-pic">IRQ Lines for ICW 3 (Secondary PIC)</h5>
+<table>
+<thead>
+<tr>
+<th>Binary</th>
+<th>IRQ Line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>000</td>
+<td>IR0</td>
+</tr>
+<tr>
+<td>001</td>
+<td>IR1</td>
+</tr>
+<tr>
+<td>010</td>
+<td>IR2</td>
+</tr>
+<tr>
+<td>011</td>
+<td>IR3</td>
+</tr>
+<tr>
+<td>100</td>
+<td>IR4</td>
+</tr>
+<tr>
+<td>101</td>
+<td>IR5</td>
+</tr>
+<tr>
+<td>110</td>
+<td>IR6</td>
+</tr>
+<tr>
+<td>111</td>
+<td>IR7</td>
+</tr>
+</tbody>
+</table>
+<p>Simple enough. Notice that this just follows a binary&lt;-&gt;decimal conversion in the above table.</p>
+<p><strong>Because we are connected by IRQ line 2, we need to use bit 1 (Shown above).</strong></p>
+<p>Here is a complete example, that sends a ICW 2 to both primary and secondary PIC controllers:</p>
+<pre><code class="lang-armasm">    ; Send ICW 3 to primary PIC
+    mov  al, 0x4    ; 0x04 =0100, second bit (IR line 2)
+    out  0x21, al   ; write to data register of primary PIC
+
+    ; Send ICW 3 to secondary PIC
+    mov  al, 0x2    ; 010=IR line 2
+    out  0xA1, al   ; write to data register of secondary PIC
+</code></pre>
+<p>That's all there is to it 😋</p>
+<p>Okay, so now both PICs are connected to use IR line 2 to communicate with each other. We have also set a base interrupt number for both PICs to use.</p>
+<p>This is great, but we are not done yet. Remember that, when building up ICW 1, <strong>if bit 0 is set, the PIC will be expecting us to send it ICW 4.</strong> As such, we need to send ICW 4, the final ICW, to the PICs.</p>
+<h4 id="icw-4">ICW 4</h4>
+<p>This is the final initialization control word. This controls how everything is to operate.</p>
+<h5 id="initialization-control-word-icw-4">Initialization Control Word (ICW) 4</h5>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>uPM</td>
+<td>If set (1), it is in 80x86 mode. Cleared if MCS-80/86 mode</td>
+</tr>
+<tr>
+<td>1</td>
+<td>AEOI</td>
+<td>If set, on the last interrupt acknowledge pulse, controller automatically performs End of Interrupt (EOI) operation</td>
+</tr>
+<tr>
+<td>2</td>
+<td>M/S</td>
+<td>Only use if BUF is set. If set (1), selects buffer master. Cleared if buffer slave.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>BUF</td>
+<td>If set, controller operates in buffered mode</td>
+</tr>
+<tr>
+<td>4</td>
+<td>SFNM</td>
+<td>Special Fully Nested Mode. Used in systems with a large amount of cascaded controllers.</td>
+</tr>
+<tr>
+<td>5-7</td>
+<td>0</td>
+<td>Reserved, must be 0</td>
+</tr>
+</tbody>
+</table>
+<p>This is a pretty powerful function. Bits 5..7 are always 0, so lets focus on the other bits and pieces (pun intended ;) )</p>
+<p>The PIC was originally designed to be a generic microcontroller, even before the 80x86 existed. As such, it contains a lot of different operation modes designed for different systems. one of these modes is the <strong>Special Fully Nested Mode</strong>.</p>
+<p>The x86 family does not support this mode, so you can safely set bit 4 to 0.</p>
+<p>Bit 3 is used for buffered mode. For now, set this to 0. We will cover modes of operation later. Bit 2 is only used when bit 3 is set, so set this to 0. With this, Bit 1 is rarely used either.</p>
+<p>As such, we only need to set bit 0, which enables the PIC for 80x86 mode.</p>
+<p>Simple enough. So, to send ICW 4, all we need to do is this:</p>
+<pre><code class="lang-armasm">    mov  al, 1    ; bit 0 enables 80x86 mode
+
+    ; send ICW 4 to both primary and secondary PICs
+    out  0x21, al
+    out  0xA1, al
+</code></pre>
+<p>This is probably the easiest code snippet in this tutorial. Brace it while it lasts! 😀</p>
+<h3 id="initializing-the-pic---putting-it-together">Initializing the PIC - Putting it together</h3>
+<p>Believe it or not, but we have already went over this. In initializing the PIC, all we need to do is send the correct ICW's to the PIC.</p>
+<p>Lets put everything from the previous section together to initialize the PIC for better understanding of how everything is put together:</p>
+<pre><code class="lang-armasm">;************************************************************************
+; Map the 8259A PIC to use interrupts 32-47 within our interrupt table
+;************************************************************************
+
+%define ICW_1 0x11            ; 00010001 binary. Enables initialization mode and we are sending ICW 4
+
+%define PIC_1_CTRL 0x20       ; Primary PIC control register
+%define PIC_2_CTRL 0xA0       ; Secondary PIC control register
+
+%define PIC_1_DATA 0x21       ; Primary PIC data register
+%define PIC_2_DATA 0xA1       ; Secondary PIC data register
+
+%define IRQ_0   0x20          ; IRQs 0-7 mapped to use interrupts 0x20-0x27
+%define IRQ_8   0x28          ; IRQs 8-15 mapped to use interrupts 0x28-0x36
+
+MapPIC:
+
+; Send ICW 1 - Begin initialization -------------------------
+
+    ; Setup to initialize the primary PIC. Send ICW 1
+
+    mov  al, ICW_1
+    out  PIC_1_CTRL, al
+
+; Send ICW 2 - Map IRQ base interrupt numbers ---------------
+
+    ; Remember that we have 2 PICs. Because we are cascading with this second PIC, send ICW 1 to second PIC command register
+
+    out  PIC_2_CTRL, al
+
+    ; send ICW 2 to primary PIC
+
+    mov  al, IRQ_0
+    out  PIC_1_DATA, al
+
+    ; send ICW 2 to secondary controller
+
+    mov  al, IRQ_8
+    out  PIC_2_DATA, al
+
+; Send ICW 3 - Set the IR line to connect both PICs ---------
+
+    ; Send ICW 3 to primary PIC
+
+    mov  al, 0x4         ; 0x04 =0100, second bit (IR line 2)
+    out  PIC_1_DATA, al  ; write to data register of primary PIC
+
+    ; Send ICW 3 to secondary PIC
+
+    mov  al, 0x2        ; 010=IR line 2
+    out  PIC_2_DATA, al ; write to data register of secondary PIC
+
+; Send ICW 4 - Set x86 mode --------------------------------
+
+    mov  al, 1        ; bit 0 enables 80x86 mode
+
+    ; send ICW 4 to both primary and secondary PICs
+
+    out  PIC_1_DATA, al
+    out  PIC_2_DATA, al
+
+; All done. Null out the data registers
+
+    mov  al, 0
+    out  PIC_1_DATA, al
+    out  PIC_2_DATA, al
+
+</code></pre>
+<p>That was not that hard, was it? We covered everything in this code.</p>
+<p>Now the PIC is initialized. Whenever a hardware interrupt occurs, it will call our interrupts 32 - 47 that we have previously defined somewhere within the Interrupt Vector Table (IVT). This allows us to track hardware interrupts. Cool, huh?</p>
+<h3 id="operation-command-words-ocw">Operation Command Words (OCW)</h3>
+<p>Yippee! Now that the ugly initialization stuff is out of the way, we can finally focus on standard controlling and operation of the PIC. This is done by writing and reading from various registers through <strong>Operation Control Words (OCW)'s</strong>.</p>
+<h4 id="ocw-1">OCW 1</h4>
+<p>OCW 1 represents the value inside of the <strong>Interrupt Mask register (IMR)</strong>. To obtain the current OCW 1, all you need to do is read from the IMR.</p>
+<p>Remember that the IMR is mapped to the same port that the status register is at. Because the status register is read only, the PIC can determine what register to access based off if this is a read or write operation.</p>
+<p>We have looked at the IMR register above when we covered the PIC registers.</p>
+<h4 id="ocw-2">OCW 2</h4>
+<p>This is the primary control word used to control the PIC. Let's take a look...</p>
+<h5 id="operation-command-word-ocw-2">Operation Command Word (OCW) 2</h5>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-2</td>
+<td>L0/L1/L2</td>
+<td>Interrupt level upon which the controller must react</td>
+</tr>
+<tr>
+<td>3-4</td>
+<td>0</td>
+<td>Reserved, must be 0</td>
+</tr>
+<tr>
+<td>5</td>
+<td>EOI</td>
+<td>End of Interrupt (EOI) request</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SL</td>
+<td>Selection</td>
+</tr>
+<tr>
+<td>7</td>
+<td>R</td>
+<td>Rotation option</td>
+</tr>
+</tbody>
+</table>
+<p>Okay then! Bits 0-2 represents the interrupt level for the current interrupt. Bits 3-4 are reserved. Bits 5-7 are the interesting bits. Let's take a look at each combination for these bits.</p>
+<h5 id="ocw2-commands">OCW2 Commands</h5>
+<table>
+<thead>
+<tr>
+<th>R Bit</th>
+<th>SL Bit</th>
+<th>EOI Bit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>Rotate in Automatic EOI mode (CLEAR)</td>
+</tr>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>Non specific EOI command</td>
+</tr>
+<tr>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>No operation</td>
+</tr>
+<tr>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>Specific EOI command</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>Rotate in Automatic EOI mode (SET)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>Rotate on non-specific EOI</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>Set priority command</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>Rotate on specific EOI</td>
+</tr>
+</tbody>
+</table>
+<p>Okay...This table, in its current state, is confusing, don't you think? a lot of the above commands are fairly advanced. Let's take a look at what we can do.</p>
+<h4 id="sending-end-of-interrupt-eoi">Sending End of Interrupt (EOI)</h4>
+<p>As you know, when a hardware interrupt triggers, all other interrupts are masked off inside of the <strong>Interrupt Mask Register</strong> until an EOI signal is sent to the primary controller. This means, we must send an EOI to ensure all hardware interrupts are enabled at the end of our <strong>Interrupt Routine (IR)</strong>.</p>
+<p>Looking at the above table, we can send a non specific EOI command to signal EOI to the controller. Because the EOI bit is bit 5 within the OCW 2, all we need to do is set bit 5 (100000 binary = 0x20):</p>
+<pre><code class="lang-armasm">    ; send EOI to primary PIC
+
+    mov  al, 0x20    ; set bit 4 of OCW 2
+    out  0x20, al    ; write to primary PIC command register
+</code></pre>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/Z2a.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

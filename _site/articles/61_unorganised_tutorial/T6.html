@@ -1,0 +1,598 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Bootloaders 4 | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Bootloaders 4 | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="bootloaders-4">Bootloaders 4</h1>
+
+<p>In this page, we are going to use everything we learned to parse the FAT12 file system, and load our second stage loader by name,</p>
+<p>This tutorial is going to have a lot of code in it. I will do my best to explain everything in detail. Also, this tutorial will have some math in it as well.</p>
+<h2 id="cli-and-hlt">cli and hlt</h2>
+<p>You might be curious at why I end all of my demo programs with the instructions &quot;cli&quot; and &quot;hlt&quot;. Its actually pretty simple. If there is no way of stopping the program in some manner, the CPU will just go beyond your program and execute random instructions. This will, ultimately, end in a Triple Fault.</p>
+<p>The reason I clear interrupts (cli) as because the interrupts will execute (hence the system is not halted) even when I wanted to. This can cause problems. So, just having a <strong>hlt</strong> instruction (without <strong>cli</strong>) can Triple Fault the CPU.</p>
+<p>Because of this, I always end all of my demos with <strong>cli and hlt.</strong></p>
+<h2 id="filesystems---theory">Filesystems - Theory</h2>
+<p>Yippee! Its time to talk about filesystems 😁</p>
+<p>A <strong>File System</strong> is nothing more then a specification. It helps create the concept of a &quot;file&quot; on a disk.</p>
+<p>A <strong>file</strong> is a group of data that has represents something. This data can be anything we want it to be. It all depends on how we interpreted the data.</p>
+<p>As you know, a sector is 512 bytes in size. A <strong>file</strong> is stored across these sectors on disk. If the file exceeds 512 bytes, we have to give it more sectors. Because not all files are evenly 512 bytes in size, we will need to fill in the rest of the bytes (That the file doesn't use). Kind of like what we did for our bootloader.</p>
+<p>If a file spans across several sectors, we call these sectors a <strong>Cluster</strong> in the FAT file systems. For example, our kernel will most likely span a lot of sectors. To load our kernel, we will need to load the <strong>cluster</strong> (The sectors) from where it is located.</p>
+<p>If a file spans across different sectors (Not contiguous) across different clusters, it is said to be <strong>Fragmented</strong>. We will need to collect the different parts of the file.</p>
+<p>There are a lot of different kinds of file systems. Some are widely use (Like FAT12, FAT16, FAT32, NTFS, ext (Linux), HFS (Used in older MACs); other filesystems are only used by specific companies for in house use (Like the GFS - Google File System).</p>
+<p>a lot of OS developers also create there on versions of the FAT file systems (or even something completely new). These are usually not as good as the most common filesystems though (Like FAT and NTFS).</p>
+<p>Okay, so we know a little about file systems now. We are going to be using FAT12 for its simplicity. If we decide, we can always use a different one. 😁</p>
+<h2 id="fat12-filesystem---theory">FAT12 Filesystem - Theory</h2>
+<p>FAT12 is the first FAT (File Allocation Table) Filesystem released in 1977, and used in Microsoft Disk BASIC. FAT12, as being an older filesystem generally released for floppy disks, had a number of limitations.</p>
+<ul>
+<li>FAT12 has no support for hierarchical directories. This means there is only one directory-<strong>The Root Directory</strong>.</li>
+<li>Cluster Addresses were only 12 bits long, which limits the maximum number of clusters to 4096</li>
+<li><strong>The Filenames are stored in the FAT as a 12 bit identifier. The Cluster Addresses represent the starting clusters of the files.</strong></li>
+<li>Because of the limited cluster size, <strong>The maximum number of files possible is 4,077</strong></li>
+<li>The Disk Size is stored only as a 16 bit count of sectors, limiting it to 32 MiB in size</li>
+<li>FAT12 uses the value &quot;0x01&quot; to identify partitions</li>
+</ul>
+<p>These are some big limitations. Why do we want FAT12 then?</p>
+<p>FAT16 has support for directories, and over 64,000 files as it uses a 16 bit cluster (file) address, as apposed to FAT12. However, <strong>FAT16 and FAT12 are very similar.</strong></p>
+<p>To make things simple, we are going to use FAT12. We might spruce things up with FAT16 (or even use FAT32) later 😁 (FAT32 is quite different then FAT 12/16, so we might use FAT16 later.)</p>
+<h2 id="fat12-filesystem---disk-storage">FAT12 Filesystem - Disk Storage</h2>
+<p>To understand more about FAT12, and how it works, it is better to look at the structure of a typical formatted disk.
+|FAT12 FS Sectors|
+|---|
+|Boot Sector|
+|Extra Reserved Sectors|
+|File Allocation Table 1|
+|File Allocation Table 2|
+|Root Directory (FAT12/FAT16 Only)|
+|Data Region containing files and directories|</p>
+<p>This is a typical formatted FAT12 disk, from the bootsector to the very last sector on disk.</p>
+<p>Understanding this structure will be important when loading and searching for our file.</p>
+<p><strong>Note that there are 2 FATs on a disk. It is located <em>right after</em> the reserved sectors (or the bootloader, if there is none)</strong>.</p>
+<p><strong>Also note: The Root Directory is right after all of the FATs</strong>. This means...</p>
+<p><strong>if we add up the number of sectors per FAT, and the reserved sectors, we can get the first sector to the Root Directory.</strong> By searching the Root Directory for a simple string (our filename), we can effectively find the exact sector of the file on disk 😁</p>
+<p>Lets look closer...</p>
+<h3 id="boot-sector">Boot Sector</h3>
+<p>This section contains the BIOS Parameter Block and the bootloader. Yep--Ours. The BIOS Parameter Block contains information tat help describe our disk.</p>
+<h3 id="extra-reserved-sectors">Extra Reserved Sectors</h3>
+<p>Remember the bpbReservedSectors member of our BPB? Any extra reserved sectors are stored here, right after the bootsector.</p>
+<h3 id="file-allocation-tables-fats">File Allocation Tables (FATs)</h3>
+<p>Remember that a cluster represents a series of contiguous sectors on disk. the size of each cluster is normally 2 KB to 32 KiB. The file pieces are linked (from one cluster to another using a common data structure, such as a <strong>Linked List</strong>.</p>
+<p>There are two FATs. However, one is just a copy of the first one for data recovery purposes. It usually isn't used.</p>
+<p><strong>The File Allocation Table (FAT) is a list of entries that map to each of these clusters. They help identify important information to aid in storing data to these clusters.</strong></p>
+<p>Each entry is a 12 bit value that represents a cluster. <strong>The FAT is a linked list-like structure with these entries that helps identify what clusters are in use</strong>.</p>
+<p>To better understand this lets look at the possible values:</p>
+<ul>
+<li><strong>Value marks free cluster :</strong> 0x00</li>
+<li><strong>Value marks Reserved cluster :</strong> 0x01</li>
+<li><strong>This cluster is in use--the value represents next cluster :</strong> 0x002 through 0xFEF</li>
+<li><strong>Reserved values :</strong> 0xFF0 through 0xFF6</li>
+<li><strong>Value marks bad clusters :</strong> 0xFF7</li>
+<li><strong>Value marks this cluster as the last in the file :</strong> 0xFF8 through 0xFFF</li>
+</ul>
+<p>A FAT is just an array of these values--that's all. When we find the starting sector form the Root Directory, we can look through the FAT to find which clusters to load. How? We simply check the value. If the value is between 0x02 and 0xfef, this value represents the next cluster to load for the file.</p>
+<p>Lets look at this in a deeper way. A <strong>cluster</strong>, as you know, represents a series of sectors. We define the amount of sectors it represents from the BIOS Parameter Block:</p>
+<pre><code class="lang-armasm">bpbBytesPerSector:      DW 512
+bpbSectorsPerCluster:   DB 1
+</code></pre>
+<p>In our case, each cluster is 1 sector. When we get the first sector of Stage 2 (We get this from the root directory), we use this sector as the starting cluster number in the FAT. Once we find the starting cluster, we just reference the FAT to determine the cluster (The FAT is just an array of 32 bit numbers. We just compare this number with the list above to determine what to do with it.)</p>
+<h3 id="the-root-directory-table">The Root Directory Table</h3>
+<p>Now, <strong>THIS</strong> will be important to us 😁</p>
+<p>The root directory is a table of 32 byte values that represent information regarding file and directories. This 32 byte value uses the format:</p>
+<ul>
+<li><strong>Bytes 0-7 : DOS File name (Padded with spaces)</strong></li>
+<li><strong>Bytes 8-10 : DOS File extension (Padded with spaces)</strong></li>
+<li><strong>Bytes 11 :</strong> File attributes. This is a bit pattern:
+<ul>
+<li><strong>Bit 0 :</strong> Read Only</li>
+<li><strong>Bit 1 :</strong> Hidden</li>
+<li><strong>Bit 2 :</strong> System</li>
+<li><strong>Bit 3 :</strong> Volume Label</li>
+<li><strong>Bit 4 :</strong> This is a subdirectory</li>
+<li><strong>Bit 5 :</strong> Archive</li>
+<li><strong>Bit 6 :</strong> Device (Internal use)</li>
+<li><strong>Bit 6 :</strong> Unused</li>
+</ul>
+</li>
+<li><strong>Bytes 12 :</strong> Unused</li>
+<li><strong>Bytes 13 :</strong> Create time in ms</li>
+<li><strong>Bytes 14-15 :</strong> Created time, using the following format:
+<ul>
+<li><strong>Bit 0-4 :</strong> Seconds (0-29)</li>
+<li><strong>Bit 5-10 :</strong> Minutes (0-59)</li>
+<li><strong>Bit 11-15 :</strong> Hours (0-23)</li>
+</ul>
+</li>
+<li><strong>Bytes 16-17 :</strong> Created year in the following format:
+<ul>
+<li><strong>Bit 0-4 :</strong> Year (0=1980; 127=2107</li>
+<li><strong>Bit 5-8 :</strong> Month (1=January; 12=December)</li>
+<li><strong>Bit 9-15 :</strong> Hours (0-23)</li>
+</ul>
+</li>
+<li><strong>Bytes 18-19 :</strong> Last access date (Uses same format as above)</li>
+<li><strong>Bytes 20-21 :</strong> EA Index (Used in OS/2 and NT, don't worry about it)</li>
+<li><strong>Bytes 22-23 :</strong> Last Modified time (See byte 14-15 for format)</li>
+<li><strong>Bytes 24-25 :</strong> Last modified date (See bytes 16-17 for format)</li>
+<li><strong>Bytes 26-27 :</strong> <strong>First Cluster</strong></li>
+<li><strong>Bytes 28-32 :</strong> <strong>File Size</strong></li>
+</ul>
+<p>I bolded the important parts--everything else is just junk Microsoft added that we can add to when we create a FAT12 driver, much later.</p>
+<p>Wait a sec! Remember that DOS filenames are limited to 11 bytes? This is why:</p>
+<ul>
+<li><strong>Bytes 0-7 : DOS File name (Padded with spaces)</strong></li>
+<li><strong>Bytes 8-10 : DOS File extension (Padded with spaces)</strong></li>
+</ul>
+<p>0 through 10, hmm... that's 11 bytes. Having a filename less then 11 bytes will miss up the data entry (The 32 byte entry table displayed above). This, of course, is bad 😁 Because of this, we have to pad the filenames with characters, and insure it is 11 bytes.</p>
+<p>Remember in a previous tutorial I explained how their are <strong>internal</strong> and <strong>external</strong> filenames? The filename structure I explained is the internal filename. As it is limited to 11 bytes, the filename <strong>&quot;Stage2.sys&quot; has to become</strong></p>
+<pre><code class="lang-armasm">&quot;STAGE2  SYS&quot;  ; (Note the padding!)
+</code></pre>
+<h2 id="searching-and-reading-fat12---theory">Searching and reading FAT12 - Theory</h2>
+<p>Okay, after reading all of the above, you are probably tired of me saying &quot;FAT12&quot; 😁</p>
+<p>Anyhow ... How is this information useful to us?</p>
+<p>We are going to be referencing the BIOS Parameter Block (BPB) a lot. Here is the BPB that we created from the previous tutorials for reference:</p>
+<pre><code class="lang-armasm">bpbBytesPerSector:      DW 512
+bpbSectorsPerCluster:   DB 1
+bpbReservedSectors:     DW 1
+bpbNumberOfFATs:        DB 2
+bpbRootEntries:         DW 224
+bpbTotalSectors:        DW 2880
+bpbMedia:               DB 0xF0
+bpbSectorsPerFAT:       DW 9
+bpbSectorsPerTrack:     DW 18
+bpbHeadsPerCylinder:    DW 2
+bpbHiddenSectors:       DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber:          DB 0
+bsUnused:               DB 0
+bsExtBootSignature:     DB 0x29
+bsSerialNumber:         DD 0xa0a1a2a3
+bsVolumeLabel:          DB &quot;MOS FLOPPY &quot;
+bsFileSystem:           DB &quot;FAT12   &quot;
+</code></pre>
+<p>Please see the previous tutorial for a detailed explanation of each member.</p>
+<p>What we are trying to do is to load a second stage loader. Lets look at what we need to do in detail:</p>
+<h3 id="beginning-with-a-filename">Beginning with a filename</h3>
+<p>The first thing to do is to create a good filename. Remember: <strong>The Filenames must be exactly 11 bytes to insure we don't corrupt the root directory.</strong></p>
+<p>I am using &quot;STAGE2.SYS&quot;, for my second stage. You can look at an example of its internal filename in the above section.</p>
+<h3 id="creating-stage-2">Creating Stage 2</h3>
+<p>Okay, Stage2 is a separate program then the bootloader. Our Stage2 will be very similar to a DOS COM program, sound cool?</p>
+<p>All Stage2 does right now is print a message and halt. Everything you have already seen from the bootloader:</p>
+<pre><code class="lang-armasm">; Note: Here, we are executed like a normal
+; COM program, but we are still in Ring 0.
+; We will use this loader to set up 32 bit
+; mode and basic exception handling
+
+; This loaded program will be our 32 bit Kernel.
+
+; We do not have the limitation of 512 bytes here,
+; so we can add anything we want here!
+
+org 0x0    ; offset to 0, we will set segments later
+
+bits 16    ; we are still in real mode
+
+; we are loaded at linear address 0x10000
+
+jmp main   ; jump to main
+
+;*************************************************;
+;    Prints a string
+;    DS=&gt;SI: 0 terminated string
+;************************************************;
+
+Print:
+    lodsb            ; load next byte from string from SI to AL
+    or    al, al     ; Does AL=0?
+    jz    PrintDone  ; Yep, null terminator found-bail out
+    mov   ah, 0eh    ; Nope-Print the character
+    int   10h
+    jmp   Print      ; Repeat until null terminator found
+PrintDone:
+    ret              ; we are done, so return
+
+;*************************************************;
+;    Second Stage Loader Entry Point
+;************************************************;
+
+main:
+    cli          ; clear interrupts
+    push   cs    ; Insure DS=CS
+    pop    ds
+
+    mov    si, Msg
+    call   Print
+
+    cli        ; clear interrupts to prevent triple faults
+    hlt        ; halt the system
+
+;*************************************************;
+;    Data Section
+;************************************************;
+
+Msg    db    &quot;Preparing to load operating system...&quot;,13,10,0
+</code></pre>
+<p>To assemble with NASM, just assemble it as a binary program (COM programs are binary), and copy it into the floppy disk image. For example:</p>
+<pre><code class="lang-bash">nasm -f bin Stage2.asm -o STAGE2.SYS
+copy STAGE2.SYS  A:\STAGE2.SYS
+</code></pre>
+<h3 id="step-1-loading-the-root-directory-table">Step 1: Loading the Root Directory Table</h3>
+<p>Now its time to load Stage2.sys! We will be referencing the Root directory table a lot here, along with the BIOS parameter block for disk information.</p>
+<h4 id="step-1-get-size-of-root-directory">Step 1: Get size of root directory</h4>
+<p>Okay, first we need to get the size of the root directory.</p>
+<p>To get the size, just multiply the number of entries in the root directory. Seems simple enough 😁</p>
+<p>In Windows, whenever you add a file or directory to a FAT12 formatted disk, Windows automatically adds the file information to the root directory, so we don't need to worry about it. This makes things much simpler.</p>
+<p><strong>Dividing the number of root entries by bytes per sector will tell us how many sectors the root entry uses.</strong></p>
+<p>Here is an example:</p>
+<pre><code class="lang-armasm">    mov     ax, 0x0020               ; 32 byte directory entry
+    mul     WORD [bpbRootEntries]    ; number of root entries
+    div     WORD [bpbBytesPerSector] ; get sectors used by root directory
+</code></pre>
+<p>Remember that the root directory table is a table of <strong>32 byte values (entries)</strong> that represent the file information.</p>
+<p>Yippee--Okay, we know how much sectors to load in for the root directory. Now, lets find the starting sector to load from 😁</p>
+<h4 id="step-2-get-start-of-root-directory">Step 2: Get start of root directory</h4>
+<p>This is another easy one. First, lets look at a FAT12 formatted disk again:</p>
+<table>
+<thead>
+<tr>
+<th>FAT12 FS Sectors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Boot Sector</td>
+</tr>
+<tr>
+<td>Extra Reserved Sectors</td>
+</tr>
+<tr>
+<td>File Allocation Table 1</td>
+</tr>
+<tr>
+<td>File Allocation Table 2</td>
+</tr>
+<tr>
+<td>Root Directory (FAT12/FAT16 Only)</td>
+</tr>
+<tr>
+<td>Data Region containing files and directories</td>
+</tr>
+</tbody>
+</table>
+<p>Okay, note that the <strong>Root Directory is located directly after both FATs and reserved sectors</strong>. In other words, just add the FATs + reserved sectors, and you found the root directory!</p>
+<p>For example...</p>
+<pre><code class="lang-armasm">    mov     al, [bpbNumberOfFATs]    ; Get number of FATs (Usually 2)
+    mul     [bpbSectorsPerFAT]       ; number of FATs * sectors per FAT; get number of sectors
+    add     ax, [bpbReservedSectors] ; add reserved sectors
+
+    ; Now, AX = starting sector of root directory
+</code></pre>
+<p>Pretty easy, huh? Now, we just read the sector to some location in memory:</p>
+<pre><code class="lang-armasm">    mov     bx, 0x0200  ; load root directory to 7c00:0x0200
+    call    ReadSectors
+</code></pre>
+<h4 id="root-directory---complete-example">Root Directory - Complete example</h4>
+<p>This example code is taken directly from the bootloader a the end of the tutorial. It loads the root directory:</p>
+<pre><code class="lang-armasm">    LOAD_ROOT:
+    ; compute size of root directory and store in &quot;cx&quot;
+
+        xor     cx, cx
+        xor     dx, dx
+        mov     ax, 0x0020                      ; 32 byte directory entry
+        mul     WORD [bpbRootEntries]           ; total size of directory
+        div     WORD [bpbBytesPerSector]        ; sectors used by directory
+        xchg    ax, cx
+
+    ; compute location of root directory and store in &quot;ax&quot;
+
+        mov     al, BYTE [bpbNumberOfFATs]       ; number of FATs
+        mul     WORD [bpbSectorsPerFAT]          ; sectors used by FATs
+        add     ax, WORD [bpbReservedSectors]    ; adjust for bootsector
+        mov     WORD [datasector], ax            ; base of root directory
+        add     WORD [datasector], cx
+
+    ; read root directory into memory (7C00:0200)
+
+        mov     bx, 0x0200                        ; copy root dir above bootcode
+        call    ReadSectors
+</code></pre>
+<h3 id="step-2-find-stage-2">Step 2: Find Stage 2</h3>
+<p>Okay, now the root directory table is loaded. Looking at the above code, <strong>we loaded it to 0x200.</strong> Now, to find our file.</p>
+<p>Lets look back at the 32 byte root directory table again (Section <strong>Root Directory Table</strong>. Remember <strong>the first 11 bytes represent the filename</strong>. Also remember that, <strong>because each root directory entry is 32 bytes, Every 32 bytes will be the start of the next entry - Pointing us back to the first 11 bytes of the next entry.</strong></p>
+<p>Hence, all we need to do is compare filenames, and jump to the next entry (32bytes), and test again until we reach the end of the sector. For example...</p>
+<pre><code class="lang-armasm">    ; browse root directory for binary image
+        mov     cx, [bpbRootEntries]        ; the number of entries. If we reach 0, file doesn't exist
+        mov     di, 0x0200        ; Root directory was loaded here
+    .LOOP:
+        push    cx
+        mov     cx, 11            ; eleven character name
+        mov     si, ImageName     ; compare the 11 bytes with the name of our file
+        push    di
+    rep  cmpsb                    ; test for entry match
+        pop     di
+        je      LOAD_FAT          ; they match, so begin loading FAT
+        pop     cx
+        add     di, 32            ; they don't match, so go to next entry (32 bytes)
+        loop    .LOOP
+        jmp     FAILURE           ; no more entries left, file doesn't exist :(
+</code></pre>
+<p>On to the next step...</p>
+<h3 id="step-3-loading-fat">Step 3: Loading FAT</h3>
+<h4 id="step-1-get-start-cluster">Step 1: Get start cluster</h4>
+<p>Okay, so the root directory is loaded and we found the files entry. How do we get its starting cluster?</p>
+<ul>
+<li>Bytes 26-27 : First Cluster</li>
+<li>Bytes 28-32 : File Size</li>
+</ul>
+<p>This should look familiar 😁 To get the starting cluster, just reference byte 26 in the file entry:</p>
+<pre><code class="lang-armasm">mov   dx, [di + 0x001A]     ; di contains starting address of entry. Just reference byte 26 (0x1A) of entry
+                            ; Yippee--dx now stores the starting cluster number
+</code></pre>
+<p>The starting cluster will be important to us when loading the file.</p>
+<h4 id="step-2-get-size-of-fat">Step 2: Get size of FAT</h4>
+<p>Lets look at the BIOS parameter block again. More specifically...</p>
+<pre><code class="lang-armasm">bpbNumberOfFATs:      DB 2
+bpbSectorsPerFAT:     DW 9
+</code></pre>
+<p>Okay, so how do we find out how many sectors there are in both FATs? Just multiply sectors per FAT by the number of sectors 😁 Seems simple, ...but...</p>
+<pre><code class="lang-armasm">    xor     ax, ax
+    mov     al, [bpbNumberOfFATs]       ; number of FATs
+    mul     WORD [bpbSectorsPerFAT]     ; multiply by number of sectors per FAT
+
+    ; ax = number of sectors the FATs use!
+</code></pre>
+<p>No, never mind, it is simple ^^</p>
+<h4 id="step-3-load-the-fat">Step 3: Load the FAT</h4>
+<p>Now that we know how many sectors to read. Just, um... read it 😁</p>
+<pre><code class="lang-armasm">    mov     bx, 0x0200      ; address to load to
+    call    ReadSectors     ; load the FAT table
+</code></pre>
+<p>Yes! Now with the FAT stuff out of the way (Not completely!), load in stage 2!</p>
+<h4 id="fat---complete-example">FAT - Complete example</h4>
+<p>Here is the complete code taken directly from the bootloader:</p>
+<pre><code class="lang-armasm">    LOAD_FAT:
+    ; save starting cluster of boot image
+
+        mov     si, msgCRLF
+        call    Print
+        mov     dx, WORD [di + 0x001A]
+        mov     WORD [cluster], dx                  ; file's first cluster
+
+    ; compute size of FAT and store in &quot;cx&quot;
+
+        xor     ax, ax
+        mov     al, BYTE [bpbNumberOfFATs]          ; number of FATs
+        mul     WORD [bpbSectorsPerFAT]             ; sectors used by FATs
+        mov     cx, ax
+
+    ; compute location of FAT and store in &quot;ax&quot;
+
+        mov     ax, WORD [bpbReservedSectors]       ; adjust for bootsector
+
+    ; read FAT into memory (7C00:0200)
+
+        mov     bx, 0x0200                          ; copy FAT above bootcode
+        call    ReadSectors
+</code></pre>
+<h3 id="lba-and-chs">LBA and CHS</h3>
+<p>In loading the image, all we need to do is load each cluster by referencing the FAT.</p>
+<p>There is one little problem we haven't discussed yet though. Okay, We have a cluster number from the FAT. But, <strong>How do we use it?</strong></p>
+<p>The problem is that this cluster represents a linear address, while, in order to load sectors, we will need a segment/track/head address. (Interrupt 0x13)</p>
+<p>There are <strong>two</strong> ways to access a disk. Either through <strong>Cylinder/Head/Sector (CHS) addressing</strong> or <strong>Logical Block Addressing (LBA)</strong>.</p>
+<p>The <strong>LBA</strong> represents an indexed location on disk. The first block being 0, then 1, and so on. LBA simply represents sectors are sequentially numbered with LBA 0. Cant get more basic then that.</p>
+<p>You will need to know how to convert between LBA and CHS.</p>
+<h4 id="converting-chs-to-lba">Converting CHS to LBA</h4>
+<p><strong>The formula to convert CHS to LBA:</strong></p>
+<pre><code class="lang-html">LBA    =    (cluster - 2 ) * sectors per cluster
+</code></pre>
+<p>That is simple enough. 😁 here's an example:</p>
+<pre><code class="lang-armasm">    sub     ax, 0x0002                          ; subtract 2 from cluster number
+    xor     cx, cx
+    mov     cl, BYTE [bpbSectorsPerCluster]     ; get sectors per cluster
+    mul     cx                                  ; multiply
+</code></pre>
+<h4 id="converting-lba-to-chs">Converting LBA to CHS</h4>
+<p>This is a little bit more complex, but still is relatively easy:</p>
+<pre><code class="lang-html">    absolute sector     =     (LBA % sectors per track) + 1
+    absolute head       =     (LBA / sectors per track) % number of heads
+    absolute track     =      LBA / (sectors per track * number of heads)
+</code></pre>
+<p>here's an example...</p>
+<pre><code class="lang-armasm">LBACHS:
+    xor     dx, dx                              ; prepare dx:ax for operation
+    div     WORD [bpbSectorsPerTrack]           ; divide by sectors per track
+    inc     dl                                  ; add 1 (absolute sector formula)
+    mov     BYTE [absoluteSector], dl
+
+; these forumlae are very similar ...
+
+    xor     dx, dx                              ; prepare dx:ax for operation
+    div     WORD [bpbHeadsPerCylinder]          ; mod by number of heads (Absolue head formula)
+    mov     BYTE [absoluteHead], dl             ; everything else was already done from the first formula
+
+    mov     BYTE [absoluteTrack], al            ; not much else to do 😁
+    ret
+</code></pre>
+<p>Not to hard, I hope 😁</p>
+<h3 id="load-the-cluster">Load the cluster</h3>
+<p>Okay, in loading Stage 2, we first need to reference the cluster from the FAT. Pretty simple. Then, convert the cluster number to LBA so we can read it in:</p>
+<pre><code class="lang-armasm">    mov     ax, [cluster]                     ; cluster to read
+    pop     bx                                ; buffer to read into
+    call    ClusterLBA                        ; convert cluster to LBA
+    xor     cx, cx
+    mov     cl, [bpbSectorsPerCluster]        ; sectors to read
+    call    ReadSectors                       ; read in cluster
+    push    bx
+</code></pre>
+<h3 id="get-next-cluster">Get next cluster</h3>
+<p>This is tricky.</p>
+<p>Okay, remember <strong>each cluster number in the FAT entry is 12 bits</strong>. This is a problem. <strong>If we read in 1 byte, we are only copying a part of the cluster number!</strong>.</p>
+<p>Because of this, we have to read a WORD (2 byte) value.</p>
+<p>Yet, then again, we run into a problem. Copying 2 bytes (from a 12 bit value) means that we will copy a <strong>part of the next cluster entry</strong>. For example, imagine this is your FAT:</p>
+<pre><code class="lang-html">    Note: Binary numbers separated in bytes.
+    Each 12 bit FAT cluster entry is displayed.
+
+                                   |                           |
+   01011101       0111010   01110101  00111101  0011101  0111010  0011110 0011110
+   |                |              |              |            |               |
+   |                |1st cluster   |              |3rd cluster-|               |
+   |-0 cluster  ----|              |2nd cluster---|            |4th cluster----|
+</code></pre>
+<p><strong>Notice all even clusters occupy all of the first byte, but part of the second. Also notice that all odd clusters occupy a part of their first byte, but all of the second!</strong></p>
+<p>Okay, so what we need to do is to read a 2byte (word) value from the FAT (This is our cluster).</p>
+<p>If the cluster is even, <strong>Mask out the top 4 bits, as it belongs to the next cluster.</strong></p>
+<p>If it is odd, <strong>shift it down 4 bits (to discard the bits used by the first cluster.)</strong> For example...</p>
+<pre><code class="lang-armasm">     ; compute next cluster
+
+        mov     ax, WORD [cluster]  ; identify current cluster from FAT
+
+     ; is the cluster odd or even? Just divide it by 2 and test!
+
+        mov     cx, ax              ; copy current cluster
+        mov     dx, ax              ; copy current cluster
+        shr     dx, 0x0001          ; divide by two
+        add     cx, dx              ; sum for (3/2)
+
+        mov     bx, 0x0200          ; location of FAT in memory
+        add     bx, cx              ; index into FAT
+        mov     dx, WORD [bx]       ; read two bytes from FAT
+
+        test    ax, 0x0001
+        jnz     .ODD_CLUSTER
+
+; Remember that each entry in the FAT is a 12 but value. If it represents
+; a cluster (0x002 through 0xFEF) then we only want to get those 12 bits
+; that represent the next cluster
+
+    .EVEN_CLUSTER:
+
+        and     dx, 0000111111111111b      ; take low twelve bits
+        jmp     .DONE
+
+    .ODD_CLUSTER:
+
+        shr     dx, 0x0004                 ; take high twelve bits
+
+    .DONE:
+
+        mov     WORD [cluster], dx         ; store new cluster
+        cmp     dx, 0x0FF0                 ; test for end of file
+        jb      LOAD_IMAGE    ; we are not done yet--go to next cluster
+</code></pre>
+<h2 id="demo">Demo</h2>
+<p><img src="../../resources/images/boot.gif" alt="bootloader in bochs screenshot"></p>
+<p>The first shot contains the bootloader loading Stage 2 successfully. Stage 2 prints the loading operating system message.</p>
+<p>The second shot displays an error message when it cannot find the file (within the root directory).</p>
+<p>This demo contains most of the code in this lesson, 2 source files, 2 directories, and 2 batch programs. The first directory contains the stage 1 program -- our bootloader, the second directory contains our stage 2 program - STAGE2.SYS.</p>
+<p><a href="../../resources/OSDev_tools/Demo1.zip">DEMO DOWNLOAD HERE</a></p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T6.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

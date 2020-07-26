@@ -1,0 +1,748 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Virtual Memory | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Virtual Memory | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="virtual-memory">Virtual Memory</h1>
+
+<p>Welcome back! Jeeze, I cant believe we are already going on tutorial eighteen. See? OS development isn't too bad 😉</p>
+<p>In the last tutorial we have looked at physical memory management and even developed a full working physical memory manager. In this tutorial, we will take it to a new level by introducing paging and virtual memory. We will learn how we can mimic a full virtual address space for our programs and learn how we can manage virtual memory.</p>
+<p>Heres the list for this chapter:</p>
+<ul>
+<li>Virtual Memory</li>
+<li>Memory Management Unit (MMU)</li>
+<li>Translation Lookaside Buffer (TLB)</li>
+<li>PAE and PSE</li>
+<li>Paging Methods</li>
+<li>Pages and Page Faults</li>
+<li>The Page Table</li>
+<li>The Page Directory Table</li>
+<li>Implimenting Paging</li>
+</ul>
+<p>...And a whole lot more!</p>
+<p>This tutorial will build off of the physical memory manager we developed in the last chapter. This may also be the last chapter on memory management!</p>
+<p><em>With that in mind, lets get started!</em></p>
+<h2 id="virtual-memory-concepts">Virtual Memory Concepts</h2>
+<h3 id="the-need-for-virtualization">The need for Virtualization</h3>
+<p>You might be curious as to why we should worry about this &quot;virtual memory&quot; thing. After all, we already have a nice and effective way of managing memory, right? Well, sort of. While it manages blocks of memory well, thats all our physical memory manager does. This alone is pretty useless, don't you think?</p>
+<p>There are alot of very important concepts that we should look at to better understand virtual memory and the need for it.</p>
+<p>Right now all we have is a way to directly and indirectly work with physical memory. There are alot of big problems with this that you may already know (or even have experience with yourself 😉 ) One that we have just seen was when we would access to a block of memory that does not exist. Knowing that both programs and data are in memory, it is also possible for programs to access each others memory spaces, or even corrupt and overwrite themselves or other programs without knowing it. After all, there is no memory protection.</p>
+<p>Also, it is not always possible to load a file or program into a sequencial area of memory. This is when fragmentation happens. For an example, lets say we have 2 programs loaded. One at 0x0, the other at 0x900. Both of these programs requested to load files, so we load the data files:</p>
+<p><img src="../../resources/images/MemFrag.gif" alt="Memory fragmentation"></p>
+<p>Notice what is happening here. There is alot of unused memory between all of these programs and files. Okay...What happens if we add a bigger file that is unable to fit in the above? This is when big problems arise with the current scheme. We cannot directly manipulate memory in any specific way, as it will currupt the currently executing programs and loaded files.</p>
+<p>As you can see, there are alot of problems that will arise when working with physical memory. If your operating system is single-tasking (Where only one ring 0 program runs at a time), then this might be fine. For anything more complex, we will be needing more control over how memory works within the system. What we need is a way to abstract physical memory in such a way that we do not need to worry about these details anymore. I think you know where I am getting at here -- this is where virtualization comes in. Lets take a look!</p>
+<h3 id="the-virtual-memory">The Virtual Memory</h3>
+<h4 id="concepts">Concepts</h4>
+<p>Understanding what virtual memory is can be a little tricky. Virtual Memory is a special Memory Addressing Scheme implimented by both the hardware and software. It allows non contigous physical memory to act as if it was contigius memory.</p>
+<p>Notice that I said <em>&quot;Memory Addressing Scheme&quot;</em>. What this means is that virtual memory allows us to control what a <strong>Memory Address</strong> refers to.</p>
+<h4 id="virtual-address-space-vas">Virtual Address Space (VAS)</h4>
+<p><strong>A Virtual Address Space is a Program's Address Space.</strong> One needs to take note that this does not have to do with <strong>Physical Memory</strong>. The idea is <strong>so that each program has their own independent address space. This insures one program cannot access another program, because they are using a different address space.</strong></p>
+<p>Because <strong>VAS</strong> is <strong>Virtual</strong> and not directly used with the physical memory, it allows the use of other sources, such as disk drives, as if it was memory. That is, <strong>It allows us to use more &quot;memory&quot; then what is physically installed in the system.</strong></p>
+<p>This fixes the &quot;Not enough memory&quot; problem.</p>
+<p>Also, as each program uses its own VAS, we can have each program always begin at base 0x0000:0000. This solves the relocation problems discussed ealier, as well as memory fragmentation--as we no longer need to worry about allocating continous physical blocks of memory for each program.</p>
+<p><strong>Virtual Addresses are mapped by the Kernel trough the MMU. More on this a little later.</strong></p>
+<h4 id="memory-management-unit-mmu">Memory Management Unit (MMU)</h4>
+<p>The <strong>Memory Management Unit (MMU)</strong> (Also known as <strong>Paged Memory Management Unit (PMMU)</strong>) sets between (Or as part of) the <strong>microprocessor</strong> and the <strong>memory controller</strong>. While the <strong>memory controller's</strong> primary function is the translation of memory addresses into a physical memory location, the <strong>MMU</strong>'s purpose is the translation of virtual memory addresses into a memory address for use by the <strong>memory controller</strong>.</p>
+<p>This means--<strong>when paging is enabled, all of our memory refrences go through the MMU first!</strong></p>
+<h4 id="translation-lookaside-buffer-tlb">Translation Lookaside Buffer (TLB)</h4>
+<p>This is a cache stored within the processor used to improve the speed of virtual address translation. It is useually a type of <strong>Content-addressable memory (CAM)</strong> where the search key is the virtual address to translate, and the result is the physical frame address. If the address is not in the TLB (A <strong>TLB miss</strong>), the MMU searches through the page table to find it. If it is found in the TLB, it is a <strong>TLB Hit</strong>. If the page is not found or invalid inside of the page table during a TLB miss, the processor will raise a <strong>Page Fault</strong> exception for us.</p>
+<p>Think of a TLB as a table of pages stored in a cache instead of in RAM--as that is basically what it is.</p>
+<p><strong>This is important!</strong> The pages are stored in <strong>page tables</strong>. We set up these page tables to describe how physical addresses translate to virtual addresses. In other words: <strong>The TLB translates virtual addresses into physical addresses using the page tables <em>we</em> set up for it to use!</strong> Yes, thats right--we set up what virtual addresses map to what. We will look at how to do this a little later, cool? Dont worry--its not that bad 😉</p>
+<h4 id="paged-virtual-memory">Paged Virtual Memory</h4>
+<p>Virtual Memory also provides a way to indirectly use more memory then we actually have within the system. One common way of approching this is by using <strong>Page files</strong>, stored on a hard drive or a <strong>swap partition</strong>.</p>
+<p>Virtual Memory needs to be mapped through a hardware device controller in order to work, as it is handled at the hardware level. This is normally done through the <strong>MMU</strong>, which we will look at later.</p>
+<p>For an example of seeing virtual memory in use, lets look at it in action:</p>
+<p><img src="../../resources/images/virtual-memory%5B1%5D.png" alt="Mixture of disk addresses and physical addresses into VAS"></p>
+<p>Notice what is going on here. Each memory block within the Virtual Addresses are linear. Each Memory Block is mapped to either it's location within the real physical RAM, or another device, such as a hard disk. The blocks are swapped between these devices as an as needed bases. This might seem slow, but it is very fast thanks to the MMU.</p>
+<p><strong>Remember: Each program will have its own Virtual Address Space--shown above.</strong> Because each address space is linear, and begins from 0x0000:00000, this immiedately fixes alot of the problems relating to memory fragmentation and program relocation issues.</p>
+<p>Also, because Virtual Memory uses different devices in using memory blocks, it can easily manage more then the amount of memory within the system. i.e., If there is no more system memory, we can allocate blocks on the hard drive instead. If we run out of memory, we can either increase this page file on an as needed bases, or display a warning/error message,</p>
+<p>Each memory &quot;Block&quot; is known as a <strong>Page</strong>, which is useually 4096 bytes in size. We will cover <strong>Pages</strong> a little later.</p>
+<p>Okay, so a <strong>Page</strong> is a memory block. <strong>This memory block can either be mapped to a location in memory, or to another device location, such as a hard disk.</strong> This is an <strong>unmapped</strong> page. If software accessed an unmapped page (The page is not currently in memory), it needs to be loaded somehow. This is done by our <strong>Page fault handler</strong>.</p>
+<p>We will cover everything later, so do not worry if this sounds hard 😀</p>
+<p>Because we are talking about paging in general, I think now would be a good idea to look at some extensions that may be used with paging. Lets have a look!</p>
+<h3 id="pae-and-pse">PAE and PSE</h3>
+<h4 id="physical-address-extension-pae">Physical Address Extension (PAE)</h4>
+<p>PAE is a feature in x86 microprocessors that allows 32 bit systems to access up to 64 GB of physical memory. PAE supported motherboards use a 36 line address bus to achieve this. Paging support with PAE enabled (Bit 5 in the cr4 register) is a little different then what we looked at so far. I might decide to cover this a little later, however to keep this tutorial from getting even more complex, we will not look at it now. However, I do encourage readers to look into it if you are interested. 😉</p>
+<h4 id="page-size-extension-pse">Page Size Extension (PSE)</h4>
+<p>PSE is a feature in x86 microprocessors that allows pages more then 4KB in size. This allows the x86 architecture to support 4MB page sizes (Also called &quot;huge pages&quot; or &quot;large pages&quot;) along side 4KB pages.</p>
+<h2 id="the-world-of-paging">The World of Paging</h2>
+<p>Let the madness begin 😀</p>
+<h3 id="introduction-to-paging">Introduction to Paging</h3>
+<p>Woo-hoo! Welcome to the wonderful and twisted-minded world of paging! With all of the fundemental concepts that we have went over already, you should have a nice and good grasp at what paging and virtual memory is all about. This is a great start, don't you think?</p>
+<p>Okay, cool...but, how do we actually impliment it? How does paging work on the x86 architecture? Lets take a look!</p>
+<h3 id="pages">Pages</h3>
+<p>A <strong>Page</strong> (Also known as a <strong>memory page</strong> or <strong>virtual page</strong>) is a fixed-length block of memory. This block of memory can reside in physical memory. Think of it like this: A page describes a memory block, and where it is located at. This allows us to &quot;map&quot; or &quot;find&quot; the location of where that memory block is at. We will look at mapping pages and how to impliment paging a little later 😀</p>
+<p>The i86 architecture uses a specific format for just this. It allows us to keep track of a single page, and where it is currently located at. Lets take a look..</p>
+<h4 id="page-table-entries-pte">Page Table Entries (PTE)</h4>
+<p>A page table entry is what represents a page. We will not cover the page table until a little later so dont worry too much about it. However we will need to look at what an entry in the table looks like now. The x86 architecture defines a specific bit format for working with pages, so lets take a look at it.</p>
+<ul>
+<li><strong>Bit 0 (P):</strong> Present flag
+<ul>
+<li>0: Page is not in memory</li>
+<li>1: Page is present (in memory)</li>
+</ul>
+</li>
+<li><strong>Bit 1 (R/W):</strong> Read/Write flag
+<ul>
+<li>0: Page is read only</li>
+<li>1: Page is writable</li>
+</ul>
+</li>
+<li>**Bit 2 (U/S):**User mode/Supervisor mode flag
+<ul>
+<li>0: Page is kernel (supervisor) mode</li>
+<li>1: Page is user mode. Cannot read or write supervisor pages</li>
+</ul>
+</li>
+<li><strong>Bits 3-4 (RSVD):</strong> Reserved by Intel</li>
+<li><strong>Bit 5 (A):</strong> Access flag. Set by processor
+<ul>
+<li>0: Page has not been accessed</li>
+<li>1: Page has been accessed</li>
+</ul>
+</li>
+<li><strong>Bit 6 (D):</strong> Dirty flag. Set by processor
+<ul>
+<li>0: Page has not been written to</li>
+<li>1: Page has been written to</li>
+</ul>
+</li>
+<li><strong>Bits 7-8 (RSVD):</strong> Reserved</li>
+<li><strong>Bits 9-11 (AVAIL):</strong> Available for use</li>
+<li><strong>Bits 12-31 (FRAME):</strong> Frame address</li>
+</ul>
+<p>Cooldos! Thats all? Well.. I never said it was hard 😉</p>
+<p>Quite possibly the most important thing here is the <strong>frame address</strong>. <strong>The frame address represents the 4KB physical memory location that the page manages.</strong> This is <em>vital</em> to know when understanding paging, however it is hard to describe why it is so right now. For now, just remember that <strong>each and every page manages a block of memory. If the page is present, it manages a 4KB physical address space in physical memory.</strong></p>
+<p>The <strong>Dirty Flag and Access Flag are set by the processor, not software.</strong> You might wonder on how the processor knows what bits to set; ie, where they are located in memory. We will look at that a little later. Just rememeber that, this will allow the software or executive to test if a page has been accessed or not.</p>
+<p>The <strong>present flag</strong> is an important one. This one single bit is used to determin if a page is currently in physical memory or not. If it is currently in physical memory, the frame address is the 32 bit linear address for where it is located at. If it is not in physical memory, the page must reside on another location--such as a hard disk.</p>
+<p>If the present flag is not set, the processor will ignore the rest of the bits in the structure. This allows us to use the rest of the bits for whatever purpose...perhaps where the page is located at on disk? This will allow--when our page fault handler gets called--for us to locate the page on disk and swap the page into memory when needed.</p>
+<p>Lets give out a simple example. Lets say that we want this page to manage the 4KB address space beginning at physical location 1MB (0x100000). What this means--to put in other words--<strong>is that this page is <em>&quot;mapped&quot;</em> to address 1MB</strong>.</p>
+<p>To create this page, simply set 0x100000 in bits 12-31 (the frame address) of the page, and set the present bit. Voila--the page is mapped to 1MB. 😀 For example:</p>
+<pre><code class="lang-armasm">%define        PRIV        3
+
+mov        ebx, 0x100000 | PRIV    ; this page is mapped to 1MB
+</code></pre>
+<p><strong>Notice that 0x100000 is 4KB aligned?</strong> It ORs it with 3 (11 binary which sets the first two bits. Looking at the above table, we can see that it sets the present and read/write flags, making this page present (Meaning its in physical memory. This is true as it is mapped from physical address 0x100000), and is writable.</p>
+<p>Thats it! You will see this example expand further in the next few sections so that you can start seeing how everything fits in, so don't worry to much if you still do not understand.</p>
+<p>Also notice that there is nothing special about PTEs--they are simply 32 bit data. What is special about them is how they are <em>used</em>. We will look at that a little later...</p>
+<h4 id="pteh-and-ptecpp---abstracting-page-table-entries-and-pages">pte.h and pte.cpp - Abstracting page table entries and pages</h4>
+<p>The demo hides all of the code to set and get the individual properties of the page table entries inside of these two files. All these do is set and get the bits and frame address from the 32 bit pattern that we have looked at in the list above. This interface does have a little overhead but greatly improves readability and makes it easier to work with them.</p>
+<p>The first thing we do is to abstract the bit pattern used by page table entries. This is too easy:</p>
+<pre><code class="lang-c">enum PAGE_PTE_FLAGS {
+
+    I86_PTE_PRESENT         =    1,          //0000000000000000000000000000001
+    I86_PTE_WRITABLE        =    2,          //0000000000000000000000000000010
+    I86_PTE_USER            =    4,          //0000000000000000000000000000100
+    I86_PTE_WRITETHOUGH     =    8,          //0000000000000000000000000001000
+    I86_PTE_NOT_CACHEABLE   =    0x10,       //0000000000000000000000000010000
+    I86_PTE_ACCESSED        =    0x20,       //0000000000000000000000000100000
+    I86_PTE_DIRTY           =    0x40,       //0000000000000000000000001000000
+    I86_PTE_PAT             =    0x80,       //0000000000000000000000010000000
+    I86_PTE_CPU_GLOBAL      =    0x100,      //0000000000000000000000100000000
+    I86_PTE_LV4_GLOBAL      =    0x200,      //0000000000000000000001000000000
+    I86_PTE_FRAME           =    0x7FFFF000  //1111111111111111111000000000000
+};
+</code></pre>
+<p>Notice how this matches up with the bit format that we looked at in the above list. What we want is a way to abstract the setting and getting of these properties (ie, bits) behind the interface.</p>
+<p>To do this, we first abstract the data type used to store a page table entry. In our case its a simple uint32_t:</p>
+<pre><code class="lang-c">//! page table entry
+typedef uint32_t pt_entry;
+</code></pre>
+<p>Simple enough. Next up is the interface routines that are used to set and get these bits. I dont want to look at the implimentation of it as all it does is (litterally) set or get individual bits within a pt_entry. So instead I want to focus on the interface:</p>
+<pre><code class="lang-c">extern void             pt_entry_add_attrib (pt_entry* e, uint32_t attrib);
+extern void             pt_entry_del_attrib (pt_entry* e, uint32_t attrib);
+extern void             pt_entry_set_frame (pt_entry*, physical_addr);
+extern bool             pt_entry_is_present (pt_entry e);
+extern bool             pt_entry_is_writable (pt_entry e);
+extern physical_addr    pt_entry_pfn (pt_entry e);
+</code></pre>
+<p><strong>pt_entry_add_attrib()</strong> sets a single bit within the pt_entry. We pass it a mask (like our I86_PTE_PRESENT bit mask) to set it. <strong>pt_entry_del_attrib()</strong> does the same but clears the bit.</p>
+<p><strong>pt_entry_set_frame()</strong> masks out the frame address (I86_PTE_FRAME mask) to set our frame address to it. <strong>pt_entry_pfn()</strong> returns this address.</p>
+<p>There is nothing special about these routines--we can easily set and get these attributes manually if we wanted to via bit masks or (if you wanted) bit fields. I personally feel this setup makes it much easier to work with though 😉</p>
+<p>Okay, this is great as this setup allows us to keep track of a single page. However, it is useless by itself as a typical system will need to have alot of pages. This is where a page table comes in.</p>
+<h3 id="page-tables">Page Tables</h3>
+<p>The page table...hm...where oh where did we hear that term before? <em>looks one line up</em>. Oh, right 😉</p>
+<p>A <strong>Page Table</strong> is..well..a table of pages. (Surprised?) A page table allows us to keep track of how the pages are mapped between physical and virtual addresses. <strong>Each page entry in this table follows the format shown in the previous section.</strong> In other words, <strong>a page table is an array of page table entries (PTEs)</strong>.</p>
+<p>While it is a very simple structure, it has a very important purpose. The page table containes a list of all the pages it containes, and how they are mapped. By &quot;mapping&quot;, We refer to how the virtual address &quot;maps&quot; to the physical frame address. The page table also manages the pages, weather they are present, how they are stored, or even what process they belong to (This can be set by using the AVAIL bits of a page. This may not be needed, it depends on the implimentation of the system.)</p>
+<p>Lets stop for a moment. <strong>Remember that a page manages 4KB of physical address space?</strong> By itself, a page is nothing more then a 32 bit data structure that describes the properties of a specific 4KB region of physical memory (Remember this from before?) Because each page &quot;manages&quot; 4KB of physical memory, putting 1024 pages together we have 1024*4KB=4MB of managed virtual memory. Lets take a look at how its set up:</p>
+<p><img src="../../resources/images/paging.jpg" alt="Page table structure"></p>
+<p>Thats an example of a page table. Notice how it is nothing more then an array 1024 page entries. Knowing that each page manages 4KB of physical memory, we can actually turn this little table into its own <strong>virtual address space</strong>. How can we do this? Simple: By deciding the format of a <strong>virtual address</strong>.</p>
+<p>Heres an example: Lets say we have designed a new virtual address format like this:</p>
+<pre><code class="lang-html">AAAAAAAAAA        BBBBBBBBBBBB
+page table index  offset into page
+</code></pre>
+<p>This is our format for a virtual address. So, when paging is enabled, all memory addresses will now follow the above format. For example, lets say we have the following instruction:</p>
+<pre><code class="lang-armasm">mov    ecx, [0xc0000]
+</code></pre>
+<p>Here, <strong>0xc0000</strong> will be treated like a <strong>virtual address</strong>. Lets break it apart:</p>
+<pre><code class="lang-html">  11000000           000000000000     ; 0xc0000 in binary form
+AAAAAAAAAA           BBBBBBBBBBBB
+page table index     offset into page
+</code></pre>
+<p>What we are now doing is an example of <strong>address translating</strong>. We are actually translating this virtual address to see what physical location it refers to. The page table index, 11000000b = 192. This is the page entry inside of our page table. We can now get the base physical address of the 4KB that this page manages. If this page is present (Pages <strong>present</strong> flag is set), all we need to do is access the pages <strong>frame address</strong> to access the memory. If this page is NOT present, then generate a page fault--The page data might be somewhere on disk. The page fault handler will allow us to copy the 4KB data for the page into memory somewhere and set the page to <strong>present</strong> and update its <strong>frame address</strong> to point to this new 4KB block of physical memory.</p>
+<p>Okay okay, I know. This little example of creating a fake &quot;virtual address&quot; might seem silly, but guess what? <em><strong>This is how its actually done!</strong></em> The actual format of a virtual address is a <em>little</em> bit more complex in that there are <em>three</em> sections instead of 2. However, if we omit the first section of the real virtual address format then it would be <em>exactally</em> the same as our above example.</p>
+<p>I hope by now you are starting to see how everything fits together, and the importance of page tables.</p>
+<h4 id="page-size">Page Size</h4>
+<p>A system with smaller page sizes will require more pages then a system with larger page sizes. Because the table keeps track of all pages, a system with smaller page sizes will also require a larger page table because there are more pages to keep track of. Simple enough, huh?</p>
+<p>The i86 architecture supports 4MB (2MB pages if using <strong>Page Address Extension (PAE)</strong>) and 4KB sized pages.</p>
+<p>The important things to note are: Notice how page size may effect the size of page tables.</p>
+<h3 id="the-page-directory-table-pdt">The Page Directory Table (PDT)</h3>
+<p>Okay... We are almost done! A page table is a very powerful structure as you have seen. Remember our previous virtual address example? I gave an example of a virtual addressing system where each virtual address was composed of two parts: A page table entry and a offset into that page.</p>
+<p>On the x86 architecture, the virtual address format actually uses three sections instead of two: The entry number in a <strong>page directory table</strong>, the page table index, and the offset into that page.</p>
+<p>A <strong>Page Directory Table</strong> is nothing more then an array of <strong>Page Directory Entries</strong>. I know I know... How useless and non-informative was that last sentence? 😉</p>
+<p>So, anyways, lets first look at a page directory entry. Then we will start looking at the directory table, and where it all fits in...</p>
+<h4 id="page-directory-entries-pdes">Page Directory Entries (PDEs)</h4>
+<p>Page directory entries help provide a way to manage a single page table. Not only do they contain the address of a page table, but they provide properties that we can use to manage them. You will see how all of this fits in within the next section, so dont worry if you dont understand it yet.</p>
+<p>Page directory tables are very simularly structured in the way page tables are structured. They are an array of 1024 entries, where the entries follow a specific bit format. The nice thing about the format of page directory entries (PDEs) is that they follow almost the exact same format that page table entries (PTEs) do (in fact they can be interchangeable). There is only a few little bit of details (pun intended 😉 ).</p>
+<p>Here is the format of a page directory entry:</p>
+<ul>
+<li><strong>Bit 0 (P):</strong> Present flag
+<ul>
+<li>0: Page is not in memory</li>
+<li>1: Page is present (in memory)</li>
+</ul>
+</li>
+<li><strong>Bit 1 (R/W):</strong> Read/Write flag
+<ul>
+<li>0: Page is read only</li>
+<li>1: Page is writable</li>
+</ul>
+</li>
+<li>**Bit 2 (U/S):**User mode/Supervisor mode flag
+<ul>
+<li>0: Page is kernel (supervisor) mode</li>
+<li>1: Page is user mode. Cannot read or write supervisor pages</li>
+</ul>
+</li>
+<li>**Bit 3 (PWT):**Write-through flag
+<ul>
+<li>0: Write back caching is enabled</li>
+<li>1: Write through caching is enabled</li>
+</ul>
+</li>
+<li>**Bit 4 (PCD):**Cache disabled
+<ul>
+<li>0: Page table will not be cached</li>
+<li>1: Page table will be cached</li>
+</ul>
+</li>
+<li><strong>Bit 5 (A):</strong> Access flag. Set by processor
+<ul>
+<li>0: Page has not been accessed</li>
+<li>1: Page has been accessed</li>
+</ul>
+</li>
+<li><strong>Bit 6 (D):</strong> Reserved by Intel</li>
+<li><strong>Bit 7 (PS):</strong> Page Size
+<ul>
+<li>0: 4 KB pages</li>
+<li>1: 4 MB pages</li>
+</ul>
+</li>
+<li><strong>Bit 8 (G):</strong> Global Page (Ignored)</li>
+<li><strong>Bits 9-11 (AVAIL):</strong> Available for use</li>
+<li><strong>Bits 12-31 (FRAME):</strong> Page Table Base address</li>
+</ul>
+<p>A lot of the members here should look familiar from the page table entry (PTE) list that we looked at ealier.</p>
+<p>The <strong>Present</strong>, <strong>Read/Write</strong>, and <strong>access</strong> flags are the same as it was with PTEs, however they apply to a <strong>page table</strong> rather then a <strong>page</strong>.</p>
+<p><strong>page size</strong> determins if the pages inside of the page table are <strong>4KB</strong> or <strong>4MB</strong>.</p>
+<p><strong>Page Table Base address</strong> bits contain the 4K aligned address of a <strong>page table</strong>.</p>
+<h4 id="pdeh-and-pdecpp---abstracting-page-directory-entries">pde.h and pde.cpp - Abstracting Page Directory Entries</h4>
+<p>Simular to what we did with PTEs, we have created an interface to abstract PDEs in the same manner.</p>
+<pre><code class="lang-c">enum PAGE_PDE_FLAGS {
+
+    I86_PDE_PRESENT       =    1,          //0000000000000000000000000000001
+    I86_PDE_WRITABLE      =    2,          //0000000000000000000000000000010
+    I86_PDE_USER          =    4,          //0000000000000000000000000000100
+    I86_PDE_PWT           =    8,          //0000000000000000000000000001000
+    I86_PDE_PCD           =    0x10,       //0000000000000000000000000010000
+    I86_PDE_ACCESSED      =    0x20,       //0000000000000000000000000100000
+    I86_PDE_DIRTY         =    0x40,       //0000000000000000000000001000000
+    I86_PDE_4MB           =    0x80,       //0000000000000000000000010000000
+    I86_PDE_CPU_GLOBAL    =    0x100,      //0000000000000000000000100000000
+    I86_PDE_LV4_GLOBAL    =    0x200,      //0000000000000000000001000000000
+       I86_PDE_FRAME      =    0x7FFFF000  //1111111111111111111000000000000
+};
+
+//! a page directery entry
+typedef uint32_t pd_entry;
+</code></pre>
+<p>Not to hard. We use the new type pd_entry to represent a page directory entry. Also, with the PTE interface, we provide a small set of routines used to provide a nice way of setting and getting the bits within the page directory entry:</p>
+<pre><code class="lang-c">extern void             pd_entry_add_attrib (pd_entry* e, uint32_t attrib);
+extern void             pd_entry_del_attrib (pd_entry* e, uint32_t attrib);
+extern void             pd_entry_set_frame (pd_entry*, physical_addr);
+extern bool             pd_entry_is_present (pd_entry e);
+extern bool             pd_entry_is_user (pd_entry);
+extern bool             pd_entry_is_4mb (pd_entry);
+extern bool             pd_entry_is_writable (pd_entry e);
+extern physical_addr    pd_entry_pfn (pd_entry e);
+extern void             pd_entry_enable_global (pd_entry e);
+</code></pre>
+<h4 id="understanding-the-page-directory-table">Understanding the Page Directory Table</h4>
+<p>The Page Directory Table is sort of like an array of 1024 page tables. Remember that each page table manages 4MB of a virtual address space? Well... Putting 1024 page tables together we can manage a full 4GB of virtual addresses. Sweet, huh?</p>
+<p>Okay, its a little more complex then that, but not that much. The <strong>Page Directory Table</strong> is actually an array of <strong>1024 page directory entries</strong> that follow the format above. Look back at the format of an entry and notice the <strong>Page Table Base address</strong> bits. This is the address of the page table this directory entry manages.</p>
+<p>It may be easier to see it visually, so here you go:</p>
+<p><img src="../../resources/images/paging2.jpg" alt="Page directory table structure"></p>
+<p>Notice what is happening here. Each page directory entry points to a page table. Remember that each page manages 4KB of physical (and hence virtual) memory? Also, remember that a page table is nothing more then an array of 1024 pages? 1024*4KB = 4MB. This means that each page table manages its own 4MB of address space.</p>
+<p>Each page directory entry provides us a way to manage each page table much easier. Because the complete page directory table is an array of 1024 directory entries, and that each entry manages its own table, we effectivly have 1024 page tables. From our previous calculation we know each page table manages 4MB of address space. So 1024 page tables*4MB size= 4GB of virtual address space.</p>
+<p>I guess thats it for ... believe it or not... everything. See, its not that hard, is it? In the next section, we will be revisiting the <em>real</em> format of an x86 virtual address, and you will get to see how everything works together!</p>
+<h4 id="use-in-multitasking">Use in Multitasking</h4>
+<p>We run into a small problem here. Remember that a page directory table represents a 4GB address space? How can we allow multiple programs a 4GB address space if we can only have one page directory at a time?</p>
+<p>We cant. Not nativly, anyways. Alot of mutitasking operating systems map the high 2 GB address space for its own use as &quot;kernel space&quot; and the low 2 GB as &quot;user space&quot;. The user space cannot touch kernel space. With the kernel address space being mapped to every processes 4GB virtual address space, we can simply switch the current page directory without error using the kernel no matter what process is currently running. This is possible do to the kernel always being located at the same place in the processes address space. This also makes scheduling possible. More on that later though...</p>
+<h2 id="virtual-memory-management">Virtual Memory Management</h2>
+<p>We have covered everything we need to develop a good virtual memory manager. A virtual memory manager must provide methods to allocate and manage pages, page tables, and page directory tables. We have looked at each of these in separate, but have not looked at how they work together.</p>
+<h3 id="higher-half-kernels">Higher Half Kernels</h3>
+<h4 id="abstract-higher-half-kernels">Abstract (Higher Half Kernels)</h4>
+<p>A <strong>Higher Half Kernel</strong> is a kernel that has a virtual base address of 2GB or above. A lot of operating systems have a higher half kernel. Some examples include the Windows and Linux Kernels. The Windows Kernel gets mapped to either 2GB or 3GB virtual address (depending on if /3gb kernel switch is used), the Linux Kernel gets mapped to 3GB virtual address. The series uses a higher half kernel mapped to 3GB. Higher half kernels must be mapped properly into the virtual address space. There are several methods to achieve this, some of which is listed here.</p>
+<p>You might be interested on why we would want a higher half kernel. We can very well run our kernel at some lower virtual address. One reason has to do with v86 tasks. If you want to support v86 tasks, v86 tasks can only run in user mode and within the real mode address limits (0xffff:0xffff), or about 1MB+64k linear address. It is also typical to run user mode programs in the first 2GB (or 3GB on some OSs) as software typically never has a need to access high memory locations.</p>
+<h4 id="method-1">Method 1</h4>
+<p>The first design is that we can have the boot loader set up a temporary page directory. With this, the base address of the kernel can be 3GB. The boot loader maps a physical address (typically 1MB) to this base address and calls the kernel's entry point.</p>
+<p>This method works, but creates a problem of how the kernel is going to work with managing virtual memory. The kernel can either try to work with the page directory and tables set up by the boot loader, or create a new page directory to manage. If we create a new page directory, the kernel will need to remap itself (1MB physical to the base virtual address of the kernel) or cloning the existing temporary page directory to the new page directory.</p>
+<p>At this time, this is the method the series uses. The series boot loader will set up a temporary page directory and maps the kernel to 3GB virtual. The kernel then creates a new page directory during VMM initialization and remaps itself. The kernel must remain position-independent during this set up phase. This is the method we use in our in-house OS.</p>
+<h4 id="method-2">Method 2</h4>
+<p>Another possible design is that the boot loader loads the kernel into a physical memory location and keeps paging disabled. The kernel virtual base address would be the virtual address it is supposed to execute at. For example, the boot loader can load and execute the kernel at 1MB physical, although the kernels base address is 3GB.</p>
+<p>This method is a little tricky. There has to be a way for the boot loader to know what physical address to load and execute the kernel at, and the kernel has to map itself to its real base virtual address. This is usually done during kernel startup in position-independent code. This can be used in position-dependent code, but the kernel must be able to fix the addresses when accessing data or calling functions. This is the method used in our in-house OS.</p>
+<h4 id="method-3">Method 3</h4>
+<p>This method uses Tim Robinson's GDT trick. This can be found in his documentation located <a href="http://www.osdever.net/tutorials/pdf/memory1.pdf">here (*.pdf)</a> This allows your kernel to run at a higher address (its base address) even though it is not loaded there. This trick works do to address wrap around. For example, lets say our kernel is loaded at 1MB physical address, but we want it to appear to be running at 3GB Virtual. The base that we want is X + 3GB = 1MB in this case. Lets look closer.</p>
+<p>Remember that the GDT descriptor base address is a DWORD. If the value becomes greater then 0xffffffff, it will wrap around back to 0. 3GB = 0xC0000000. 0xffffffff - 0xc0000000 = 0x3FFFFFFF bytes left until it wraps. We need to add an address that will make this address to point to our physical location (1MB). Knowing we have 0x3FFFFFFF bytes left until our DWORD wraps back to 0, we can add 0x100000 (1MB) + 0x3FFFFFFF = 0x400FFFFF + 1 = 0x40100000.</p>
+<p>So, by using the above example, if our kernel is loaded at 1MB physical address but has a real base address of 3GB virtual, we can create a temporary GDT with a base code and data selector of 0x40100000. The processor automatically adds the base selector addresses to the addresses it is accessing. After using LGDT to install this new GDT. After this we are now running at 3GB. This works because the processor will add the cs and ds selector base (40100000) to whatever address that is being referenced. For example, 3GB would be translated by the processor to 1MB in our example as 3GB+base selector ((40100000) = 1MB physical.</p>
+<p>This trick is fairly easy to impliment and works well but wont work for 64 bit (Long Mode). After the kernel performs this trick it can set up its page directory and map itself with ease after which can enable paging.</p>
+<h3 id="virtual-addressing-and-mapping-addresses">Virtual Addressing and Mapping Addresses</h3>
+<p>When we enable paging, <strong>all memory refrences</strong> will be treated as a <strong>virtual address</strong>. This is very important to know. This means we must set up the structures properly first before enabling paging. If we do not, we can run into an immiedate triple fault--with or without valid exception handlers.</p>
+<p>Remember the format of a virtual address? <strong>This is the format of a x86 virtual address</strong>:</p>
+<pre><code class="lang-html">AAAAAAAAAA         BBBBBBBBBB        CCCCCCCCCCCC
+directory index    page table index  offset into page
+</code></pre>
+<p><strong>This is very important!</strong> This tells the processor (And <em>us</em>) alot of information.</p>
+<p>The <strong>directory index</strong> portion tells us what index into the current <strong>page directory</strong> to look in. Look back up to the Directory Entry Structure format in the previous section. <strong>Notice that each directory table entry containes a pointer to a page table</strong>. You can also see this within the image again in that section.</p>
+<p>Because each index within the directory table points to a page table, this tells us what page table we are accessing.</p>
+<p>The <strong>page table index</strong> portion tells us what <strong>page entry</strong> within this page table we are accessing.</p>
+<p>...And remember that each page entry manages a full 4KB of physical address space? The <strong>offset into page</strong> portion tells us what byte within this pages physical address space we are refrencing.</p>
+<p><strong>Notice what happened here.</strong> We have just translated a virtual address into a physical address using our page tables. Yes, its that easy. No trickery involved.</p>
+<p>Lets look at another example. Lets assumed that virtual address 0xC0000000 was mapped to physical address 0x100000. How do we do this? We need to find the page in our structures that 0xC0000000 refer to -- just like we did above. In this case 0xC0000000 is the virtual address, so lets look at its format:</p>
+<pre><code class="lang-html">1100000000         0000000000        000000000000     ; 0xC0000000 in binary form
+
+AAAAAAAAAA         BBBBBBBBBB        CCCCCCCCCCCC
+directory index    page table index  offset into page
+</code></pre>
+<p>Remember that the directory index tells us what page table we are accessing within the page directory table? So... 1100000000b (The directory index) = 768th page table.</p>
+<p>Remember that the page table index is the page we are accessing within this page table? That is 0, so its the first page. Also note the offset byte in this page is 0.</p>
+<p>Now, all we need to do is set the <strong>frame address</strong> of the first page in the 768th page table to 0x100000 and voila! You have just mapped 3GB virtual address to 1MB physical! Knowing that each page is 4KB aligned, we can keep doing this in increments of 4KB physical addresses.</p>
+<h3 id="identity-mapping">Identity Mapping</h3>
+<p>Identity Mapping is nothing more then mapping a virtual address to the same physical address. For example, virtual address 0x100000 is mapped to physical address 0x100000. Yep--Thats all there is to it. The only real time this is required is when first setting up paging. It helps insure the memory addresses of your current running code of where they are at stays the same when paging is enabled. Not doing this will result in immediate triple fault. You will see an example of this in our Virtual Memory Manager initialization routine.</p>
+<h3 id="memory-managment-implimentation">Memory Managment: Implimentation</h3>
+<h4 id="implimentation">Implimentation</h4>
+<p>I suppose that is everything. What we will look at next is the virtual memory manager (VMM) itself that has been developed for this tutorial. This will bring everything that we have looked at together so that you can see how everything works.</p>
+<p>I have tried to make the routines small so that we can focus on one topic at a time as there is a couple of new things that we still need to look at.</p>
+<p>Alrighty...First lets take a look at the page table and directory table themselves:</p>
+<pre><code class="lang-c">//! virtual address
+typedef uint32_t virtual_addr;
+
+//! i86 architecture defines 1024 entries per table--do not change
+#define PAGES_PER_TABLE 1024
+#define PAGES_PER_DIR    1024
+
+#define PAGE_DIRECTORY_INDEX(x) (((x) &gt;&gt; 22) &amp; 0x3ff)
+#define PAGE_TABLE_INDEX(x) (((x) &gt;&gt; 12) &amp; 0x3ff)
+#define PAGE_GET_PHYSICAL_ADDRESS(x) (*x &amp; ~0xfff)
+
+//! page table represents 4mb address space
+#define PTABLE_ADDR_SPACE_SIZE 0x400000
+
+//! directory table represents 4gb address space
+#define DTABLE_ADDR_SPACE_SIZE 0x100000000
+
+//! page sizes are 4k
+#define PAGE_SIZE 4096
+
+//! page table
+struct ptable {
+
+    pt_entry m_entries[PAGES_PER_TABLE];
+};
+
+//! page directory
+struct pdirectory {
+
+    pd_entry m_entries[PAGES_PER_DIR];
+};
+</code></pre>
+<p>Simular to our <strong>physical_addr</strong> type, I created a new address type for virtual memory--<strong>virtual_addr</strong>. Notice that a page table is nothing more then an array of 1024 page table entries? Same thing with the page directory table, but its an array of page directory entries instead. Nothing special yet 😉</p>
+<p><strong>PAGE_DIRECTORY_INDEX, PAGE_TABLE_INDEX, PAGE_GET_PHYSICAL_ADDRESS</strong> are macros that just returns the respective partion of a virtual address. Remember that a virtual address has a specific format, these macros allow us to obtain the information from the virtual address.</p>
+<p><strong>PTABLE_ADDR_SPACE_SIZE</strong> represents the size (in bytes) that a page table represents. A page table is 1024 pages, where a page is 4K in size, so it is <code>1024 * 4k = 4MB</code>. <strong>DTABLE_ADDR_SPACE_SIZE</strong> represents the number of bytes a page directory manages, which is the size of the virtual address space. Knowing a page table represents 4MB of the address space, and that a page directory contains 1024 page tables, 4MB * 1024 = 4GB.</p>
+<p>The virtual memory manager presented here does not handle <strong>large pages</strong>. Instead, it only manages 4K pages.</p>
+<p>The Virtual Memory Manager (VMM) we use relies on these structures heavily. Lets take a look at some of the routines in the VMM to learn how they work.</p>
+<h4 id="vmmngr_alloc_page----allocates-a-page-in-physical-memory">vmmngr_alloc_page () - allocates a page in physical memory</h4>
+<p>To allocate a page, all we need to do is allocate a 4K block of physical memory for the page to refer to, then simply create a page table entry from it:</p>
+<pre><code class="lang-c">bool vmmngr_alloc_page (pt_entry* e) {
+
+    //! allocate a free physical frame
+    void* p = pmmngr_alloc_block ();
+    if (!p)
+        return false;
+
+    //! map it to the page
+    pt_entry_set_frame (e, (physical_addr)p);
+    pt_entry_add_attrib (e, I86_PTE_PRESENT);
+
+    return true;
+}
+</code></pre>
+<p>Notice how our PTE routines make this much easier to do? The above sets the PRESENT bit in the page table entry and sets its FRAME address to point to our allocated block of memory. Thus the page is present and points to a valid block of physical memory and is ready for use. Cool, huh?</p>
+<p>Also, notice how we &quot;map&quot; the physical address to the page. All this means is that we set the page to point to a physical address. Thus the page is &quot;mapped&quot; to that address.</p>
+<h4 id="vmmngr_free_page----frees-a-page-in-physical-memory">vmmngr_free_page () - frees a page in physical memory</h4>
+<p>To free a page is even easier. Simply free the block of memory using our physical memory manager, and clear the page table entries PRESENT bit (marking it NOT PRESENT) :</p>
+<pre><code class="lang-c">void vmmngr_free_page (pt_entry* e) {
+
+    void* p = (void*)pt_entry_pfn (*e);
+    if (p)
+        pmmngr_free_block (p);
+
+    pt_entry_del_attrib (e, I86_PTE_PRESENT);
+}
+</code></pre>
+<p>Thats it! Now that we have a way to allocate and free a single page, lets see if we can put them together in full page tables...</p>
+<h4 id="vmmngr_ptable_lookup_entry----get-page-table-entry-from-page-table-by-address">vmmngr_ptable_lookup_entry () - get page table entry from page table by address</h4>
+<p>Now that we have a way of abtaining the page table entry number from a virtual address, we need a way to get it from the page table. This routine does just that! It uses the above function to convert the virtual address into an index into the page table array, and returns the page table entry from it.</p>
+<pre><code class="lang-c">inline pt_entry* vmmngr_ptable_lookup_entry (ptable* p,virtual_addr addr) {
+
+    if (p)
+        return &amp;p-&gt;m_entries[ PAGE_TABLE_INDEX (addr) ];
+    return 0;
+}
+</code></pre>
+<p>Because this routine returns a pointer, we can modify the entry as much as we need to as well. Cool?</p>
+<p>Thats it for the page table routines. See how easy paging is? 😉</p>
+<p>Next up...The page directory routines!</p>
+<h4 id="vmmngr_pdirectory_lookup_entry----get-directory-entry-from-directory-table-by-address">vmmngr_pdirectory_lookup_entry () - get directory entry from directory table by address</h4>
+<p>Now that we have a way to covert a virtual address into a page directory table index, we need to provide a way to get the page directory entry from it. This is exactally the same with the page table routine counterpart:</p>
+<pre><code class="lang-c">inline pd_entry* vmmngr_pdirectory_lookup_entry (pdirectory* p, virtual_addr addr) {
+
+    if (p)
+        return &amp;p-&gt;m_entries[ PAGE_TABLE_INDEX (addr) ];
+    return 0;
+}
+</code></pre>
+<h4 id="vmmngr_switch_pdirectory----switch-to-a-new-page-directory">vmmngr_switch_pdirectory () - switch to a new page directory</h4>
+<p>Notice how small all of these routines are. They provide a minimal but very effective interface for easily working with page tables and directories. When we set up a page directory, we need to provide a way to install it for our use.</p>
+<p>In the previous tutorial, we added two routines: <strong>pmmngr_load_PDBR()</strong> and <strong>pmmngr_get_PDBR()</strong> to set and get the <strong>Page Directory Base Register (PDBR)</strong>. This is the register that stores the current page directory table. On the x86 architecture, the PDBR is the <strong>cr3</strong> processor register. Thus, these routines simply set and gets the cr3 register.</p>
+<p>vmmngr_switch_pdirectory () uses these routines to load the PDBR and set the current directory:</p>
+<pre><code class="lang-c">//! current directory table (global)
+pdirectory*        _cur_directory=0;
+
+inline bool vmmngr_switch_pdirectory (pdirectory* dir) {
+
+    if (!dir)
+        return false;
+
+    _cur_directory = dir;
+    pmmngr_load_PDBR (_cur_pdbr);
+    return true;
+}
+
+pdirectory* vmmngr_get_directory () {
+
+    return _cur_directory;
+}
+</code></pre>
+<h4 id="vmmngr_flush_tlb_entry----flushes-a-tlb-entry">vmmngr_flush_tlb_entry () - flushes a TLB entry</h4>
+<p>Remember how the TLB caches the current page table? Sometimes it may be necessary to flush (invalidate) the TLB or individual entries so that it can get updated to the current value. This may be done automatically by the processor (Like during a mov instruction involving a control register).</p>
+<p>The processor provides a method for us to manually flush individual TLB entries ourself. This is done using the <strong>INVLPG</strong> instruction.</p>
+<p>We simply pass it the virtual address and the resulting page entry will be invalidated:</p>
+<pre><code class="lang-c">void vmmngr_flush_tlb_entry (virtual_addr addr) {
+
+#ifdef _MSC_VER
+    _asm {
+        cli
+        invlpg    addr
+        sti
+    }
+#endif
+}
+</code></pre>
+<p>Keep in mind that <strong>INVLPG</strong> is a <strong>privlidged instruction</strong>. Thus you must be running in <strong>supervisor mode</strong> to use it.</p>
+<h4 id="vmmngr_map_page----maps-pages">vmmngr_map_page () - maps pages</h4>
+<p>This is one of the most important routines. This routine allows us to map any physical address to a virtual address. Its a little complicated so lets break it down:</p>
+<pre><code class="lang-c">void vmmngr_map_page (void* phys, void* virt) {
+
+   //! get page directory
+   pdirectory* pageDirectory = vmmngr_get_directory ();
+
+   //! get page table
+   pd_entry* e = &amp;pageDirectory-&gt;m_entries [PAGE_DIRECTORY_INDEX ((uint32_t) virt) ];
+   if ( (*e &amp; I86_PTE_PRESENT) != I86_PTE_PRESENT) {
+</code></pre>
+<p>We are given a physical and virtual address as paramaters. The first thing that must be done is to verify that the page directory entry that this virtual address is located in is valid (That is, has been allocated before and its PRESENT bit is set.)</p>
+<p>The page directory index is part of the virtual address itself, so we use PAGE_DIRECTORY_INDEX() to obtain the page directory index. Then we just index into the page directory array to obtain a pointer to the page directory entry. Then the test to see if I86_PTE_PRESENT bit is set or not. If it is not set, then the page directory entry does not exist so we must create it...</p>
+<pre><code class="lang-c">    //! page table not present, allocate it
+    ptable* table = (ptable*) pmmngr_alloc_block ();
+    if (!table)
+       return;
+
+    //! clear page table
+    memset (table, 0, sizeof(ptable));
+
+    //! create a new entry
+    pd_entry* entry =
+       &amp;pageDirectory-&gt;m_entries [PAGE_DIRECTORY_INDEX ( (uint32_t) virt) ];
+
+    //! map in the table (Can also just do *entry |= 3) to enable these bits
+    pd_entry_add_attrib (entry, I86_PDE_PRESENT);
+    pd_entry_add_attrib (entry, I86_PDE_WRITABLE);
+    pd_entry_set_frame (entry, (physical_addr)table);
+   }
+</code></pre>
+<p>The first thing the above does is to allocate a new page for the new page table and clears it. After words, it uses PAGE_DIRECTORY_INDEX() again to get the directory index from the virtual address, and indexes into the page directory to get a pointer to the page table entry. Then it sets the page table entry to point to our new allocate page table, and sets its PRESENT and WRITABLE bits so that it can be used.</p>
+<p>At this point, the page table is guaranteed to be valid at that virtual address. So the routine now just needs to map the address...</p>
+<pre><code class="lang-c">   //! get table
+   ptable* table = (ptable*) PAGE_GET_PHYSICAL_ADDRESS ( e );
+
+   //! get page
+   pt_entry* page = &amp;table-&gt;m_entries [ PAGE_TABLE_INDEX ( (uint32_t) virt) ];
+
+   //! map it in (Can also do (*page |= 3 to enable..)
+   pt_entry_set_frame ( page, (physical_addr) phys);
+   pt_entry_add_attrib ( page, I86_PTE_PRESENT);
+}
+</code></pre>
+<p>The above calls PAGE_GET_PHYSICAL_ADDRESS() to get the physical frame that the page directory entry points to in order to get the page table entry. Then, using <strong>PAGE_TABLE_INDEX</strong> to get the page table index from the virtual address, indexing into the page table it obtains the page table entry. Then it sets the page to point to the physical address and sets the pages PRESENT bit.</p>
+<h4 id="vmmngr_initialize----initialize-the-vmm">vmmngr_initialize () - initialize the VMM</h4>
+<p>This is an important routine. This uses all of the above routines (Well, most of them 😉 ) to set up the default page directory, install it, and enable paging. We can also use this an example of how everything works and fits together. Because this routine creates a new page directory, we also need to map 1MB physical to 3GB virtual in order for the kernel.</p>
+<p>This is a fairly big routine so lets break it down and see whats going on:</p>
+<pre><code class="lang-c">void vmmngr_initialize () {
+
+    //! allocate default page table
+    ptable* table = (ptable*) pmmngr_alloc_block ();
+    if (!table)
+        return;
+
+    //! allocates 3gb page table
+    ptable* table2 = (ptable*) pmmngr_alloc_block ();
+    if (!table2)
+        return;
+
+    //! clear page table
+    vmmngr_ptable_clear (table);
+</code></pre>
+<p>Remember how page tables must be located at 4K aligned addresses? Thanks to out physical memory manager (PMM), our <strong>pmmngr_alloc_block()</strong> already does just this so we do not need to worry about it. Because a single block allocated is already 4K in size, the page table has enough storage space for its entries as well (1024 page table entries * 4 bytes per entry (size of page table entry) = 4K) so all we need is a single block.</p>
+<p>Afterwords we clear out the page table to clean it up for our use.</p>
+<pre><code class="lang-c">    //! 1st 4mb are idenitity mapped
+    for (int i=0, frame=0x0, virt=0x00000000; i&lt;1024; i++, frame+=4096, virt+=4096) {
+
+         //! create a new page
+        pt_entry page=0;
+        pt_entry_add_attrib (&amp;page, I86_PTE_PRESENT);
+         pt_entry_set_frame (&amp;page, frame);
+
+        //! ...and add it to the page table
+        table2-&gt;m_entries [PAGE_TABLE_INDEX (virt) ] = page;
+    }
+</code></pre>
+<p>This parts a little tricky. Remember that <strong>as soon as paging is enabled, all address become virtual?</strong> This poses a problem. To fix this, we must map the virtual addresses to the same physical addresses so they refer to the same thing. <strong>This is idenitity mapping</strong>.</p>
+<p>The above code idenitity maps the page table to the first 4MB of physical memory (the entire page table). It creates a new page and sets its PRESENT bit followed by the frame address we want the page to refer to. Afterwords it converts the current virtual address we are mapping (stored in &quot;frame&quot;) to a page table index to set that page table entry.</p>
+<p>We increment &quot;frame&quot; for each page in the page table (stored in &quot;i&quot;) by 4K (4096) as that is the block of memory each page refrences. (Remember page table index 0 references address 0 - 4093, index 1 refrences address 4096--etc..?)</p>
+<p>Here we run into a problem. Because the boot loader maps and loads the kernel directly to 3gb virtual, we also need to remap the area where the kernel is at:</p>
+<pre><code class="lang-c">    //! map 1mb to 3gb (where we are at)
+    for (int i=0, frame=0x100000, virt=0xc0000000; i&lt;1024; i++, frame+=4096, virt+=4096) {
+
+        //! create a new page
+        pt_entry page=0;
+        pt_entry_add_attrib (&amp;page, I86_PTE_PRESENT);
+        pt_entry_set_frame (&amp;page, frame);
+
+        //! ...and add it to the page table
+        table-&gt;m_entries [PAGE_TABLE_INDEX (virt) ] = page;
+    }
+</code></pre>
+<p>This code is pretty much the same as the above loop and maps 1MB physical to 3GB virtual. This is what maps the kernel into the address space and allows the kernel to continue running at 3GB virtual address.</p>
+<pre><code class="lang-c">    //! create default directory table
+    pdirectory*    dir = (pdirectory*) pmmngr_alloc_blocks (3);
+    if (!dir)
+        return;
+
+    //! clear directory table and set it as current
+    memset (dir, 0, sizeof (pdirectory));
+</code></pre>
+<p>The above creates a new page directory and clears it for our use.</p>
+<pre><code class="lang-c">    pd_entry* entry = &amp;dir-&gt;m_entries [PAGE_DIRECTORY_INDEX (0xc0000000) ];
+    pd_entry_add_attrib (entry, I86_PDE_PRESENT);
+    pd_entry_add_attrib (entry, I86_PDE_WRITABLE);
+    pd_entry_set_frame (entry, (physical_addr)table);
+
+    pd_entry* entry2 = &amp;dir-&gt;m_entries [PAGE_DIRECTORY_INDEX (0x00000000) ];
+    pd_entry_add_attrib (entry2, I86_PDE_PRESENT);
+    pd_entry_add_attrib (entry2, I86_PDE_WRITABLE);
+    pd_entry_set_frame (entry2, (physical_addr)table2);
+</code></pre>
+<p>Remember that each page table represents a full 4MB virtual address space? Knowing that each page directory entry points to a page table, we can saftley say that each page directory entry represents the same 4MB address space inside of the 4GB virtual address space of the entire directory table. The first entry in the page directory is for the first 4MB, the second is for the next 4MB and so on. Because we are only mapping the first 4MB right now, all we need to do is set the first entry to point to our page table.</p>
+<p>In a simular way, we set up a page directory entry for 3GB. This is needed so we can map the kernel in.</p>
+<p>Notice that we also set the page directory entries PAGE and PRESENT bit as well. This will tell the processor that the page table is present and writable.</p>
+<pre><code class="lang-c">    //! store current PDBR
+    _cur_pdbr = (physical_addr) &amp;dir-&gt;m_entries;
+
+    //! switch to our page directory
+    vmmngr_switch_pdirectory (dir);
+
+    //! enable paging
+    pmmngr_paging_enable (true);
+}
+</code></pre>
+<p>Now that the page directory is set up, we install the page directory and enable paging. If everything worked as expected, your program should not crash. If it does not work, it will probably triple fault.</p>
+<h3 id="page-faults">Page Faults</h3>
+<p>As you know, as soon as we enable paging all addresses become virtual. All of these virtual addresses rely heavily on the page tables and page directory data structures. This is fine, but there will be alot of times when a virtual address requires the cpu to access a page that is not yet valid. This is when a <strong>page fault exception (#PF)</strong> is raised by the processor. A &lt;b?page fault=&quot;&quot;&gt;will only occur when a page is marked <strong>not present</strong>. A <strong>General Protecton Fault (#GPF)</strong> will occur if the page is not properly mapped but marked present and accessable. A <strong>#GPF</strong> will also occur if the page is not accessable.</p>
+<p>A page fault is cpu interrupt 14 which also pushes an error code so that we can abtain information. The error code pushed by the processor has the following format:</p>
+<ul>
+<li><strong>Bit 0:</strong>
+<ul>
+<li>0: #PF occured because page was present</li>
+<li>1: #PF occured NOT because the page was present</li>
+</ul>
+</li>
+<li><strong>Bit 1:</strong>
+<ul>
+<li>0: Operation that caused the #PF was a read</li>
+<li>1: Operation that caused the #PF was a write</li>
+</ul>
+</li>
+<li><strong>Bit 2:</strong>
+<ul>
+<li>0: Processor was running in ring 0 (kernel mode)</li>
+<li>1: Processor was running in ring 3 (user mode)</li>
+</ul>
+</li>
+<li><strong>Bit 3:</strong>
+<ul>
+<li>0: #PF did not occure because reserved bits were written over</li>
+<li>1: #PF occured becaused reserved bits were written over</li>
+</ul>
+</li>
+<li><strong>Bit 4:</strong>
+<ul>
+<li>0: #PF did not occure during an instruction fetch</li>
+<li>1: #PF occured during an instruction fetch</li>
+</ul>
+</li>
+</ul>
+<p>All other bits are 0.</p>
+<p>When a #PF occures, the processor also stores the address that caused the fault in the <strong>CR2</strong> register.</p>
+<p>Normally when a #PF occurs, an operating system will need to fetch the page from the faulting address of the currently running program from disk. This requires several different components of an OS (disk driver, file system driver, volume/mount points management) that we do not yet have. Because of this, we will return back to page fault handling a little later when we have a more evolved OS.</p>
+<h2 id="demo">Demo</h2>
+<p>This demo includes all of the source code in this tutorial, and more. This demo includes paging code inside of the bootloader and kernel to include the complete virtual memory manager (VMM) and to map the kernel to the 3GB mark within its own virtual address space.</p>
+<p>There is nothing new visually with this demo. Because of this, there is no new pics. However it does demenstrate the concepts described in this chapter in both assembly language source (The bootloaders Paging.asm file) and C source (The VMM that we have developed in this chapter.)</p>
+<p><a href="../../resources/OSDev_tools/Demo12.zip">DEMO DOWNLOAD</a></p>
+<h2 id="conclusion">Conclusion</h2>
+<p>I am very glad to get this one done! We have covered alot of information and ground in this tutorial: Virtual Memory, Virtual addressing and translation, paging, methods, and more. With this tutorial, we are not out of the paging word yet! However, we can all saftely go to bed tonight knowing that we have a better understanding of it, how it works, and hot to work with it. See? Its not so bad 😀</p>
+<p>Inside of the next tutorial I am thinking about going back to the fun stuff with developing a keyboard driver. Because we already have a form of output, and we will be able to retrieve input, we may even make a simple command line as well 😉</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T18.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

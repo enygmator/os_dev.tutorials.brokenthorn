@@ -1,0 +1,800 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Prepare for the Kernel part 2 | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Prepare for the Kernel part 2 | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="prepare-for-the-kernel-part-2">Prepare for the Kernel part 2</h1>
+
+<p>This is the tutorial you have been waiting for. It builds directly on the all of the previous code, and loads our Kernel at the 1 MB mark, and executes our Kernel.</p>
+<p>The Kernel is the most important part of our OS. The Kernel...We have talked a little about this mysterious foe before, haven't we? We will talk about the Kernel a lot more in the next few tutorials, including design, structure, and development.</p>
+<p>Right now, we already have everything set up... It's time to load the Kernel and say good bye to Stage 2!</p>
+<p><strong>Note: This tutorial requires a basic understanding of the Bootloaders 3 and 4 tutorials. We cover everything in detail here, but all of the concepts are explained in depth in the Bootloaders 3 and 4 Tutorials. If you have not read those tutorials, Please look at those tutorials first.</strong></p>
+<p>[OS Development Series Tutorial 5: Bootloaders 3] (fix link)</p>
+<p>[OS Development Series Tutorial 6: Bootloaders 4] (fix link)</p>
+<p>If you have read them, this tutorial should not be that hard.</p>
+<p><em>Ready?</em></p>
+<h2 id="a-basic-kernel-stub">A Basic Kernel Stub</h2>
+<p>This is the Kernel we will load:</p>
+<pre><code class="lang-armasm">; We are still pure binary. We will fix this in the next few tutorials 😀
+
+org    0x10000        ; Kernel starts at 1 MB
+bits    32            ; 32 bit code
+
+jmp    Stage3         ; jump to stage 3
+
+%include &quot;stdio.inc&quot;  ; Our stdio.inc file we developed from the previous tutorial
+
+msg db  0x0A, 0x0A, &quot;Welcome to Kernel Land!!&quot;, 0x0A, 0
+
+Stage3:
+
+    ;-------------------------------;
+    ;   Set registers        ;
+    ;-------------------------------;
+
+    mov        ax, 0x10        ; set data segments to data selector (0x10)
+    mov        ds, ax
+    mov        ss, ax
+    mov        es, ax
+    mov        esp, 90000h        ; stack begins from 90000h
+
+    ;---------------------------------------;
+    ;   Clear screen and print success    ;
+    ;---------------------------------------;
+
+    call       ClrScr32
+    mov        ebx, msg
+    call       Puts32
+
+    ;---------------------------------------;
+    ;   Stop execution            ;
+    ;---------------------------------------;
+
+    cli
+    hlt
+</code></pre>
+<p>Okay, there is nothing much here. We will build on this program heavily in the next section.</p>
+<p>Notice that it is all 32 bit. Sweet, huh? We are going to be out of the 16 bit world completely here.</p>
+<p>For now, we just halt the system when we get to the Kernel.</p>
+<p>Please note that we will not be using this file probably at all in the rest of the series. Rather, we will be using a 32 bit C++ compiler. After we load the kernel image in memory, we can parse the file in memory for the kernel entry routine and call the C main() routine directly from our 2nd stage boot loader. Cool, huh? In other words, we will go from our 2nd stage boot loader directly into the C++ world without any stub file or program. However, we need a starting point. Because of this, we will use a basic stub file in this tutorial to help test and demonstrate it working.</p>
+<p>In the next few tutorials we will be getting our compilers up and working and use that instead. But now we are getting ahead of ourselves here 😉</p>
+<h2 id="the-floppy-interface">The floppy interface</h2>
+<p>Yay! Its time to finish off stage 2! In order to load the Kernel we need to traverse FAT12 again. But before that, we have to get sectors off disk.</p>
+<p>This code is EXACTALLY the same from our bootloader, and uses the BIOS INT 0x13 to load sectors off disk.</p>
+<p>Because this tutorial is also a complete review, lets break each routine into sections and describe exactly what is going on.</p>
+<h3 id="reading-a-sector---bios-int-0x13">Reading a sector - BIOS INT 0x13</h3>
+<p>We talked about everything regarding loading sectors in our <strong>Bootloaders 3</strong>. Looking back at the tutorial, remember that we can use the <strong>BIOS Interrupt 0x13 function 2</strong> to read a sector. Okay, then. The problem here is that <strong>We have to load sectors before going into protected mode.</strong> If we attempt to call a BIOS interrupt from protected mode, the processor will triple fault, remember?</p>
+<p>Anyways, what was the interrupt? Right....</p>
+<p><strong>INT 0x13/AH=0x02 - DISK : READ SECTOR(S) INTO MEMORY</strong><br>
+AH = 0x02<br>
+AL = Number of sectors to read<br>
+CH = Low eight bits of cylinder number<br>
+CL = Sector Number (Bits 0-5). Bits 6-7 are for hard disks only<br>
+DH = Head Number<br>
+DL = Drive Number (Bit 7 set for hard disks)<br>
+ES:BX = Buffer to read sectors to</p>
+<p>Returns:<br>
+AH = Status Code<br>
+AL = Number of sectors read<br>
+CF = set if failure, cleared is successful</p>
+<p>This is not THAT hard. Remember from the Bootloaders tutorial though. That is, we need to keep track of the sector, track, and head number, and insure we don't load attempt to load a sector beyond the track. That is, <strong>Remember that there are 18 sectors per track? Setting the sector number greater then 18 will cause the controller to fail, and processor to triple fault.</strong></p>
+<p>Okay...18 sectors per track. Remember that each sector if 512 bytes. Also, remember that there are 80 tracks per side.</p>
+<p>Okay then! All of this information... Sectors per track, the number of tracks, number of heads, the size of a sector, completely depend on the disk itself. Remember that a sector does not NEED to be 512 bytes?</p>
+<p>We describe everything in the OEM Parameter Block:</p>
+<pre><code class="lang-armasm">bpbOEM                 db &quot;My OS   &quot;
+bpbBytesPerSector:     DW 512
+bpbSectorsPerCluster:  DB 1
+bpbReservedSectors:    DW 1
+bpbNumberOfFATs:       DB 2
+bpbRootEntries:        DW 224
+bpbTotalSectors:       DW 2880
+bpbMedia:              DB 0xf0  ;; 0xF1
+bpbSectorsPerFAT:      DW 9
+bpbSectorsPerTrack:    DW 18
+bpbHeadsPerCylinder:   DW 2
+bpbHiddenSectors:      DD 0
+bpbTotalSectorsBig:    DD 0
+bsDriveNumber:         DB 0
+bsUnused:              DB 0
+bsExtBootSignature:    DB 0x29
+bsSerialNumber:        DD 0xa0a1a2a3
+bsVolumeLabel:         DB &quot;MOS FLOPPY &quot;
+bsFileSystem:          DB &quot;FAT12   &quot;
+</code></pre>
+<p>This should look familiar! Each member has been described in Tutorial 5--Please see that tutorial for a full detailed explanation of everything here.</p>
+<p>Now, all we need to have is a method so that we can load any number of sectors from disk to some location in memory. We immediately run into a problem though. Okay--<strong>We know what sector we want to load</strong>. However, <strong>BIOS INT 0x13 does not work with sectors.</strong> Okay, it does--but it also works with cylinders (Remember that a cylinder is just a head?) and tracks.</p>
+<p>So what does this have to do with anything? Imagine if we want to load sector 20. We cannot directly use this number, because <strong>there are only 18 sectors per track</strong>. Attempting to read from the 20th sector on the current track will cause the floppy controller to fail, and processor to triple fault, as that sector does not exist. <strong>In order to read the 20'th sector, we have to read Track 2 Sector 2, Head 0</strong> We will verify this later.</p>
+<p>What this means as that, if we want to specify a sector to load, we need to convert our linear sector number into the exact cylinder, track, and sector location on disk.</p>
+<p>Wait for it...Aha! Remember our <strong>CHS to LBA</strong> conversion routines?</p>
+<h4 id="converting-lba-to-chs">Converting LBA to CHS</h4>
+<p>This should sound familiar, doesn't it? <strong>Linear Block Addressing (LBA)</strong> simply represents an indexed location on disk. The first block being 0, the second block being 1. In other words, LBA simply represents the sector number, beginning with 0, where each &quot;block&quot; is a single &quot;sector&quot;.</p>
+<p>Anyhow...We have to find a way to convert this sector number (LBA) to the exact cylinder/head/sector location on disk. <strong>Remember this from Bootloaders 4 tutorial?</strong></p>
+<p>Some of our readers exclaimed this code was fairly tricky--and I am to admit it is. So, I am going to explain it in detail here.</p>
+<p>First, lets look at the forumlae again:</p>
+<pre><code class="lang-c">absolute sector = (logical sector / sectors per track) + 1
+absolute head   = (logical sector / sectors per track) MOD number of heads
+absolute track  =  logical sector / (sectors per track * number of heads)
+</code></pre>
+<p>Okay! This is pretty easy, huh? The &quot;logical sector&quot; is the actual sector number we want. Note that the <strong>logical sector / sectors per track</strong> is inside of all of the above equations.</p>
+<p>Because this division is inside of all of these equations, we can store it's result and use it for the other two expressions.</p>
+<p>Lets put this into an example. We already said the 20th sector should be Track 2, Sector 2, remember? Lets try to put this formula to the test then:</p>
+<pre><code class="lang-c">absolute sector = (logical sector / sectors per track) + 1
+
+2.111111111111111111111111111111 = 20 / 18 (sectors per track) + 1
+</code></pre>
+<p>We only keep the absolute number (2)--Aha! Sector 2! Note that we need to add 1 here because LBA addressing begins from 0. Remember that the basic formula &quot;logical sector / sectors per track&quot; is in ALL of these formulas. It is simply 1.1111111111111111111111111111111 in this example (Note in the above formula, we added 1 more). Because we are working with whole numbers, this is simply 1.</p>
+<pre><code class="lang-c">absolute head   = (logical sector / sectors per track) MOD number of heads
+                (1) MOD Number of heads (2)
+                = Head 1
+</code></pre>
+<p>Remember from the OEM Block that we specified 2 heads per cylinder. So far, this indicates sector 2 on Head 1. Great--but what track are we on?</p>
+<pre><code class="lang-c">absolute track  = logical sector / (sectors per track * number of heads)
+                (1) * Number of heads (2)
+                = Track 2
+</code></pre>
+<p>Notice that this is the exact same formula as above. The ONLY difference is that simple operation.</p>
+<p>Anyhow... following the formula we have: <strong>Logical Sector 20 is on Sector 2 Track 2 Head 0</strong>. Compare this with what we originally said in the previous section, and notice how this formula works 😉</p>
+<p>Okay, so now lets try to apply these formulas in the code:</p>
+<h5 id="lbachs-explanation-detail">LBACHS Explanation: Detail</h5>
+<p>Okay, this routine takes one parameter: AX, which contains the logical sector to convert into CHS. Note the formula <strong>(logical sector / sectors per track)</strong> is part of all three formulas. Rather then recalculating this over and over, it is more efficient to just calculate it <strong>once</strong>, and use that result in all of the other calculations... This is how this routine works.</p>
+<pre><code class="lang-armasm">LBACHS:
+    xor     dx, dx                              ; prepare dx:ax for operation
+    div     WORD [bpbSectorsPerTrack]           ; calculate
+</code></pre>
+<p>Now AX contains the logical sector / sectors per track operation.</p>
+<p>Begin with sector 1 (Remember the + 1 in logical sector / sectors per track ?)</p>
+<pre><code class="lang-armasm">    inc     dl                                  ; adjust for sector 0
+    mov     BYTE [absoluteSector], dl
+</code></pre>
+<p>Clear DX. AX still contains the result of logical sector / sectors per track</p>
+<pre><code class="lang-armasm">    xor     dx, dx                              ; prepare dx:ax for operation
+</code></pre>
+<p>Now for the formulas...</p>
+<p>absolute head = (logical sector / sectors per track) MOD number of heads</p>
+<p>absolute track = logical sector / (sectors per track * number of heads)</p>
+<p>The multiplication results into a <strong>division</strong> by the number of heads. So the only difference between these two is the operation--one is division, and one is the remainder of that division (The Modulus).</p>
+<p>Okay, lessee...What instruction can we use that could return both the remainder (MOD) and division result? DIV!</p>
+<p>Remember that (logical sector / sectors per track) is still in AX, so all we need to do is divide by number of heads per cylinder...</p>
+<pre><code class="lang-armasm">    div     WORD [bpbHeadsPerCylinder]          ; calculate
+</code></pre>
+<p>The equations for absolute head and absolute track are very similar. The only actual difference is the operation. <strong>This simple DIV instruction sets both DX and AX. AX Now stores the DIVISION of HeadsPerCylinder; DX now contains the REMAINDER (Modulus) of the same operation</strong></p>
+<pre><code class="lang-armasm">    mov     BYTE [absoluteHead], dl
+    mov     BYTE [absoluteTrack], al
+    ret
+</code></pre>
+<p>I hope this clears things up a bit. If not, please let me know 😉</p>
+<h4 id="converting-chs-to-lba">Converting CHS to LBA</h4>
+<p>This is a lot more simpler:</p>
+<pre><code class="lang-armasm">ClusterLBA:
+    ; LBA    =    (cluster - 2 ) * sectors per cluster
+
+    sub     ax, 0x0002                          ; subtract 2 from cluster number
+    xor     cx, cx
+    mov     cl, BYTE [bpbSectorsPerCluster]     ; get sectors per cluster
+    mul     cx                                  ; multiply
+</code></pre>
+<h4 id="reading-in-sectors">Reading in sectors</h4>
+<p>Okay, so now we have everything to read in sectors. This code is also exactly the same from the bootloader.</p>
+<pre><code class="lang-armasm">;************************************************;
+; Reads a series of sectors
+; CX=&gt;Number of sectors to read
+; AX=&gt;Starting sector
+; ES:BX=&gt;Buffer to read to
+;************************************************;
+
+ReadSectors:
+.MAIN
+    mov     di, 0x0005                          ; five retries for error
+</code></pre>
+<p>Okay, here we attempt to read the sectors 5 times.</p>
+<pre><code class="lang-armasm">.SECTORLOOP
+    push    ax
+    push    bx
+    push    cx
+    call    LBACHS                              ; convert starting sector to CHS
+</code></pre>
+<p>We store the registers on the stack. The starting sector is a linear sector number (Stored in AX). Because we are using BIOS INT 0x13, We need to convert this to CHS before reading from the disk. So, we use our LBA to CHS coversition routine. Now, <strong>absoluteTrack</strong> contains the track number, <strong>absoluteSector</strong> contains the sector within the track, and <strong>absoluteHead</strong> contains the head number. All of this was set by our LBA to CHA conversion routine, remember?</p>
+<pre><code class="lang-armasm">    mov     ah, 0x02                            ; BIOS read sector
+    mov     al, 0x01                            ; read one sector
+    mov     ch, BYTE [absoluteTrack]            ; track
+    mov     cl, BYTE [absoluteSector]           ; sector
+    mov     dh, BYTE [absoluteHead]             ; head
+    mov     dl, BYTE [bsDriveNumber]            ; drive
+    int     0x13                                ; invoke BIOS
+</code></pre>
+<p>Now we set up to read a sector, and invoke the BIOS to read it. For simplicity, lets take another look at the BIOS INT 0x13 routine that we are executing:</p>
+<p><strong>INT 0x13/AH=0x02 - DISK : READ SECTOR(S) INTO MEMORY</strong><br>
+AH = 0x02<br>
+AL = Number of sectors to read<br>
+CH = Low eight bits of cylinder number<br>
+CL = Sector Number (Bits 0-5). Bits 6-7 are for hard disks only<br>
+DH = Head Number<br>
+DL = Drive Number (Bit 7 set for hard disks)<br>
+ES:BX = Buffer to read sectors to</p>
+<p>Compare this with how we execute the code above--fairly simple, huh?</p>
+<p>Remember that the buffer to write to is in ES:BX, which INT 0x13 references as the buffer. We passed ES:BX into this routine, so that is the location to load the sectors to.</p>
+<pre><code class="lang-armasm">    jnc     .SUCCESS                            ; test for read error
+    xor     ax, ax                              ; BIOS reset disk
+    int     0x13                                ; invoke BIOS
+    dec     di                                  ; decrement error counter
+    pop     cx
+    pop     bx
+    pop     ax
+    jnz     .SECTORLOOP                         ; attempt to read again
+</code></pre>
+<p>The BIOS INT 0x13 function 2 sets the Carry Flag (CF) is there is an error. If there is an error, decrement the counter (Remember we set up the loop to try 5 times?), and then try again!</p>
+<p>If all 5 attempts failed (CX=0, Zero flag set), then we fall down to the INT 0x18 instruction:</p>
+<pre><code class="lang-armasm">    int     0x18
+</code></pre>
+<p>...Which reboots the computer.</p>
+<p>If the Carry Flag was NOT set (CF=0), then the <strong>jnz</strong> instruction jumps here, as it indicates that there was no error. The sector was read successfully.</p>
+<pre><code class="lang-armasm">.SUCCESS
+    pop     cx
+    pop     bx
+    pop     ax
+    add     bx, WORD [bpbBytesPerSector]        ; queue next buffer
+    inc     ax                                  ; queue next sector
+    loop    .MAIN                               ; read next sector
+    ret
+</code></pre>
+<p>Now, just restore the registers, and go to the next sector. Not to hard 😀 Note that, because ES:BX contains the address to load the sectors to, we need to increment BX by the bytes per sector to go to the next sector.</p>
+<p>AX contained the <strong>starting sector</strong> to read from, so we need to increment that too.</p>
+<p>I guess that's all for now. Please reference <strong>Bootloaders 4</strong> for a full explanation of this routine.</p>
+<h4 id="floppy16inc">Floppy16.inc</h4>
+<p>In the example demo, all of the floppy access routines are inside of <strong>Floppy16.inc</strong>.</p>
+<h2 id="fat12-interface">FAT12 Interface</h2>
+<p>Yay--We can load sectors. Woohoo... :( As you know, we cannot really do much with that. What we need to do next is create a basic definition of a &quot;file&quot; and what a &quot;file&quot; is. We do this by means of a <strong>Filesystem</strong>.</p>
+<p>Filesystems can get quite complex. Please reference <strong>Bootloaders 4</strong> while I explain this code to fully understand how this code works.</p>
+<h3 id="constants">Constants</h3>
+<p>During parsing Fat12, we will be needing a location to load the root directory table and the FAT table. To make things somewhat easier, lets hide these locations behind constants:</p>
+<pre><code class="lang-armasm">%define ROOT_OFFSET 0x2e00
+%define FAT_SEG 0x2c0
+%define ROOT_SEG 0x2e0
+</code></pre>
+<p>We will be loading our root directory table to 0x2e00 and our FAT to 0x2c00. FAT_SEG and ROOT_SEG are used for loading into segment registers.</p>
+<h3 id="traversing-fat12">Traversing FAT12</h3>
+<p>As you know, some OS code can simply get ugly. Filesystem code, in my opinion, is one of them. This is one of the reasons why I decided to go over this code in this review-like tutorial. The FAT12 code is basically the same as the bootloaders, but I decided to modify it to decrease dependencies with the main program. Because of this, I decided to describe it in detail here.</p>
+<p>Please note, I will not be going over FAT12 in detail here. Please see the <strong>Bootloaders 4</strong> tutorial for complete details.</p>
+<p>Anyhow, as you know, in order to traverse FAT12 the first thing we need to load is the <strong>Root Directory Table</strong>, so lets look at that first.</p>
+<h4 id="loading-the-root-directory-table">Loading the Root Directory Table</h4>
+<h5 id="disk-structure">Disk structure</h5>
+<table>
+<thead>
+<tr>
+<th>FAT12 FS Sectors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Boot Sector</td>
+</tr>
+<tr>
+<td>Extra Reserved Sectors</td>
+</tr>
+<tr>
+<td>File Allocation Table 1</td>
+</tr>
+<tr>
+<td>File Allocation Table 2</td>
+</tr>
+<tr>
+<td>Root Directory (FAT12/FAT16 Only)</td>
+</tr>
+<tr>
+<td>Data Region containing files and directories</td>
+</tr>
+</tbody>
+</table>
+<p>Remember that the Root Directory Table is located right after the FAT's and Reserved sectors?</p>
+<p>In loading the root directory table, we need to find a location in memory that we do not currently need and copy it there. For now, I chose 0x7E00 (Real mode: 0x7E0:0). This is right above our bootloader, which is <strong>still in memory</strong> because we have never overwritten it.</p>
+<p>There is an important concept here. Notice that we have to load everything at absolute memory locations. This is very bad, as we have to physically keep track of where things are located. This is where a <strong>Low level memory manager</strong> comes into play. More later...</p>
+<pre><code class="lang-armasm">;*******************************************
+; LoadRoot ()
+;    - Load Root Directory Table
+;*******************************************
+
+LoadRoot:
+
+    pusha         ; store registers
+    push    es
+</code></pre>
+<p>We first store the current state of the registers. Not doing so will effect the rest of the program that uses it, which is very bad.</p>
+<p>Now we get the size of the root directory table, so that we know the number of sectors to load.</p>
+<p>Remember from <strong>Bootloaders 4</strong>: Each entry is 32 bytes in size. When we add a new file in a FAT12 formatted disk, Windows automatically appends to the root directory for us, and adds to the <strong>bpbRootEntries</strong> byte offset variable of the <strong>OEM Parameter Block</strong></p>
+<p>See...Windows is nice 😀</p>
+<p>So...lessee, knowing each entry is 32 bytes in size, <strong>multiplying 32 bytes by the number of root directories will tell us how many bytes there are in the Root Directory Table</strong>. Simple enough, but we need the number of <strong>sectors</strong>--so we need to divide this result by the number of sectors:</p>
+<pre><code class="lang-armasm">    ; compute size of root directory and store in &quot;cx&quot;
+
+    xor     cx, cx                    ; clear registers
+    xor     dx, dx
+    mov     ax, 32                    ; 32 byte directory entry
+    mul     WORD [bpbRootEntries]     ; total size of directory
+    div     WORD [bpbBytesPerSector]  ; sectors used by directory
+    xchg    ax, cx                    ; move into AX
+</code></pre>
+<p>OKAY, so now AX=number of sectors the root directory takes. Now, we have to find the starting location.</p>
+<p>Remember from <strong>Bootloaders 4: The Root Directory table is Right after both FAT's and reserved sectors on the disk.</strong> Please look at the above disk structure table to see where the root directory table is located.</p>
+<p>So...All we need to do is get the amount of sectors for the FAT's, and add that to the reserved sectors to get the exact location on disk:</p>
+<pre><code class="lang-armasm">     ; compute location of root directory and store in &quot;ax&quot;
+
+    mov     al, byte [bpbNumberOfFATs]       ; number of FATs
+    mul     word [bpbSectorsPerFAT]          ; sectors used by FATs
+    add     ax, word [bpbReservedSectors]    ; adjust for bootsector
+    mov     word [datasector], ax            ; base of root directory
+    add     word [datasector], cx
+</code></pre>
+<p>Now that we have the number of sectors to read in, and the exact starting sector, lets read it in!</p>
+<pre><code class="lang-armasm">     ; read root directory
+
+    push    word ROOT_SEG
+    pop    es
+    mov     bx, 0x0                ; copy root dir
+    call    ReadSectors            ; read in directory table
+    pop    es
+    popa                    ; restore registers and return
+    ret
+</code></pre>
+<p>Notice that we set the seg:offset location to read into ROOT_SEG:0.</p>
+<p>Next up, loading the FAT!</p>
+<h4 id="loading-the-fat">Loading the FAT</h4>
+<p>Okay...Remember from <strong>Bootloaders 4</strong>, we talked about the disk structure of a FAT12 formatted disk. Going Back in Time(tm), lets take another look:</p>
+<h5 id="disk-structure-take-another-look">Disk structure (take another look)</h5>
+<table>
+<thead>
+<tr>
+<th>FAT12 FS Sectors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Boot Sector</td>
+</tr>
+<tr>
+<td>Extra Reserved Sectors</td>
+</tr>
+<tr>
+<td>File Allocation Table 1</td>
+</tr>
+<tr>
+<td>File Allocation Table 2</td>
+</tr>
+<tr>
+<td>Root Directory (FAT12/FAT16 Only)</td>
+</tr>
+<tr>
+<td>Data Region containing files and directories</td>
+</tr>
+</tbody>
+</table>
+<p>Remember that there are either one or two FATs? Also notice that they are <strong>right after</strong> the reserved sectors on disk. <strong>This should look familiar!</strong></p>
+<pre><code class="lang-armasm">;*******************************************
+; LoadFAT ()
+;    - Loads FAT table
+;
+;    Parm/ ES:DI =Root Directory Table
+;*******************************************
+
+LoadFAT:
+
+    pusha        ; store registers
+    push    es
+</code></pre>
+<p>First we need to know how many sectors to load. Look back at the disk structure again. We store the number of FATs (and the sectors per FAT) in the OEM Parameter Block. So to get the total sectors, just multiply them:</p>
+<pre><code class="lang-armasm">    ; compute size of FAT and store in &quot;cx&quot;
+
+    xor     ax, ax
+    mov     al, BYTE [bpbNumberOfFATs]        ; number of FATs
+    mul     word [bpbSectorsPerFAT]           ; sectors used by FATs
+    mov     cx, ax
+</code></pre>
+<p>Now, we need to take the reserved sectors into consideration, as they are before the FAT...</p>
+<pre><code class="lang-armasm">    ; compute location of FAT and store in &quot;ax&quot;
+
+    mov     ax, word [bpbReservedSectors]
+</code></pre>
+<p>Yippee! Now, CX contains the number of sectors to load, so call our routine to load the sectors!</p>
+<pre><code class="lang-armasm">    ; read FAT into memory (Overwrite our bootloader at 0x7c00)
+
+    push    word FAT_SEG
+    pop     es
+    xor     bx, bx
+    call    ReadSectors
+    pop     es
+    popa        ; restore registers and return
+    ret
+</code></pre>
+<p>That's all there is to it 😉</p>
+<h4 id="searching-for-a-file">Searching for a file</h4>
+<p>In searching for a file, we need the filename to search with. Remember that DOS uses 11 byte file names following the common 8.3 naming convention (8 byte file name, 3 character extension.) Because of the way the entries in the Root directory is structured, <strong>This MUST be 11 bytes--no exceptions</strong>.</p>
+<p>Remember the format of the Root Directory Table: The filename is stored within the <strong>first</strong> 11 bytes of an entry. Lets take another look at the format of each directory entry:</p>
+<ul>
+<li><strong>Bytes 0-7 : DOS File name (Padded with spaces)</strong></li>
+<li><strong>Bytes 8-10 : DOS File extension (Padded with spaces)</strong></li>
+<li><strong>Bytes 11 :</strong> File attributes. This is a bit pattern:
+<ul>
+<li><strong>Bit 0 :</strong> Read Only</li>
+<li><strong>Bit 1 :</strong> Hidden</li>
+<li><strong>Bit 2 :</strong> System</li>
+<li><strong>Bit 3 :</strong> Volume Label</li>
+<li><strong>Bit 4 :</strong> This is a subdirectory</li>
+<li><strong>Bit 5 :</strong> Archive</li>
+<li><strong>Bit 6 :</strong> Device (Internal use)</li>
+<li><strong>Bit 6 :</strong> Unused</li>
+</ul>
+</li>
+<li><strong>Bytes 12 :</strong> Unused</li>
+<li><strong>Bytes 13 :</strong> Create time in ms</li>
+<li><strong>Bytes 14-15 :</strong> Created time, using the following format:
+<ul>
+<li><strong>Bit 0-4 :</strong> Seconds (0-29)</li>
+<li><strong>Bit 5-10 :</strong> Minutes (0-59)</li>
+<li><strong>Bit 11-15 :</strong> Hours (0-23)</li>
+</ul>
+</li>
+<li><strong>Bytes 16-17 :</strong> Created year in the following format:
+<ul>
+<li><strong>Bit 0-4 :</strong> Year (0=1980; 127=2107</li>
+<li><strong>Bit 5-8 :</strong> Month (1=January; 12=December)</li>
+<li><strong>Bit 9-15 :</strong> Hours (0-23)</li>
+</ul>
+</li>
+<li><strong>Bytes 18-19 :</strong> Last access date (Uses same format as above)</li>
+<li><strong>Bytes 20-21 :</strong> EA Index (Used in OS/2 and NT, don't worry about it)</li>
+<li><strong>Bytes 22-23 :</strong> Last Modified time (See byte 14-15 for format)</li>
+<li><strong>Bytes 24-25 :</strong> Last modified date (See bytes 16-17 for format)</li>
+<li><strong>Bytes 26-27 :</strong> <strong>First Cluster</strong></li>
+<li><strong>Bytes 28-32 :</strong> <strong>File Size</strong></li>
+</ul>
+<p>All <strong>Bolded</strong> entries are the important ones. We must compare the <strong>first 11 bytes</strong> of each entry, as they contain the filename.</p>
+<p>Once we find a match, <strong>We need to reference byte 26 of the entry to get it's current cluster</strong>. All of this should sound familiar.</p>
+<p>Now...On to the code!</p>
+<pre><code class="lang-armasm">;*******************************************
+; FindFile ()
+;    - Search for filename in root table
+;
+; parm/ DS:SI =File name
+; ret/ AX =File index number in directory table. -1 if error
+;*******************************************
+
+FindFile:
+
+    push    cx                ; store registers
+    push    dx
+    push    bx
+    mov    bx, si             ; copy filename for later
+</code></pre>
+<p>We first store the current register states. We need to use SI, so we need to save the current filename somewhere...BX, perhaps?</p>
+<p>Remember that we need to parse the Root Directory table to find the image name. To do this, we need to check the first 11 bytes of each entry in the directory table to see if we found a match. Sounds simple, huh?</p>
+<p>To do this, we need to know how many entries there are...</p>
+<pre><code class="lang-armasm">     ; browse root directory for binary image
+
+    mov     cx, word [bpbRootEntries]    ; load loop counter
+    mov     di, ROOT_OFFSET              ; locate first root entry
+    cld                                  ; clear direction flag
+</code></pre>
+<p>Okay, so CX now contains the number of entries to look in. All we need to do now is loop and compare the 11 byte character filename. Because we are using string instructions, we want to first insure the direction flag is cleared, which is what <strong>cld</strong> does.</p>
+<p>DI is set to the current offset into the directory table. This is the location of the table. i.e., ES:DI points to the starting location of the table, so lets parse it!</p>
+<pre><code class="lang-armasm">.LOOP:
+    push    cx
+    mov     cx, 11        ; eleven character name. Image name is in SI
+    mov    si, bx         ; image name is in BX
+     push    di
+    rep  cmpsb            ; test for entry match
+</code></pre>
+<p>If the 11 bytes match, the file was found. Because DI contains the location of the entry within the table, we immediately jump to .Found.</p>
+<p>If it does not match, we need to try the next entry in the table. We add <strong>32 bytes</strong> onto DI. (<strong>Remember that each entry is 32 bytes?</strong>)</p>
+<pre><code class="lang-armasm">    pop     di
+    je      .Found
+    pop     cx
+    add     di, 32    ; queue next directory entry
+    loop    .LOOP
+</code></pre>
+<p>If the file was not found, restore only the registers that are still on the stack, and return -1 (error)</p>
+<pre><code class="lang-armasm">.NotFound:
+    pop    bx        ; restore registers and return
+    pop    dx
+    pop    cx
+    mov    ax, -1    ; set error code
+    ret
+</code></pre>
+<p>If the file was found, restore all of the registers. AX contains the entry location within the Root Directory Table so that it can be loaded.</p>
+<pre><code class="lang-armasm">.Found:
+    pop    ax   ; return value into AX contains entry of file
+    pop    bx   ; restore registers and return
+    pop    dx
+    pop    cx
+    ret
+</code></pre>
+<p>Yay! Now that we can find the file (and get it's location within the Root Directory Table), lets load it!</p>
+<h4 id="loading-a-file">Loading a file</h4>
+<p>Now that everything is finally set up, it is finally time to load the file!</p>
+<p>Most of this is pretty easy, as it calls our other routines. It is here that we loop, and insure that all of the file's clusters are loaded into memory.</p>
+<pre><code class="lang-armasm">;*******************************************
+; LoadFile ()
+;    - Load file
+; parm/ ES:SI =&gt; File to load
+; parm/ BX:BP =&gt; Buffer to load file to
+; ret/ AX =&gt; -1 on error, 0 on success
+; ret/ CX =&gt; Number of sectors loaded
+;*******************************************
+
+LoadFile:
+
+    xor        ecx, ecx
+    push        ecx
+</code></pre>
+<p>Here we just save the registers. We need to keep a copy of the buffer to write to somewhere, so we keep that on the stack as well. CX is used to keep track of how many sectors we have loaded. We store this on the stack for later.</p>
+<p>In loading the file, we will need to first find it (Kind of obvious, don't you think? ^^) We can easily use our FindFile routine here. FindFile sets AX to -1 on error, <strong>or the starting entry location within the Root Directory Table upon success</strong>. We can use this index to get anything we ever wanted to know about the file.</p>
+<pre><code class="lang-armasm">.FIND_FILE:
+
+    push    bx    ; BX=&gt;BP points to buffer to write to; store it for later
+    push    bp
+
+    call    FindFile         ; find our file. ES:SI contains our filename
+
+    cmp    ax, -1            ; check for error
+    jne    .LOAD_IMAGE_PRE   ; No error 😀 Load the FAT
+    pop    bp                ; Nope :( Restore registers, set error code and return
+    pop    bx
+    pop    ecx
+    mov    ax, -1
+    ret
+</code></pre>
+<p>Okay, so if we get here, the file was found. ES:DI contains the location of the first root entry, which was set by FindFile(), so by referencing ES:DI we effectively get the file's entry.</p>
+<p><strong>Look back at the entry description table above in the previous section.</strong> Notice that we can offset 0x1A bytes to get to byte 26 (The starting cluster number), so store it...</p>
+<pre><code class="lang-armasm">.LOAD_IMAGE_PRE:
+
+    sub    edi, ROOT_OFFSET
+    sub    eax, ROOT_OFFSET
+
+    ; get starting cluster
+
+    push    word ROOT_SEG
+    pop    es
+    mov    dx, word [es:di + 0x001A]   ; ES:DI points to file entry in root directory table.
+    mov    word [cluster], dx          ; Reference the table for file's first cluster
+    pop    bx    ; get location to write to so we don't screw up the stack
+    pop    es
+    push   bx    ; store location for later again
+    push   es
+</code></pre>
+<p>The above is messy, I know. Remember that AX was set to the entry number by the call to FindFile? We need to store that here, but need to keep the buffer to write to on the <strong>top</strong> of the stack still. This is why I played with the stack a little here 😀</p>
+<p>Anyways, next we load the FAT. This is incredibly easy...</p>
+<pre><code class="lang-armasm">    call    LoadFAT            ; Load the FAT to 0x7c00
+</code></pre>
+<p>OKAY then! Now that the FAT is loaded, and that we have the starting file cluster, it is time to actually read in the file's sectors.</p>
+<pre><code class="lang-armasm">.LOAD_IMAGE:
+
+    mov     ax, WORD [cluster]                 ; cluster to read
+    pop     es
+    pop     bx
+    call    ClusterLBA                         ; convert cluster to LBA
+    xor     cx, cx
+    mov     cl, BYTE [bpbSectorsPerCluster]    ; sectors to read
+    call    ReadSectors                        ; Read in cluster
+
+    pop    ecx                ; increment sector count
+    inc    ecx
+    push   ecx
+
+    push    bx                ; save registers for next iteration
+    push    es
+
+    mov    ax, FAT_SEG
+    mov    es, ax
+    xor    bx, bx
+</code></pre>
+<p>This code is not that bad. Remember that, for FAT12, <strong>each cluster is just 512 bytes</strong>? i.e., each cluster simply represents a &quot;sector&quot;. We first get the starting cluster/sector number. We cannot do much with just a cluster number though, as it is a <strong>linear</strong> number. That is, it is the sector number in <strong>CHS</strong> Not <strong>LBA</strong> format--It assumes we have the track and head information. Because our ReadSectors() requires an LBA linear sector number, <strong>We convert this CHS to an LBA address</strong>. Then, get the sectors per cluster, and read it in!</p>
+<p>Note that we pop ES and BX--They were pushed on the stack from the beginning. <strong>ES:BX points to the ES:BP buffer that was passed to this routine--It contains the buffer to load the sectors into.</strong></p>
+<p>OKAY, so now that a cluster was loaded, we have to check with the FAT to determine if the end of file is reached. However, <strong>Remember that each FAT entry is 12 bytes?</strong> We found out from <strong>Bootloaders 4</strong> that there is a <strong>pattern</strong> when reading the FAT: <strong>For every even cluster, take the low twelve bits; for every high cluster take the high twelve bits</strong></p>
+<p>Please see <strong>Bootloaders 4</strong> to see this in detail.</p>
+<p>To determine if it is even or odd, just divide by 2:</p>
+<pre><code class="lang-armasm">    ; compute next cluster
+
+    mov     ax, WORD [cluster]    ; identify current cluster
+    mov     cx, ax            ; copy current cluster
+    mov     dx, ax            ; copy current cluster
+    shr     dx, 0x0001        ; divide by two
+    add     cx, dx            ; sum for (3/2)
+
+    mov     bx, 0               ; location of FAT in memory
+    add     bx, cx              ; index into FAT
+    mov     dx, WORD [es:bx]    ; read two bytes from FAT
+    test    ax, 0x0001
+    jnz     .ODD_CLUSTER
+
+     .EVEN_CLUSTER:
+    and     dx, 0000111111111111b    ; take low twelve bits
+    jmp     .DONE
+
+     .ODD_CLUSTER:
+    shr     dx, 0x0004        ; take high twelve bits
+
+     .DONE:
+    mov     WORD [cluster], dx    ; store new cluster
+    cmp     dx, 0x0FF0        ; test for end of file marker (0xFF)
+    jb      LOAD_IMAGE        ; No? Go on to next cluster then
+
+     DONE:
+    pop    es            ; restore all registers
+    pop    bx
+    pop    ecx
+    xor    ax, ax       ; return success code
+    ret
+</code></pre>
+<p>That's all there is too it! Granted a little complex, but not to hard, I hope 😉</p>
+<h4 id="fat12inc">Fat12.inc</h4>
+<p>Great! All of the FAT12 code is in <strong>Fat12.inc</strong>.</p>
+<h2 id="finishing-stage-2">Finishing Stage 2</h2>
+<h3 id="back-to-stage-2---loading-and-executing-the-kernel">Back to Stage 2 - Loading and Executing the Kernel</h3>
+<p>Now that the messy code is over, all we need to do is load our Kernel image into memory from Stage 2, and execute our kernel. The problem is: Where?</p>
+<p>While we do want to load it to 1MB, we cannot do this directly yet. The reason is that we are still in real mode. Because of this, we will first need to load the image to a lower address first. After we switch into protected mode, we can copy our kernel to a new location. This can be 1MB, or even 3GB if paging is enabled.</p>
+<pre><code class="lang-armasm">    call    LoadRoot                 ; Load root directory table
+
+    mov    ebx, 0                    ; BX:BP points to buffer to load to
+    mov    ebp, IMAGE_RMODE_BASE
+    mov    Esi, ImageName            ; our file to load
+    call   LoadFile                  ; load our file
+    MOV    dword [ImageSize], ecx    ; size of kernel
+    cmp    ax, 0                     ; Test for success
+    je     EnterStage3               ; yep--onto Stage 3!
+    mov    si, msgFailure            ; Nope--print error
+    call   Puts16
+    mov    ah, 0
+    int    0x16                      ; await keypress
+    int    0x19                      ; warm boot computer
+    cli                ; If we get here, something really went wong
+    hlt
+</code></pre>
+<p>Now our kernel is loaded to IMAGE_RMODE_BASE:0. ImageSize contains the number of sectors loaded (The size of the kernel).</p>
+<p>To execute inside of protected mode, all we need to do is jump or call it. Because we want our kernel at 1MB, we first need to copy it before we execute it:</p>
+<pre><code class="lang-armasm">bits 32
+
+Stage3:
+
+    mov    ax, DATA_DESC        ; set data segments to data selector (0x10)
+    mov    ds, ax
+    mov    ss, ax
+    mov    es, ax
+    mov    esp, 90000h        ; stack begins from 90000h
+
+; Copy kernel to 1MB (0x10000)
+
+CopyImage:
+    mov    eax, dword [ImageSize]
+    movzx  ebx, word [bpbBytesPerSector]
+    mul    ebx
+    mov    ebx, 4
+    div    ebx
+    cld
+    mov    esi, IMAGE_RMODE_BASE
+    mov    edi, IMAGE_PMODE_BASE
+    mov    ecx, eax
+    rep    movsd                   ; copy image to its protected mode address
+
+    call    CODE_DESC:IMAGE_PMODE_BASE; execute our kernel!
+</code></pre>
+<p>There is a little problem here, though. This assumes the Kernel is a <strong>pure binary file</strong>. We cannot have this, because C does not support this. We need the Kernel to be a binary format that C supports, and we will need to parse it in order to load the Kernel using C. For now, we will keep this pure binary, but will fix this within the next few tutorials. Sound cool?</p>
+<h2 id="demo">Demo</h2>
+<p><img src="../../resources/images/Krnl1.gif" alt="Bochs code execution demo screenshot"></p>
+<p>Our pure uber-1337 32 bit Kernel executing.</p>
+<p><a href="../../resources/OSDev_tools/Demo4.zip">DOWNLOAD DEMO HERE</a></p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this tutorial, we covered these concepts in a new perspective, however. This may help understanding these topics a little bit more, and to see them being implemented into separate routines.</p>
+<p>We have developed code to load sectors off disk, and parse FAT12 to load our Kernel at whatever location we want. Cool, huh? In this Series, we are loading the Kernel at 1 MB.</p>
+<p>With a basic full 32 bit Kernel finally loaded and executing, we can finally start focusing our attention to the most important part of any operating system -- The Kernel.</p>
+<p>In the next few tutorials, we will cover Kernel Theory, Revolutions, and Designs. We will then start covering <strong>Low Level C Programming</strong>, and Low level programming with high level language concepts and theory.</p>
+<p>There are <strong>a lot</strong> of freedom when programming C at Kernel Level, that most other programming fields do not allow. For example, There still is no such thing as an &quot;Access Violation&quot;, so you still have direct control over every byte in memory. The bad news: There is also no such thing as a &quot;standard library&quot; either. To add more bad news, you still have to remember that you are programming a <strong>low level environment</strong>, just with another abstraction layer that is C.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T11.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

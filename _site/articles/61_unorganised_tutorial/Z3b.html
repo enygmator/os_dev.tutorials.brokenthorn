@@ -1,0 +1,2594 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Graphics 2: VGA and SuperVGA | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Graphics 2: VGA and SuperVGA | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="graphics-2-vga-and-supervga">Graphics 2: VGA and SuperVGA</h1>
+
+<p>Welcome!</p>
+<p>In the previous article, we introduced some concepts pertaining to video devices with an emphasize on VGA on the Video BIOS firmware. In this article, we will look at different hardware and firmware interfaces for video devices for VGA, SuperVGA and Video BIOS support and implement a common video interface in C supporting the interfaces. Here are the topics to be covered.</p>
+<ol>
+<li>VGA hardware</li>
+<li>VGA BIOS</li>
+<li>Vesa BIOS Extensions</li>
+<li>style=&quot;margin-bottom: 0.2in&quot;&gt;Bochs VBE Interface</li>
+</ol>
+<h2 id="introduction">Introduction</h2>
+<p>We first introduce the <strong>Video Graphics Array (VGA)</strong> standard as it is the most supported on personal computers and one of the oldest. The VGA standard provides a way to interact with video hardware in a standard way, but it is limited to low resolution display modes and lack of graphics acceleration support present in modern display devices. We will look at both the hardware interface and the VGA BIOS firmware interface. The VGA BIOS interface is by far simpler then the VGA hardware interface but can only be used in real or v86 processor modes. The hardware interface can be used from any processor mode.</p>
+<p>Then we move on to <strong>Vesa BIOS Extensions (VBE)</strong>. VBE is a standard developed by the <strong>Video Electronic Standards Association (Vesa)</strong> that provides a standard set of BIOS extensions for supporting high resolution display modes and monitor features. Due to it being a BIOS extension, not all personal computers support it. It also can only be used from real or v86 modes.</p>
+<p>In summary, the goal of this chapter is to cover changing the video mode and accessing display memory. By the end of the chapter, you should have a demo built that does just that, either using VGA or SuperVGA. Later chapters will then focus on the graphics (and possibly some SuperVGA hardware graphics support.)</p>
+<h3 id="interfacing-with-the-bios">Interfacing with the BIOS</h3>
+<p>Before we start getting into the main topics of the chapter, we need to take a small detour and take a closer look at the BIOS. You may recall our use of some of these BIOS services for VGA in the previous article. If the software uses any of these services then it must run in real or v8086 mode. This poses a problem for protected mode or long mode software. Thus we need to find a way to resolve this before continuing. <strong>If you don't plan on using any BIOS services, however, please feel free to skip this section.</strong></p>
+<p>There are two approaches of calling the BIOS from protected mode (not long mode.)</p>
+<ol>
+<li>Drop down to real mode and call the BIOS</li>
+<li>Virtual 8086 mode</li>
+</ol>
+<p>The first method is simpler but can be very ugly for more complete designed systems. The second approach is the most commonly used method but is also the hardest; requiring user mode, interrupt dispatching, task switching, and instruction emulation.</p>
+<h4 id="method-1">Method 1</h4>
+<p>The first method requires that the software be able to switch to real mode from protected mode when needed. Without certain restrictions applied to the software design (such as not supporting virtual memory or higher half kernel support) this method can become increasingly complicated to support to the point where it is not worth it. It is, however, the simplest method to implement and requires the least amount of additional software support. For these reasons, we opted to go with this method for the associated demos but highly recommend using method 2 when the software system is large enough to warrant the need.</p>
+<p>In order to implement this method, we need a routine or a set of routines to act as an interface between 32 bit protected mode and 16 bit real mode. These routines must do the following while preserving routine input and output values.</p>
+<ol>
+<li>Save current system state that must be reserved. In the most basic case, this is the protected mode stack and IDTR.</li>
+<li>Disable hardware interrupts (CLI instruction).</li>
+<li>Reload original IVT. This is done by setting IDTR.size to 0xffff and IDTR.base to 0.</li>
+<li>Perform a jump to 16 bit protected mode.</li>
+<li>Disable protected mode by clearing CR0.PM bit</li>
+<li>Perform a jump to 16 bit real mode code.</li>
+<li>Set all real mode segments, enable interrupts and call BIOS.</li>
+<li>Perform a jump to 32 bit protected mode.</li>
+<li>Restore saved system state. In the most basic case as in (1) this is the selectors, protected mode stack, and IDTR.</li>
+</ol>
+<p>This routines can get very complicated as the system becomes more demanding in what it supports. The above list sounds like a lot, but its more tricky then hard—provided the system does not use paging and the kernel image is less then 1MB. In other words, <strong>we assume the project base address is 64K and paging is disabled in order to keep the routine relatively simple.</strong></p>
+<p>In the demos, the method <strong>io_services</strong> is used to call the BIOS. It drops into real mode using the steps above. <strong>io_services</strong> looks like this:</p>
+<pre><code class="lang-c">extern void io_services (unsigned int num, INTR* in, INTR* out);
+</code></pre>
+<p>Where <strong>num</strong> is the interrupt number, <strong>in</strong> is a pointer to a <strong>INTR</strong> structure, and <strong>out</strong> is a pointer to an output <strong>INTR</strong> structure. <strong>INTR</strong> is a set of structures that store register values. Both <strong>io_services</strong> and <strong>INTR</strong> are fairly large and so will be omitted in the text. Please reference <strong>bios.asm</strong> in the demos.</p>
+<p>Example: This example uses the function <strong>io_services</strong> and <strong>INTR</strong> structure to call the BIOS to set the video mode. Note the C code is runs in protected mode.</p>
+<pre><code class="lang-c">void vga_set_mode(int mode)
+{
+    /* call BIOS */
+    INTR in, out;
+    in.eax.val = mode;
+    io_services (0x10, &amp;in, &amp;out);
+}
+</code></pre>
+<p>If the software is in long mode, the only options is to program the device directly or to write an emulator.</p>
+<h4 id="method-2">Method 2</h4>
+<p>The second method is using v8086 mode. This is by far the best long-term way to support calling the BIOS firmware but is also the most demanding. At a minimum, v8086 mode requires that the operating system support the following.</p>
+<ol>
+<li>User mode processes</li>
+<li>Task switching</li>
+<li>Interrupt dispatching</li>
+<li>Instruction emulation</li>
+</ol>
+<p>Virtual 8086 mode can only execute as user mode processes. This poses a problem however as user mode processes can not execute kernel mode instructions (like <strong>int</strong>) and so can not call the BIOS which sort of defeats the purpose. In other words, when the v8086 process executes an <strong>int</strong> (interrupt) instruction, it triggers a <strong>general protection fault (GPF)</strong>. What can we do to fix this?</p>
+<p>We are not entirely out of solutions here. While the v8086 process cannot call the BIOS, the kernel <em>can</em>. When the GPF occurs, the kernel effectively gets called. The kernel GPF handler then can detect what caused the GPF and do something about it like so:</p>
+<ol>
+<li>Check current process.v8086 flag</li>
+<li>If set; call <strong>v86_monitor</strong></li>
+<li>If not set, continue with GPF and possibly terminate process</li>
+</ol>
+<p>Our <strong>v86_monitor</strong> is a special function that is called by the kernel GPF handler for all v8086 processes. Now we are getting somewhere; what we have here is that whenever the v8086 process attempts to call the BIOS (or use any kernel mode instruction) the kernel GPF handler gets called which calls <strong>v86_monitor</strong> to “monitor” the v8086 task.</p>
+<p>The <strong>v86_monitor</strong> implements a <strong>v8086 monitor</strong> that is responsible for <em>emulating</em> the problem instructions the v8086 task tried to use. For example, the <strong>v8086 monitor</strong> would <em>detect</em> the problem instruction (it will have the CS:EIP given by the CPU) as an interrupt call and <em>emulate</em> it by invoking IVT [n] where n = BIOS number to call (recall however that the IVT instruction pointers are in segment:offset format <em>not</em> linear.)</p>
+<h2 id="video-graphics-array-vga">Video Graphics Array (VGA)</h2>
+<p><strong>Readers may skip this section if you only want to look at SuperVGA.</strong></p>
+<p>The <strong>Video Graphics Array (VGA)</strong> is the design of display hardware first introduced in 1987 for the IBM PS/2 computers [1] but has been widely adopted by organizations as a display standard. The highest video mode resolution supported is 640x480x16 color. Due to the widespread adoption by PC manufactures, VGA has become one of the oldest standards still supported by modern PC's.</p>
+<p>VGA was followed by IBM's <strong>Extended Graphics Array (XGA)</strong> standard but extensions implemented by different manufacturers produced <strong>SuperVGA</strong> adapters that are common in modern PC's. Most SuperVGA cards are backward compatible with the VGA standard.</p>
+<p>Please note that this is not going to be an exhaustive explanation of VGA due to its complexity. Please reference resources [2] and [3] for more information on VGA hardware and I encourage reading one of the many large books on VGA.</p>
+<h3 id="video-modes">Video modes</h3>
+<p>There is a standard set of video modes and mode numbers supported by VGA. The <strong>video mode</strong> refers to the <strong>display configuration</strong> and its properties, such as <strong>resolution</strong>, <strong>bit depth</strong> (bits per pixel), number of colors, <strong>memory mode</strong>, etc. <strong>Standard video mode numbers are 0h, 1h, 2h, 3h, 4h, 5h, 7h, Dh, Eh, Fh, 10h, 11h, 12h, and 13h.</strong> There is nothing special about the mode number itself; it is just used by the video BIOS to refer to a particular video mode. There may be more modes, however they are nonstandard.</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Resolution</th>
+<th>Color depth</th>
+<th>Mode</th>
+<th>Resolution</th>
+<th>Color depth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0h</td>
+<td>40x25 Text</td>
+<td>16 Color</td>
+<td>Dh</td>
+<td>320x200</td>
+<td>16 Color</td>
+</tr>
+<tr>
+<td>1h</td>
+<td>40x25 Text</td>
+<td>16 Color</td>
+<td>Eh</td>
+<td>640x200</td>
+<td>16 Color</td>
+</tr>
+<tr>
+<td>2h</td>
+<td>80x25 Text</td>
+<td>16 Color</td>
+<td>Fh</td>
+<td>640x350</td>
+<td>2 Color</td>
+</tr>
+<tr>
+<td>3h</td>
+<td>80x25 Text</td>
+<td>16 Color</td>
+<td>10h</td>
+<td>640x350</td>
+<td>16 Color</td>
+</tr>
+<tr>
+<td>4h</td>
+<td>320x200</td>
+<td>4 Color</td>
+<td>11h</td>
+<td>640x480</td>
+<td>2 Color</td>
+</tr>
+<tr>
+<td>5h</td>
+<td>320x200</td>
+<td>4 Gray</td>
+<td>12h</td>
+<td>640x480</td>
+<td>16 Color</td>
+</tr>
+<tr>
+<td>7h</td>
+<td>80x25 Text</td>
+<td>2 Color</td>
+<td>13h</td>
+<td>320x200</td>
+<td>256 Color</td>
+</tr>
+</tbody>
+</table>
+<p>The highest resolution supported by standard VGA is <strong>mode 12h</strong> which is 640x480x16 color. (Interesting note, Windows XP logo screen runs in mode 12h.) Higher resolutions can only be obtained using SuperVGA which is described later on.</p>
+<h3 id="vga-firmware">VGA Firmware</h3>
+<p>We first look at the firmware interface of VGA, and the facilities provided by the <strong>Video BIOS</strong>. In the last article we introduced some of the facilities, most notably <strong>interrupt 0x10 function 0</strong> to set the video mode. The Video BIOS provides services for setting, getting, and working with VGA hardware through a more abstract interface. Arguably it is far more safer, simpler, and more portable for software to use the video BIOS facilities then it is to directly control the hardware.</p>
+<p>Here we present some of the common facilities that software can use for video services. Of course, because these are BIOS interrupts, they can only be used in real or v8086 mode and on systems that have BIOS firmware. Also, they can only be used by kernel mode software.</p>
+<h4 id="int-0x10-function-0--set-video-mode">INT 0x10 Function 0 – Set Video Mode</h4>
+<ul>
+<li>Input:
+<ul>
+<li>AH=0</li>
+<li>AL = video mode</li>
+</ul>
+</li>
+<li>Output:
+<ul>
+<li>AL=video mode flag (Phoenix, AMI BIOS)</li>
+<li>AL = CRT Controller (CRTC) mode byte (Phoenix 386 BIOS v1.10)</li>
+</ul>
+</li>
+</ul>
+<p>Example: This function sets the video mode.</p>
+<pre><code class="lang-c">void vga_set_mode (int mode)
+{
+    /* call BIOS */
+    INTR in, out;
+    in.eax.val = mode;
+    io_services (0x10, &amp;in, &amp;out);
+}
+</code></pre>
+<p>We can now use the above function to set any VGA BIOS video mode, such as Mode 13h. The result might look something like this.</p>
+<p><img src="../../resources/images/OSDevVid2_html_m331d1b82.gif" alt="Result after setting VGA mode"></p>
+<p>As you can see from the above image, there is a lot of garbage on the display. This “garbage” is actually what what was in VGA memory before the mode switch. This includes everything from all 4 <strong>planes</strong> (we will look at these later on) such as any textural characters from plane 1 and the VGA font in plane 2. If we clear the display, all of this is cleared. This is a problem if the software must return back to text mode because by clearing the display the software cleared the VGA font. There are two ways to fix this:</p>
+<ol>
+<li>Upload a new copy of the VGA font from the BIOS</li>
+<li>Save the VGA font before clearing memory and restoring it later.</li>
+</ol>
+<p>By performing one of the above the software can switch to a graphics mode and return back to text mode without error.</p>
+<h4 id="int-0x10-function-b--set-palette-text-modes-only">INT 0x10 Function B – Set Palette (Text modes only)</h4>
+<ul>
+<li>Input:
+<ul>
+<li>AH=B</li>
+<li>BH=1</li>
+<li>BL=Palette ID.
+<ul>
+<li>00h background, green, red, and brown/yellow</li>
+<li>01h background, cyan, magenta, and white</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Example: The following code sets a VGA palette.</p>
+<pre><code class="lang-c">void vga_set_palette (int id)
+{
+    /* call BIOS */
+    INTR in, out;
+    in.eax.val = 0xB;
+    in.ebx.val = 0x0100 | id;
+    io_services (0x10, &amp;in, &amp;out);
+}
+</code></pre>
+<h4 id="int-0x10-function-c--write-pixel">INT 0x10 Function C – Write pixel</h4>
+<ul>
+<li>Input:
+<ul>
+<li>AH=C</li>
+<li>BH=Page number</li>
+<li>AL=Pixel color</li>
+<li>CX=Column</li>
+<li>DX=Row</li>
+</ul>
+</li>
+<li>Output:
+<ul>
+<li>AL=Pixel color</li>
+</ul>
+</li>
+</ul>
+<p>Example: The following writes a pixel. This might be omitted in the demos as it shouldn't be used; we only provide it for completeness.</p>
+<pre><code class="lang-c">void vga_plot_pixel (int col, int x, int y)
+{
+    /* call BIOS */
+    INTR in, out;
+    in.eax.val = 0x0C00 | col;
+    in.ebx.val = 0;
+    in.ecx.val = x;
+    in.edx.val = y;
+    io_services (0x10, &amp;in, &amp;out);
+}
+</code></pre>
+<p>Note that some versions of the Bochs emulator do not support this interrupt. It is however implemented for VirtualPC. We can use the above interrupt to plot pixels.</p>
+<h4 id="int-0x10-function-f--get-video-mode">INT 0x10 Function F – Get Video Mode</h4>
+<ul>
+<li>Input:
+<ul>
+<li>AH=F</li>
+</ul>
+</li>
+<li>Output:
+<ul>
+<li>AH=Number of character columns</li>
+<li>AL=Display page number</li>
+<li>BH=Active page</li>
+</ul>
+</li>
+</ul>
+<p>Example: The following code returns the mode information.</p>
+<pre><code class="lang-c">void vga_get_mode (unsigned int* col, unsigned int* dispPage, unsigned int* actPage)
+{
+    INTR in, out;
+    /* sanity check */
+    if (!col || !dispPage || !actPage)
+       return;
+    in.eax.val = 0xf;
+    io_services (0x10, &amp;in, &amp;out);
+    *dispPage = out.ax.r.al;
+    *actPage = out.bx.r.bh;
+}
+</code></pre>
+<h3 id="vga-hardware-interface">VGA Hardware Interface</h3>
+<p>The VGA hardware interface is very complex, consisting of five controllers and over a hundred hardware registers accessible from the Port I/O address space. A standard set of register configurations help define the standard VGA video modes we still see today. Due to the use of the Port I/O address space, software can interface with the VGA hardware in any processor mode. Of course, the software must be in supervisor level (ring 0) for the <strong>in</strong> and <strong>out</strong> family of instructions to actually interact with the hardware. Thus, only kernel mode software can access VGA hardware. User mode software that attempts it will generate a general protection fault when executing the <strong>in</strong> or <strong>out</strong> instruction.</p>
+<p>Before looking at the hardware, there is a warning. The warning applies to all display monitors and video cards that may lack protection from invalid data or data outside of the range supported by the device (for example, an excess frequency setting that the device is unable to work with in a safe manner.) Most modern monitors will display an error message or show no output on invalid settings. Make sure to test the driver software in an emulator and virtual environment first and verify the driver software works properly before testing on real hardware.</p>
+<h4 id="video-memory">Video memory</h4>
+<p>The memory layout of VGA differs depending on the type of video mode is currently active. The VGA supports the following memory layouts.</p>
+<ol>
+<li>Linear</li>
+<li>Planar</li>
+<li>Palette</li>
+<li>4 Color mode</li>
+</ol>
+<p>We will take a look at all of these modes next and when they are used. Knowing the different memory models is important in order to properly read and write to display memory. We will cover linear modes last as it is the most complex. Before that though, we first need to know how to access video memory.</p>
+<p>Recall the <strong>memory map</strong> that we have looked at in the <strong>system architecture</strong> chapter. Here it is again.</p>
+<ul>
+<li><strong>0x00000000 - 0x000003FF</strong> - Real Mode Interrupt Vector Table</li>
+<li><strong>0x00000400 - 0x000004FF</strong> - BIOS Data Area</li>
+<li><strong>0x00000500 - 0x00007BFF</strong> - Unused</li>
+<li><strong>0x00007C00 - 0x00007DFF</strong> - Our Bootloader</li>
+<li><strong>0x00007E00 - 0x0009FFFF</strong> - Unused</li>
+<li><strong>0x000A0000 - 0x000BFFFF</strong> - Video RAM (VRAM) Memory</li>
+<li><strong>0x000B0000 - 0x000B7777</strong> - Monochrome Video Memory</li>
+<li><strong>0x000B8000 - 0x000BFFFF</strong> - Color Video Memory</li>
+<li><strong>0x000C0000 - 0x000C7FFF</strong> - Video ROM BIOS</li>
+<li><strong>0x000C8000 - 0x000EFFFF</strong> - BIOS Shadow Area</li>
+<li><strong>0x000F0000 - 0x000FFFFF</strong> - System BIOS</li>
+</ul>
+<p>According to the memory map, video memory is mapped into the physical address space at <strong>0xA0000 – 0xBFFFF</strong>. This is <strong>0x1FFFF</strong> bytes of memory or 131072 bytes which is 128K. According to [2] VGA hardware has up to 256K or memory however only 128K of it is mapped. The unmapped memory is accessible by changing the address decoding mechanism of the VGA (we will not cover that here though.) <strong>Graphics mode memory starts at 0xA0000 and may extend to 0xAFFFF, or 64K.</strong> Some of the following examples will demonstrate this.</p>
+<h5 id="planar-memory-modes-16-bit-color-modes">Planar memory modes (16 bit color modes)</h5>
+<p>VGA memory is referenced as 4 <strong>planes</strong>  each 64k of memory. You can think of them as different memory banks that are connected to each other (although that might not be the case.) Its sort of like having 4 windows on top of each other. Those windows are the planes.</p>
+<p>In 16 color modes there are 4 bits per color. The 4 bits are stored at the same location on each plane.</p>
+<p><strong>Example:</strong> A 4 bit pixel can be stored at plane0[0], plane1[0], plane2[0] and plane3[0]. This displays a single pixel to display memory. Notice that the 4 bit pixel is stored across all 4 planes, where each plane only stores one bit of the pixel. Also notice that the pixel is at the same location (index is 0) of all 4 planes.</p>
+<p>We will show an example of how to write a pixel in planar memory modes a little later after reviewing the registers and how to set a video mode. Unfortunately writing a pixel requires also writing to a hardware register to select the plane to write to and thus an example cannot be provided yet.</p>
+<h5 id="palette-memory-modes-256-color-modes">Palette memory modes (256 color modes)</h5>
+<p>In palette memory modes, each pixel is represented by a number—an _index—_into a color table. The color table is the <strong>palette</strong>. Probably most notable is the 256 color mode, where each pixel is 8 bits. Other palette modes include the 16 color (4 bit pixel) and monochrome (1 bit pixel) modes that have only 2 colors.</p>
+<p>The color table might look something like this. This is the palette used in a 16 color mode; in fact, its the VGA text mode palette that is the default on system start up.</p>
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Color name</th>
+<th>Index</th>
+<th>Color name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Black</td>
+<td>8</td>
+<td>Dark Gray</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Blue</td>
+<td>9</td>
+<td>Light Blue</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Green</td>
+<td>10</td>
+<td>Light Green</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Cyan</td>
+<td>11</td>
+<td>Light Cyan</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Red</td>
+<td>12</td>
+<td>Light Red</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Magenta</td>
+<td>13</td>
+<td>Light Magenta</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Brown</td>
+<td>14</td>
+<td>Yellow</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Light Gray</td>
+<td>15</td>
+<td>White</td>
+</tr>
+</tbody>
+</table>
+<p>Lets look at an example of the palette use in text modes.</p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>Recall that in text modes, each character includes a character code (ASCII character typically) and an attribute byte. The attribute byte is an index into the above palette. In other words, if you have worked with text modes in protected mode you have already been working with a palette memory mode!</p>
+</div>
+<p>256 color modes were widely used by DOS video games. This became infamously known as <strong>Mode 13h</strong>  after its standard Video BIOS mode number. Mode 13h is an interesting mode because it is very fast, linear, and can display 256 colors on the screen at once. In other words, video memory in this mode is <strong>linear</strong>  where each pixel is 1 byte and stored right after each other in memory. What makes Mode 13h interesting is that VGA is a planar display device not a linear one.</p>
+<p>Example: The following C code defines a function, <strong>pixel_256</strong> that plots a pixel in 256 color mode at some x and y location in mode 13h. Recall that mode 13h is 320x200 and so the pitch (here pitch is width) is 320. Also unlike the VGA BIOS interrupt plot pixel service, this one will work in any PC emulator or virtual machine.</p>
+<pre><code class="lang-c">#define VGA_VRAM 0xA0000
+#define PITCH 320
+void pixel_256 (unsigned char color, unsigned int x, unsigned int y)
+{
+   unsigned char* fb = (unsigned char*) VGA_VRAM;
+   unsigned int offset = y * PITCH + x;
+   fb [offset] = color;
+}
+</code></pre>
+<p>The above example also demonstrates the simplicity of working with Mode 13h. We can render multiple pixels by just writing to them consecutively. In 256 color modes each pixel is represented as a byte so we use unsigned char's.</p>
+<p>In palette memory modes, there is a maximum to the amount of colors that can be displayed at once. This is the same as the number of entries in the color table being used for the mode. For example, 256 color mode can only display at most 256 colors on the screen at once. 16 color modes can only display 16 colors. Software could modify the color table itself in order to display different colors.</p>
+<h5 id="linear-memory-modes">Linear memory modes</h5>
+<p><strong>Linear memory modes</strong>  are the set of video modes that support a <strong>linear frame buffer (LFB)</strong>. Linear memory is an array of consecutive bytes; like an array in C. Mode 13h is an example mode that has a linear memory model. Another example is the infamous <strong>Mode X (360x480x256 color)</strong>  and <strong>Mode Q (chain-4 256x256x256 color)</strong>  which are modified versions of Mode 13h.</p>
+<p>Recall that VGA is not a linear device; it does not support linear memory modes. Modes like Mode 13h, Mode X, and Mode Q are all planar modes that configure the hardware in a way that creates the illusion of a linear memory model.</p>
+<p>To write a pixel in linear memory modes, all we need to do is calculate the offset of the pixel location and write the pixel to the frame buffer.</p>
+<p><strong>Example.</strong>: The following code plots a 8 bit pixel in a linear memory mode. This example is the same as the above but is more generic; it can be applied to any mode that has a linear memory model.</p>
+<pre><code class="lang-c">#define VGA_VRAM 0xA0000
+#define PITCH 320
+void pixel_256 (unsigned char color, unsigned int x, unsigned int y)
+{
+   unsigned char* fb = (unsigned char*) VGA_VRAM;
+   unsigned int offset = y * PITCH + x;
+   fb [offset] = color;
+}
+</code></pre>
+<h4 id="hardware">Hardware</h4>
+<p>The VGA hardware design consists of the following components. Some of these might look familiar.</p>
+<ol>
+<li>CRT Controller</li>
+<li>Sequencer</li>
+<li>Graphics Controller</li>
+<li>RAMDAC</li>
+<li>Video memory</li>
+<li>Attribute Controller</li>
+</ol>
+<p>All of the hardware registers are mapped into the I/O port space. That is, we can access them using the <strong>in</strong> and <strong>out</strong> family of CPU instructions. Most of the controllers map two registers: an <strong>address register</strong> and <strong>data register</strong>. The <strong>address register</strong> stores an <strong>index</strong> of a particular register that we want to read or write from, the <strong>data register</strong> contains the data of that register. This may become more clear as we see some examples.</p>
+<p>Before looking at each of these components, we would like to emphasize the complexity of VGA hardware. Entire books have been written that covers VGA in depth; covering all of the details in a single article is a very daunting task. In order to keep the discussion minimal, we will only look at what each component does and the set of registers used by the component. Due to the large number of registers, we will not be describing the registers here. Unfortunately we cannot describe how to set a video mode without having some background in the hardware registers. To rectify this, we present a list of all of the registers and a table of the video mode settings will be listed at the end. <strong>This will allow readers to set VGA video modes without having to worry about the details of each register nor its format</strong>. We do encourage reading more about each register by referencing [3] and [4] however for anyone that is interested in learning more about VGA.</p>
+<p>In short, don't worry to much on the details of the registers. The video mode list will tell you what value to put into what register.</p>
+<h5 id="crt-controller-crtc">CRT Controller (CRTC)</h5>
+<div class="WARNING">
+<h5>Warning</h5>
+<p><strong>Improperly configuring the CRT Controller (CRTC) can potentially damage the video card or attached monitor</strong>. Although rare, instances of CRT and LCD monitors have been known to burn out or explode due to improper or erroneous configuration.</p>
+</div>
+<p>The <strong>CRT Controller (CRTC)</strong> is responsible for controlling the output of video data to the display monitor. It is accessed by an address and data register. <strong>Address register is at 3D4h the Data Register is at 3D5h (or 3B4h, 3B5h respectively if Miscellaneous Output Register I/O Address select field is set.)</strong> We can select what CRTC register we want to access by using the address register. We can then use the data register to read or write from that CRTC register.</p>
+<p>We will not be providing a complete technical review of each register due to the number of registers. Please reference the FreeVGA project page dedicated to describing the CRT registers in detail. If there is demand, we may extend our topic on VGA in the future.</p>
+<table>
+<thead>
+<tr>
+<th>Register</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Horizontal total register</td>
+</tr>
+<tr>
+<td>1</td>
+<td>End Horizontal display register</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Start horizontal blanking register</td>
+</tr>
+<tr>
+<td>3</td>
+<td>End horizontal blanking register</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Start horizontal retrace register</td>
+</tr>
+<tr>
+<td>5</td>
+<td>End horizontal retrace register</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Vertical total register</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Overflow register</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Preset row scan line register</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Maximum scan line register</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Cursor start register</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Cursor end register</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Start address high register</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Start address low register</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Cursor location high register</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Cursor location low register</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Vertical retrace start register</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Vertical retrace end register</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Vertical display end register</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Offset register</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Underline location register</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Start vertical blanking register</td>
+</tr>
+<tr>
+<td>22</td>
+<td>End vertical blanking register</td>
+</tr>
+<tr>
+<td>23</td>
+<td>CRTC mode control register</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Line compare register</td>
+</tr>
+</tbody>
+</table>
+<p>The CRTC registers allow us to control the pixel clock timings of the horizontal and vertical retrace and blanking periods of the display. These timing periods help control the output of the display (the <strong>video resolution</strong>), and the <strong>refresh rate</strong>. Other CRTC registers allow us to change the start address of video memory (the <strong>preset row scan line</strong> and <strong>start address</strong> registers, hardware cursor location (<strong>cursor location</strong> registers) and underline (<strong>underline location</strong> register.) The <strong>CRTC mode control</strong> register gives us some way of controlling the CRT itself and some addressing modes.</p>
+<h4 id="graphics-controller">Graphics Controller</h4>
+<p>The graphics controller is responsible for managing the interface between CPU and video memory. <strong>The address register is mapped to 3CEh and the data register is mapped to 3CFh</strong>. In order to access the graphics controller registers, write the index of the register into the address register and read or write from the data register.</p>
+<p>The following is a list of the standard registers. Please reference the FreeVGA project for a detailed description of each register.</p>
+<table>
+<thead>
+<tr>
+<th>Register</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Set/Reset register</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Enable Set/Reset register</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Color compare register</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Data rotate register</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Read map select register</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Graphics mode register</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Miscellaneous graphics register</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Color don't care register</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Bit mask register</td>
+</tr>
+</tbody>
+</table>
+<h4 id="sequencer">Sequencer</h4>
+<p>The sequencer manages the interface between the video data and RAMDAC. <strong>The address register is mapped to 3C4h and the data register is mapped to 3C5h</strong>. In order to access the sequencer registers, write the index of the register into the address register and read or write from the data register.</p>
+<p>The following is a list of the standard registers. Please reference the FreeVGA project for a detailed description of each register.</p>
+<table>
+<thead>
+<tr>
+<th>Register</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Reset register</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Clocking mode register</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Map mask register</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Character map register</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Sequencer memory mode register</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-controller">Attribute Controller</h4>
+<p>The attribute controller consists of 21 registers for the VGA. The controller has two registers mapped into I/O port space, one at <strong>3C0h</strong> and the other at <strong>3C1h</strong>. Unlike the other controllers, <strong>the attribute controller uses the register at 3C0h as both a data write port and address port</strong>. <strong>The register at 3C1h is the data read register</strong>. In order to communicate with the attribute controller, <strong>the software should first write a register address to port 3C0h followed by the data to write to that register</strong>. <strong>Data can be read by writing to port 3C0h and reading from 3C1h after</strong>. The attribute address register also has a particular format.</p>
+<p>Attribute address register bit format:</p>
+<ul>
+<li><strong>0-4</strong>: address</li>
+<li><strong>5</strong>: PAS</li>
+</ul>
+<p><strong>Address</strong> refers to a register index to access. Please refer to the following table of registers.</p>
+<p><strong>PAS (Palette Address Source)</strong> Determines access to palette data by host or EGA display adapter. If it is 0, the host can access the palette RAM and the adapter will disallow display memory from gaining access to the palette. If 1, the display memory can access the palette RAM and the host is disallowed from accessing it.</p>
+<p>The attribute controller stores a set of 16 palette registers that map a color index to a color. This small palette is a drawback from EGA. VGA still uses these registers but instead of storing the palette information it stores an address into a second set of color index registers. We won't be covering the details of how it all works – but I encourage reading [4] page 394 for anyone that is interested.</p>
+<p>The following is a list of the standard registers. Please reference the FreeVGA project or [4] for a detailed description of each register.</p>
+<table>
+<thead>
+<tr>
+<th>Register</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-15</td>
+<td>Palette entry register</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Mode control register</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Overscan color register</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Color plane enable register</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Horizontal pixel panning register</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Color select register</td>
+</tr>
+</tbody>
+</table>
+<h4 id="general-registers--external-registers">General Registers / External Registers</h4>
+<p>These register lists just don't seem to end do they? We have looked at lists of registers for all of the major controllers of VGA however there are more sets of registers for general use and miscellaneous data that are used by the video modes and thus need to be looked at. These registers can be referred to as <strong>general registers</strong> or <strong>external registers</strong>.</p>
+<p>The following is a list of the standard registers. Please reference the FreeVGA project or [4] for a detailed description of each register. <strong>Please note that we assume a color adapter and VGA (not EGA).</strong> Monochrome and EGA adapters may use different ports.</p>
+<table>
+<thead>
+<tr>
+<th>register</th>
+<th>Write port</th>
+<th>Read port</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Miscellaneous output register</td>
+<td>3C2h</td>
+<td>3CCh</td>
+</tr>
+<tr>
+<td>Feature control register</td>
+<td>3BAh</td>
+<td>3CAh</td>
+</tr>
+<tr>
+<td>Input Status #0 register</td>
+<td></td>
+<td>3C2h</td>
+</tr>
+<tr>
+<td>Input Status #1 register</td>
+<td></td>
+<td>3BAh</td>
+</tr>
+</tbody>
+</table>
+<h4 id="color-registers">Color Registers</h4>
+<p>These registers allow us the software to manipulate and manage the 256 color palette. They are an important set of registers if working in 256 color modes and may be used after setting the video mode so getting familiar with them is a good idea. You might also be happy to learn that this is the final set of registers that we are going to look at.</p>
+<p>The following is a list of the standard registers. Please reference the FreeVGA project or [4] for a detailed description of each register.</p>
+<table>
+<thead>
+<tr>
+<th>register</th>
+<th>Write port</th>
+<th>Read port</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PEL address write mode register</td>
+<td>3C8h</td>
+<td>3C8h</td>
+</tr>
+<tr>
+<td>PEL address read mode register</td>
+<td>3C7h</td>
+<td></td>
+</tr>
+<tr>
+<td>PEL data register</td>
+<td>3C9h</td>
+<td>3C9h</td>
+</tr>
+<tr>
+<td>DAC state register</td>
+<td></td>
+<td>3C7h</td>
+</tr>
+<tr>
+<td>PEL mask register</td>
+<td>3C6h</td>
+<td>3C6h</td>
+</tr>
+</tbody>
+</table>
+<h3 id="standard-video-modes">Standard video modes</h3>
+<p>By configuring the video hardware we can define different display modes with different properties. However many modes that the video hardware can support many monitors do not. Other configurations may have undesired effects. Some VGA mode configurations have become a standard; well supported by most monitors. The following is a list of standard video modes and their configurations. <strong>Standard video mode numbers are Mode 0h, 1h, 2h, 3h, 4h, 5h, 7h, Dh, Eh, Fh, 10h, 11h, 12h, and 13h</strong>. Other notable modes, such as <strong>Mode X</strong> and <strong>Mode Q</strong> while well supported are not standard modes.</p>
+<p>Please reference [3] or [4] for other lists. The following tables were adopted from pages 304-305 of [4]. The tables are split between the different sets of registers each mode modifies. The top row indicates the mode number, the left column is the index to use to access the particular register. According to [4] the values presented represent the <strong>initial mode state</strong> the standard video BIOS uses.</p>
+<p>In order to set a video mode, the software must disable the video output and write the associated values to all of the hardware registers that it modifies. This sets everything – the read/write modes, address start, horizontal and vertical blanking periods and timing, refresh rate, resolution, graphics mode type, and more.</p>
+<p>While every attempt has been made to insure accuracy, there might be some errors that have been undetected in the following tables. The tables were written to match that of which what was presented in [4] but may have errors in the rewrite. We give all credit to the original authors.</p>
+<h4 id="general-registers">General registers</h4>
+<table>
+<thead>
+<tr>
+<th>Index/Mode</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>D</th>
+<th>E</th>
+<th>F</th>
+<th>10</th>
+<th>11</th>
+<th>12</th>
+<th>13</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>63</td>
+<td>63</td>
+<td>63</td>
+<td>63</td>
+<td>63</td>
+<td>63</td>
+<td>63</td>
+<td>A6</td>
+<td>63</td>
+<td>63</td>
+<td>A2</td>
+<td>A3</td>
+<td>E3</td>
+<td>E3</td>
+<td>63</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+<td>70</td>
+</tr>
+<tr>
+<td>3</td>
+<td>4</td>
+<td>4</td>
+<td>5</td>
+<td>5</td>
+<td>4</td>
+<td>4</td>
+<td>5</td>
+<td>FF</td>
+<td>4</td>
+<td>4</td>
+<td>FF</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+<h4 id="sequence-registers">Sequence registers</h4>
+<table>
+<thead>
+<tr>
+<th>Index/Mode</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>D</th>
+<th>E</th>
+<th>F</th>
+<th>10</th>
+<th>11</th>
+<th>12</th>
+<th>13</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr>
+<td>1</td>
+<td>9</td>
+<td>9</td>
+<td>1</td>
+<td>1</td>
+<td>9</td>
+<td>9</td>
+<td>1</td>
+<td>0</td>
+<td>9</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>1</td>
+<td>3</td>
+<td>F</td>
+<td>F</td>
+<td>F</td>
+<td>F</td>
+<td>F</td>
+<td>F</td>
+<td>F</td>
+</tr>
+<tr>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>4</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>6</td>
+<td>2</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>E</td>
+</tr>
+</tbody>
+</table>
+<h4 id="crtc-registers">CRTC Registers</h4>
+<table>
+<thead>
+<tr>
+<th>Index/Mode</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>D</th>
+<th>E</th>
+<th>F</th>
+<th>10</th>
+<th>11</th>
+<th>12</th>
+<th>13</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>2D</td>
+<td>2D</td>
+<td>5F</td>
+<td>5F</td>
+<td>2D</td>
+<td>2D</td>
+<td>5F</td>
+<td>FF</td>
+<td>2D</td>
+<td>5F</td>
+<td>FF</td>
+<td>5F</td>
+<td>5F</td>
+<td>5F</td>
+<td>5F</td>
+</tr>
+<tr>
+<td>1</td>
+<td>27</td>
+<td>27</td>
+<td>4F</td>
+<td>4F</td>
+<td>27</td>
+<td>27</td>
+<td>4F</td>
+<td>FF</td>
+<td>27</td>
+<td>4F</td>
+<td>FF</td>
+<td>4F</td>
+<td>4F</td>
+<td>4F</td>
+<td>4F</td>
+</tr>
+<tr>
+<td>2</td>
+<td>28</td>
+<td>28</td>
+<td>50</td>
+<td>50</td>
+<td>28</td>
+<td>28</td>
+<td>50</td>
+<td>FF</td>
+<td>28</td>
+<td>50</td>
+<td>FF</td>
+<td>50</td>
+<td>50</td>
+<td>50</td>
+<td>50</td>
+</tr>
+<tr>
+<td>3</td>
+<td>90</td>
+<td>90</td>
+<td>82</td>
+<td>82</td>
+<td>90</td>
+<td>90</td>
+<td>82</td>
+<td>FF</td>
+<td>90</td>
+<td>82</td>
+<td>FF</td>
+<td>82</td>
+<td>82</td>
+<td>82</td>
+<td>82</td>
+</tr>
+<tr>
+<td>4</td>
+<td>2B</td>
+<td>2B</td>
+<td>55</td>
+<td>55</td>
+<td>2B</td>
+<td>2B</td>
+<td>54</td>
+<td>FF</td>
+<td>2B</td>
+<td>54</td>
+<td>FF</td>
+<td>54</td>
+<td>54</td>
+<td>54</td>
+<td>24</td>
+</tr>
+<tr>
+<td>5</td>
+<td>A0</td>
+<td>A0</td>
+<td>81</td>
+<td>81</td>
+<td>80</td>
+<td>80</td>
+<td>80</td>
+<td>FF</td>
+<td>80</td>
+<td>80</td>
+<td>FF</td>
+<td>80</td>
+<td>80</td>
+<td>80</td>
+<td>80</td>
+</tr>
+<tr>
+<td>6</td>
+<td>BF</td>
+<td>BF</td>
+<td>BF</td>
+<td>BF</td>
+<td>BF</td>
+<td>BF</td>
+<td>BF</td>
+<td>FF</td>
+<td>BF</td>
+<td>BF</td>
+<td>FF</td>
+<td>BF</td>
+<td>B</td>
+<td>B</td>
+<td>BF</td>
+</tr>
+<tr>
+<td>7</td>
+<td>1F</td>
+<td>1F</td>
+<td>1F</td>
+<td>1F</td>
+<td>1F</td>
+<td>1F</td>
+<td>1F</td>
+<td>FF</td>
+<td>1F</td>
+<td>1F</td>
+<td>FF</td>
+<td>1F</td>
+<td>3E</td>
+<td>3E</td>
+<td>1F</td>
+</tr>
+<tr>
+<td>8</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>9</td>
+<td>C7</td>
+<td>C7</td>
+<td>C7</td>
+<td>C7</td>
+<td>C1</td>
+<td>C1</td>
+<td>C1</td>
+<td>FF</td>
+<td>C0</td>
+<td>C0</td>
+<td>FF</td>
+<td>40</td>
+<td>40</td>
+<td>40</td>
+<td>41</td>
+</tr>
+<tr>
+<td>A</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>B</td>
+<td>7</td>
+<td>7</td>
+<td>7</td>
+<td>7</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>C</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>D</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>E</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>F</td>
+<td>31</td>
+<td>31</td>
+<td>59</td>
+<td>59</td>
+<td>31</td>
+<td>31</td>
+<td>59</td>
+<td>FF</td>
+<td>31</td>
+<td>59</td>
+<td>FF</td>
+<td>59</td>
+<td>59</td>
+<td>59</td>
+<td>31</td>
+</tr>
+<tr>
+<td>10</td>
+<td>9C</td>
+<td>9C</td>
+<td>9C</td>
+<td>9C</td>
+<td>9C</td>
+<td>9C</td>
+<td>9C</td>
+<td>FF</td>
+<td>9C</td>
+<td>9C</td>
+<td>FF</td>
+<td>83</td>
+<td>EA</td>
+<td>EA</td>
+<td>9C</td>
+</tr>
+<tr>
+<td>11</td>
+<td>8E</td>
+<td>8E</td>
+<td>8E</td>
+<td>8E</td>
+<td>8E</td>
+<td>8E</td>
+<td>8E</td>
+<td>FF</td>
+<td>8E</td>
+<td>8E</td>
+<td>FF</td>
+<td>85</td>
+<td>8C</td>
+<td>8C</td>
+<td>8E</td>
+</tr>
+<tr>
+<td>12</td>
+<td>8F</td>
+<td>8F</td>
+<td>8F</td>
+<td>8F</td>
+<td>8F</td>
+<td>8F</td>
+<td>8F</td>
+<td>FF</td>
+<td>8F</td>
+<td>8F</td>
+<td>FF</td>
+<td>5D</td>
+<td>DF</td>
+<td>DF</td>
+<td>8F</td>
+</tr>
+<tr>
+<td>13</td>
+<td>14</td>
+<td>14</td>
+<td>28</td>
+<td>28</td>
+<td>14</td>
+<td>14</td>
+<td>28</td>
+<td>FF</td>
+<td>14</td>
+<td>28</td>
+<td>FF</td>
+<td>28</td>
+<td>28</td>
+<td>28</td>
+<td>28</td>
+</tr>
+<tr>
+<td>14</td>
+<td>1F</td>
+<td>1F</td>
+<td>1F</td>
+<td>1F</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>0</td>
+<td>0</td>
+<td>FF</td>
+<td>F</td>
+<td>0</td>
+<td>0</td>
+<td>40</td>
+</tr>
+<tr>
+<td>15</td>
+<td>96</td>
+<td>96</td>
+<td>96</td>
+<td>96</td>
+<td>96</td>
+<td>96</td>
+<td>96</td>
+<td>FF</td>
+<td>96</td>
+<td>96</td>
+<td>FF</td>
+<td>63</td>
+<td>E7</td>
+<td>E7</td>
+<td>96</td>
+</tr>
+<tr>
+<td>16</td>
+<td>B9</td>
+<td>B9</td>
+<td>B9</td>
+<td>B9</td>
+<td>B9</td>
+<td>B9</td>
+<td>B9</td>
+<td>FF</td>
+<td>B9</td>
+<td>B9</td>
+<td>FF</td>
+<td>BA</td>
+<td>4</td>
+<td>4</td>
+<td>B9</td>
+</tr>
+<tr>
+<td>17</td>
+<td>A3</td>
+<td>A3</td>
+<td>A3</td>
+<td>A3</td>
+<td>A2</td>
+<td>A2</td>
+<td>C2</td>
+<td>FF</td>
+<td>E3</td>
+<td>E3</td>
+<td>FF</td>
+<td>E3</td>
+<td>C3</td>
+<td>E3</td>
+<td>A3</td>
+</tr>
+<tr>
+<td>18</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+</tr>
+</tbody>
+</table>
+<h4 id="graphics-controller-registers">Graphics Controller Registers</h4>
+<table>
+<thead>
+<tr>
+<th>Index/Mode</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>D</th>
+<th>E</th>
+<th>F</th>
+<th>10</th>
+<th>11</th>
+<th>12</th>
+<th>13</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>5</td>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>30</td>
+<td>30</td>
+<td>0</td>
+<td>10</td>
+<td>10</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+<td>0</td>
+<td>0</td>
+<td>40</td>
+</tr>
+<tr>
+<td>6</td>
+<td>0E</td>
+<td>0E</td>
+<td>0E</td>
+<td>0E</td>
+<td>0F</td>
+<td>0F</td>
+<td>0D</td>
+<td>0A</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td>7</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>F</td>
+<td>5</td>
+<td>0</td>
+<td>5</td>
+<td>F</td>
+<td>F</td>
+</tr>
+<tr>
+<td>8</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+<td>FF</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-controller-registers">Attribute Controller Registers</h4>
+<table>
+<thead>
+<tr>
+<th>Index/Mode</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>D</th>
+<th>E</th>
+<th>F</th>
+<th>10</th>
+<th>11</th>
+<th>12</th>
+<th>13</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>13</td>
+<td>13</td>
+<td>17</td>
+<td>8</td>
+<td>1</td>
+<td>1</td>
+<td>8</td>
+<td>1</td>
+<td>3F</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>15</td>
+<td>15</td>
+<td>17</td>
+<td>8</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td>3F</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>17</td>
+<td>17</td>
+<td>17</td>
+<td>8</td>
+<td>3</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>3F</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+<td>2</td>
+<td>2</td>
+<td>17</td>
+<td>8</td>
+<td>4</td>
+<td>4</td>
+<td>18</td>
+<td>4</td>
+<td>3F</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>4</td>
+<td>4</td>
+<td>17</td>
+<td>8</td>
+<td>5</td>
+<td>5</td>
+<td>18</td>
+<td>5</td>
+<td>3F</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+<td>17</td>
+<td>8</td>
+<td>6</td>
+<td>6</td>
+<td>0</td>
+<td>14</td>
+<td>3F</td>
+<td>14</td>
+<td>6</td>
+</tr>
+<tr>
+<td>7</td>
+<td>7</td>
+<td>7</td>
+<td>7</td>
+<td>7</td>
+<td>7</td>
+<td>7</td>
+<td>17</td>
+<td>8</td>
+<td>7</td>
+<td>7</td>
+<td>0</td>
+<td>7</td>
+<td>3F</td>
+<td>7</td>
+<td>7</td>
+</tr>
+<tr>
+<td>8</td>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>17</td>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+<td>0</td>
+<td>38</td>
+<td>3F</td>
+<td>38</td>
+<td>8</td>
+</tr>
+<tr>
+<td>9</td>
+<td>11</td>
+<td>11</td>
+<td>11</td>
+<td>11</td>
+<td>11</td>
+<td>11</td>
+<td>17</td>
+<td>18</td>
+<td>11</td>
+<td>11</td>
+<td>8</td>
+<td>39</td>
+<td>3F</td>
+<td>39</td>
+<td>9</td>
+</tr>
+<tr>
+<td>A</td>
+<td>12</td>
+<td>12</td>
+<td>12</td>
+<td>12</td>
+<td>12</td>
+<td>12</td>
+<td>17</td>
+<td>18</td>
+<td>12</td>
+<td>12</td>
+<td>0</td>
+<td>3A</td>
+<td>3F</td>
+<td>3A</td>
+<td>0A</td>
+</tr>
+<tr>
+<td>B</td>
+<td>13</td>
+<td>13</td>
+<td>13</td>
+<td>13</td>
+<td>13</td>
+<td>13</td>
+<td>17</td>
+<td>18</td>
+<td>13</td>
+<td>13</td>
+<td>0</td>
+<td>3B</td>
+<td>3F</td>
+<td>3B</td>
+<td>0B</td>
+</tr>
+<tr>
+<td>C</td>
+<td>14</td>
+<td>14</td>
+<td>14</td>
+<td>14</td>
+<td>14</td>
+<td>14</td>
+<td>17</td>
+<td>18</td>
+<td>14</td>
+<td>14</td>
+<td>0</td>
+<td>3C</td>
+<td>3F</td>
+<td>3C</td>
+<td>0C</td>
+</tr>
+<tr>
+<td>D</td>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+<td>17</td>
+<td>18</td>
+<td>15</td>
+<td>15</td>
+<td>18</td>
+<td>3D</td>
+<td>3F</td>
+<td>3D</td>
+<td>0D</td>
+</tr>
+<tr>
+<td>E</td>
+<td>16</td>
+<td>16</td>
+<td>16</td>
+<td>16</td>
+<td>16</td>
+<td>16</td>
+<td>17</td>
+<td>18</td>
+<td>16</td>
+<td>16</td>
+<td>0</td>
+<td>3E</td>
+<td>3F</td>
+<td>3E</td>
+<td>0E</td>
+</tr>
+<tr>
+<td>F</td>
+<td>17</td>
+<td>17</td>
+<td>17</td>
+<td>17</td>
+<td>17</td>
+<td>17</td>
+<td>17</td>
+<td>18</td>
+<td>17</td>
+<td>17</td>
+<td>0</td>
+<td>3F</td>
+<td>3F</td>
+<td>3F</td>
+<td>0F</td>
+</tr>
+<tr>
+<td>10</td>
+<td>8</td>
+<td>8</td>
+<td>8</td>
+<td>8</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0E</td>
+<td>1</td>
+<td>1</td>
+<td>0B</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>41</td>
+</tr>
+<tr>
+<td>11</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>12</td>
+<td>0F</td>
+<td>0F</td>
+<td>0F</td>
+<td>0F</td>
+<td>3</td>
+<td>3</td>
+<td>1</td>
+<td>0F</td>
+<td>0F</td>
+<td>0F</td>
+<td>5</td>
+<td>0F</td>
+<td>0F</td>
+<td>0F</td>
+<td>0F</td>
+</tr>
+<tr>
+<td>13</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>14</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>To set a video mode, we must set all of the registers the mode modifies in the above tables. The following example illustrates setting the mode.</p>
+<p><strong>Example:</strong> In order to set a video mode, we need to upload all of the values into the registers associated with that mode. For example, if we have a function, <strong>uploadRegisters</strong>, that does this, we can set Mode 13h by doing the following.</p>
+<pre><code class="lang-c">unsigned char _mode13h = {
+   /* general registers */
+   0x63,0,0x70,0x4,
+   /* sequencer */
+   0x3,0x1,0xF,0,0xE,
+   /* CRTC */
+   0x5F,0x4F,0x50,0x82,0x24,0x80,0xBF,0x1F,0,0x41,
+   0,0,0,0,0,0x31,0x9C,0x8E,0x8F,0x28,0x40,0x96,0x89,0xA3,0xFF,
+   /* graphics */
+   0,0,0,0,0,0x40,0x5,0xF,0xFF,
+   /* attribute */
+   0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xC,0xD,0xE,0xF,0x41,0,0xF,0,0
+}
+
+/* set mode 13h */
+uploadRegisters (&amp;_mode13);
+</code></pre>
+<p>After writing the register values, we have successfully changed video modes.</p>
+<p><img src="../../resources/images/OSDevVid2_html_4db38949.gif" alt="Demo running in VGA Mode 13h and clearing display memory"></p>
+<p>Recall that we have looked at the planar memory model earlier; we could not complete an example of plotting a pixel until looking at the hardware registers. We now present that example now.</p>
+<p><strong>Example:</strong> The following code plots a 8 bit pixel in a planar mode.</p>
+<pre><code class="lang-c">void pixel_p (unsigned char color, unsigned int x, unsigned int y)
+{
+   unsigned int* fb        = (unsigned int*) 0xa0000;
+   unsigned int offset     = y * pitch + (x/8);
+   bankSwitch (offset &gt;&gt; 16);
+
+   /* writes to bit mask register of graphics controller to select plane */
+   outportb(0x3CE,8);
+   outportb(0x3CF,0x80 &gt;&gt; (x &amp; 7));
+   fb [bankOffset] = color;
+}
+</code></pre>
+<h2 id="supervga-interface">SuperVGA Interface</h2>
+<p><strong>SuperVGA</strong> refers to the class of display hardware that includes SuperVGA (SVGA), and typically also XGA, SXGA, SXGA+, UXGA, QXGA, QSXGA, and other standards that support resolutions to 2560x2048 and higher. SuperVGA began as a set of extensions by manufacturers to VGA and adopted into separate SuperVGA standards that we have today. This means that <strong>there is no all encompassing standard for SuperVGA devices.</strong> Every SuperVGA card is different and provide different hardware and firmware interfaces. Thus we have a problem. How could we support SuperVGA if there is no standard way of using it? The problem is compounded by the fact that most manufacturers do not release the technical specifications for the cards. Instead they write black box drivers for different operating systems such as Windows and Linux.</p>
+<p>Thus, in order for us to support SuperVGA devices we have only two options.</p>
+<ol>
+<li>Write a device driver for each type of display device we want to support.</li>
+<li>Use Vesa Bios Extensions (VBE)</li>
+</ol>
+<p>The first option is hard because we need to have the specification to work off of. For devices where we cannot get any specification we have to rely on reverse engineering. The SuperVGA “card” we will look at is the one used in the Bochs emulator. We chose this one because anyone that uses Bochs could use it. The code for the driver will be Bochs specific however.</p>
+<p>The second option is by using <strong>Vesa Bios Extensions (VBE)</strong>. VBE is a standard set of BIOS interrupt extensions for SuperVGA hardware. VBE is very simple to work with and creates a single standard interface for working with SuperVGA. It does however require real mode or v8086 mode and not all machines support VBE since it uses BIOS interrupts and is an extension.</p>
+<h3 id="vesa-bios-extensions-vbe-firmware-interface">Vesa Bios Extensions (VBE) Firmware Interface</h3>
+<p><strong>Vesa Bios Extensions (VBE)</strong> defines a set of BIOS interrupt services for working with SuperVGA modes. VBE is defined in the <strong>Vesa Bios Extensions (VBE) Core Standard</strong>. (Please reference [5].) Kernel mode software could call the BIOS services in real mode or v8086 mode.</p>
+<h4 id="vbe-mode-numbers">VBE Mode numbers</h4>
+<p>VBE defines a set of <strong>mode numbers</strong> in a similar way the video BIOS does. A mode number has the following format.</p>
+<table>
+<thead>
+<tr>
+<th>Bits</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-8</td>
+<td>Mode</td>
+</tr>
+<tr>
+<td>9-13</td>
+<td>Reserved, set to 0</td>
+</tr>
+<tr>
+<td>14</td>
+<td>LFB</td>
+</tr>
+<tr>
+<td>15</td>
+<td>DM</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Mode number</strong> is the actual mode number. If bit 8 is set, it is a standard VESA defined mode (more on this later.)</li>
+<li><strong>LFB</strong> selects the mode as a <strong>Linear Frame Buffer (LFB)</strong> or <strong>Bank Switching</strong> mode. If 0, it uses bank switching and uses the standard VGA frame buffer. If 1, it uses a linear frame buffer.</li>
+<li><strong>DM</strong> selects whether or not to clear display memory when setting the mode. If 0, display memory is cleared. If 1, display memory is not cleared.</li>
+<li><strong>VESA defined modes</strong> are a standard set of video mode numbers that BIOS venders are recommended to support. The following table lists the graphical modes.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Resolution</th>
+<th>Color depth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100h</td>
+<td>640x480</td>
+<td>256</td>
+</tr>
+<tr>
+<td>101h</td>
+<td>640x480</td>
+<td>256</td>
+</tr>
+<tr>
+<td>102h</td>
+<td>800x600</td>
+<td>16</td>
+</tr>
+<tr>
+<td>103h</td>
+<td>800x600</td>
+<td>256</td>
+</tr>
+<tr>
+<td>10Dh</td>
+<td>320x200</td>
+<td>32K</td>
+</tr>
+<tr>
+<td>10Eh</td>
+<td>320x200</td>
+<td>64K</td>
+</tr>
+<tr>
+<td>10Fh</td>
+<td>320x200</td>
+<td>16.8M</td>
+</tr>
+<tr>
+<td>110h</td>
+<td>640x480</td>
+<td>32K</td>
+</tr>
+<tr>
+<td>111h</td>
+<td>640x480</td>
+<td>64K</td>
+</tr>
+<tr>
+<td>112h</td>
+<td>640x480</td>
+<td>16.8M</td>
+</tr>
+<tr>
+<td>113h</td>
+<td>800x600</td>
+<td>32K</td>
+</tr>
+<tr>
+<td>114h</td>
+<td>800x600</td>
+<td>64K</td>
+</tr>
+<tr>
+<td>115h</td>
+<td>800x600</td>
+<td>16.8M</td>
+</tr>
+<tr>
+<td>116h</td>
+<td>1024x768</td>
+<td>32K</td>
+</tr>
+<tr>
+<td>117h</td>
+<td>1024x768</td>
+<td>64K</td>
+</tr>
+<tr>
+<td>118h</td>
+<td>1024x768</td>
+<td>16.8M</td>
+</tr>
+<tr>
+<td>119h</td>
+<td>1280x1024</td>
+<td>32K</td>
+</tr>
+<tr>
+<td>11Ah</td>
+<td>1280x1024</td>
+<td>64K</td>
+</tr>
+<tr>
+<td>11Bh</td>
+<td>1280x1024</td>
+<td>16.8M</td>
+</tr>
+</tbody>
+</table>
+<p>Mode numbers beyond 11Bh can also be defined but are not standard. Thus there can be some support for even higher resolution modes.</p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>The VBE mode number <strong>113h</strong> selects <strong>800x600x32K color mode</strong> that uses bank switching while the VBE mode <strong>8113h</strong> selects <strong>800x600x32 color mode</strong> that uses a linear frame buffer (LFB). Remember the mode number format!</p>
+</div>
+<h3 id="vbe-services">VBE Services</h3>
+<p>We now turn our attention to the VBE BIOS services. Please keep in mind all of these services can be referenced in [5]. We will also provide samples in C. We are only going to look at the three most important services required to set a video mode and display memory access. Please reference the specification (which is one of the easier specifications to read) for other interrupts.</p>
+<h4 id="int-0x10-function-4f00h--get-vbe-controller-information">INT 0x10 Function 4F00h – Get VBE Controller Information</h4>
+<ul>
+<li>Input:
+<ul>
+<li>AX=4F00h</li>
+<li>ES:DI=Pointer to VbeInfoBlock structure (See following example)</li>
+</ul>
+</li>
+<li>Output:
+<ul>
+<li>AX=Status</li>
+</ul>
+</li>
+</ul>
+<p><strong>vbeInfoBlock structure</strong> has the following format:</p>
+<pre><code class="lang-c">typedef struct _vbeInfoBlock {
+    uint8_t  signature[4];     // “VESA”
+    uint16_t version;          // Either 0x0200 (VBE 2.0) or 0x0300 (VBE 3.0)
+    uint32_t oemString;        // Far pointer to OEM name
+    uint8_t  capabilities[4];  // capabilities
+    uint32_t videoModesPtr;    // Far pointer to video mode list
+    uint16_t totalMemory;      // Memory size in 64K blocks
+    uint16_t oemSoftwareRev;
+    uint32_t oemVenderNamePtr;
+    uint32_t oemProductNamePtr;
+    uint32_t oemProductRevPtr;
+    uint8_t  reserved [222];
+    uint8_t  oemData [256];
+} vbeInfoBlock;
+</code></pre>
+<p>The <strong>vbeInfoBlock.capabilities</strong> field has the following format:</p>
+<table>
+<thead>
+<tr>
+<th>Bits</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>D0</td>
+</tr>
+<tr>
+<td>1</td>
+<td>D1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>D2</td>
+</tr>
+<tr>
+<td>3-31</td>
+<td>Reserved</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>D0:</strong> If 0, DAC is fixed at 6 bits per color. If 1, DAC width can be switched to 8 bits per color.</li>
+<li><strong>D1:</strong> If 0, controller supports standard VGA modes. If 1, controller does not support standard VGA modes.</li>
+<li><strong>D2:</strong> If 0, RAMDAC is in normal operation. If 1, the specification tells us to use the blank bit of function 9.</li>
+</ul>
+<p>The following example demonstrates calling this interrupt:</p>
+<p>There really isn't much to say here. To call the interrupt, we call our <strong>rm_bios</strong> routine with the structure. <strong>SEG</strong> and <strong>OFFSET</strong> are macros that calculate the real mode <strong>segment</strong> and <strong>offset</strong> respectively. This is used to convert the 32 bit linear address into a 16 bit segment:offset address when giving it to the BIOS.</p>
+<pre><code class="lang-c">void vbe_get_descr (vbeInfoBlock* descr)
+{
+    INTR in, out;
+    /* sanity checks */
+    if (!descr)
+        return;
+
+    /* call BIOS */
+    in.eax.val =0x4F00;
+    in.es = SEG((unsigned int) descr);
+    in.edi.val = OFFSET((unsigned int) descr);
+    io_services (0x10, &amp;in, &amp;out);
+}
+</code></pre>
+<h4 id="int-0x10-function-4f01h--get-vbe-mode-info">INT 0x10 Function 4F01h – Get VBE Mode Info</h4>
+<ul>
+<li>Input:
+<ul>
+<li>AX=4F01h</li>
+<li>CX = Mode number (recall the format of a VBE mode number!)</li>
+<li>ES:DI=Pointer to ModeInfoBlock structure (See following example)</li>
+</ul>
+</li>
+<li>Output:
+<ul>
+<li>AX=Status</li>
+</ul>
+</li>
+</ul>
+<p><strong>ModeInfoBlock</strong> has the following structure: (Due to the size of the structure we will not be describing all of the members. Important members that may be described in later chapters are commented.)</p>
+<pre><code class="lang-c">typedef struct _modeInfoBlock {
+    uint16_t attributes;
+    uint8_t windowA, windowB;
+    uint16_t granularity;
+    uint16_t windowSize;
+    uint16_t segmentA, segmentB;
+    uint32_t winFuncPtr;                      /* ptr to INT 0x10 Function 0x4F05 */
+    uint16_t pitch;                           /* bytes per scan line */
+    uint16_t resolutionX, resolutionY;        /* resolution */
+    uint8_t wChar, yChar, planes, bpp, banks; /* number of banks */
+    uint8_t memoryModel, bankSize, imagePages;
+    uint8_t reserved0;
+    uint8_t readMask, redPosition;            /* color masks */
+    uint8_t greenMask, greenPosition;
+    uint8_t blueMask, bluePosition;
+    uint8_t reservedMask, reservedPosition;
+    uint8_t directColorAttributes;
+    uint32_t physbase;                        /* pointer to LFB in LFB modes */
+    uint32_t offScreenMemOff;
+    uint16_t offScreenMemSize;
+    uint8_t  reserved1 [206];
+} modeInfoBlock;
+</code></pre>
+<p>The following example demonstrates calling the interrupt:</p>
+<p><strong>Example:</strong> The following function uses the above interrupt for basic bank switching. Note the use of <strong>SEG</strong> and <strong>OFFSET</strong> to convert the 32 bit linear address of <strong>out</strong> to a 16 bit segment:offset far pointer.</p>
+<pre><code class="lang-c">void vbe_get_mode (int mode, modeInfoBlock* descr)
+{
+    INTR in, out;
+    /* sanity check */
+    if (!descr)
+        return;
+    /* call BIOS */
+    in.eax.val = 0x4F01;
+    in.ecx.val = mode;
+    in.es      = SEG   ((unsigned int)descr);
+    in.edi.val = OFFSET((unsigned int)descr);
+    io_services (0x10, &amp;in, &amp;out);
+}
+</code></pre>
+<h4 id="int-0x10-function-4f02h--set-vbe-mode">INT 0x10 Function 4F02h – Set VBE Mode</h4>
+<p>The final interrupt that we will look at allows us to set the display mode. This can be used to set any VGA and VBE defined SuperVGA mode as well as extended modes that are not standard.</p>
+<ul>
+<li>Input:
+<ul>
+<li>AX=4F02h</li>
+<li>BX=Mode number (remember the VBE mode format!)</li>
+</ul>
+</li>
+<li>Output:
+<ul>
+<li>AX=Status</li>
+</ul>
+</li>
+</ul>
+<p>The following function uses the above interrupt to set a VBE mode:</p>
+<pre><code class="lang-c">void vbe_set_mode (int mode)
+{
+    /* call BIOS */
+    INTR in, out;
+    in.eax.val = 0x4F02;
+    in.ebx.val = mode;
+    io_services (0x10, &amp;in, &amp;out);
+}
+</code></pre>
+<p>Calling <strong>vbe_set_mode</strong> allows us to set any VBE defined mode and yields us the following result.</p>
+<p>Demo running in SuperVGA Mode 118h (1024x768):
+<img src="../../resources/images/OSDevVid2_html_4142b2d0.gif" alt="Demo running in SuperVGA Mode 118h (1024x768)"></p>
+<h3 id="vbe-display-memory">VBE Display Memory</h3>
+<p>VBE supports two standard approaches used in SuperVGA for display memory: <strong>Linear Frame Buffer (LFB)</strong> and <strong>bank switching</strong>. You may recall that we can try to set any video mode supported by VBE with both of these. These are just different ways of accessing display memory. We will look at how to work with both types of modes in this section.</p>
+<h4 id="linear-frame-buffer-lfb-modes">Linear Frame Buffer (LFB) Modes</h4>
+<p>In LFB modes, all of video memory is mapped into the <strong>physical address space</strong> typically at a high address in the 3GB-4GB range (assuming IA32 architecture.) Display memory is linear like an array in C. We can read or write to it by just reading or writing from a pointer and can access all of video memory. In VBE, we can get this pointer by calling <strong>INT 0x10 Function 4F01h</strong> to get the <strong>modeInfoBlock</strong> structure of the current mode. The pointer to display then is just at <strong>modeInfoBlock.physbase</strong>.</p>
+<p>The following C code plots a 16 bit <strong>red-green-blue (RGB)</strong> pixel to display:</p>
+<pre><code class="lang-c">void pixel_16RGB (unsigned short color, unsigned short x, unsigned short y)
+{
+    unsigned short* fb = (unsigned short*) _modeInfo.physBasePtr;
+    unsigned short offset = x + y * (_modeInfo.bytesPerScanLine / 2);
+    fb [offset] = color;
+}
+</code></pre>
+<p>Display memory in LFB modes can only be accessed from protected or long modes due to the amount of display memory mapped. In real mode the only way of accessing display memory of high resolution modes is using <strong>bank switching</strong>.</p>
+<h4 id="bank-switching">Bank switching</h4>
+<p>Modes that use <strong>bank switching</strong> always have 64K of display memory mapped at the VGA memory space at <strong>0xa0000</strong> physical address. This 64k block of display memory is called a <strong>bank</strong>. The software could only access a single bank at a time and so cannot access all of display memory. <strong>The software has to switch banks when needed to access all of display memory.</strong></p>
+<p>In other words, Bank 0 refers to bytes 0-64K of display memory, Bank 1 refers to bytes at 64K-128K of display memory, and so on. So by switching between banks the software can access all of display memory (no matter how high of resolution) through this 64K “window”.</p>
+<p>The following code plots an 8 bit RGB pixel in a bank switching mode:</p>
+<pre><code class="lang-c">void pixel_8RGB (unsigned char color, unsigned short x, unsigned short y)
+{
+    unsigned char* fb = (unsigned char*) 0xa0000;
+    unsigned int offset = x + (long)y * _modeInfo.bytesPerScanLine;
+    vbe_bankSwitch (offset &gt;&gt; 16);
+    fb [offset &amp; 0xffff] = color;
+}
+</code></pre>
+<p>Bank switching modes are typically more slower because they require more calculations. That is, the software not only needs to calculate the location of a pixel on screen but also its offset within a bank and the bank to switch to. This same calculations apply to reading from display memory. Bank switching modes however can be used in real mode or v86 mode since they only map 64K of display memory.</p>
+<p>Under VBE, software could switch banks by calling <strong>INT 0x10 Function 0x4F05 – Display Window Control</strong>. It can also be called directly (as is recommended by the VBE specification) by calling <strong>INT 0x10 Function 0x4F01 – Get VBE Mode Information</strong> and calling <strong>VbeModeInfo.WinFuncPtr</strong>.</p>
+<h4 id="int-0x10-function-4f05h--display-window-control">INT 0x10 Function 4F05h – Display Window Control</h4>
+<p>Sets or gets the display bank. Can also be called from <strong>VbeModeInfo.WinFuncPtr</strong>.</p>
+<ul>
+<li>Input:
+<ul>
+<li>AX=4F05h</li>
+<li>BH=0 (Set memory window), 1 (Get memory window)</li>
+<li>BL=0 (Window A), 1 (Window B)</li>
+<li>DX=Window number in window granularity units. Only used when BH=0 (Set function)</li>
+</ul>
+</li>
+<li>Output:
+<ul>
+<li>AX=Status</li>
+<li>DX=Window number in granularity units. Only used when BH=1 (Get function)</li>
+</ul>
+</li>
+</ul>
+<p>The following function uses the above interrupt for basic bank switching: (Notice that we call the interrupt twice for window A and window B. This is because, according to the standard, some VBE implementations might have separate read and write windows)</p>
+<pre><code class="lang-c">void vbe_bankSwitch (int bank)
+{
+    INTR in, out;
+
+    bank &lt;&lt;= bankShift;
+
+    in.eax.val=0x4F05;
+    in.ebx.val = 0;                /* BH=0 (Set memory window) BL=0 (Window A) */
+    in.edx.val = bank;
+    io_services (0x10, &amp;in, &amp;out); /* call BIOS */
+
+    in.eax.val=0x4F05;
+    in.ebx.val = 1;                /* BH=0 (Set memory window) BL=1 (Window A) */
+    in.edx.val = bank;
+    io_services (0x10, &amp;in, &amp;out); /* call BIOS */
+}
+</code></pre>
+<h2 id="bochs-vbe-interface">Bochs VBE Interface</h2>
+<p>The Bochs emulator provides an alternative method of setting VBE modes directly without having to call the firmware. Although the support is limited, it does provide us a semi-portable method (only requires a compatible Bochs emulator) for working with high resolution graphics.</p>
+<p><strong>Example:</strong> The following functions can be used to set any VBE mode supported by Bochs:</p>
+<pre><code class="lang-c">#define VBE_DISPI_IOPORT_INDEX 0x01CE
+#define VBE_DISPI_IOPORT_DATA  0x01CF
+#define VBE_DISPI_INDEX_ID              0x0
+#define VBE_DISPI_INDEX_XRES            0x1
+#define VBE_DISPI_INDEX_YRES            0x2
+#define VBE_DISPI_INDEX_BPP             0x3
+#define VBE_DISPI_INDEX_ENABLE          0x4
+#define VBE_DISPI_INDEX_BANK            0x5
+#define VBE_DISPI_INDEX_VIRT_WIDTH      0x6
+#define VBE_DISPI_INDEX_VIRT_HEIGHT     0x7
+#define VBE_DISPI_INDEX_X_OFFSET        0x8
+#define VBE_DISPI_INDEX_Y_OFFSET        0x9
+
+#define VBE_DISPI_DISABLED              0x00
+#define VBE_DISPI_ENABLED               0x01
+#define VBE_DISPI_GETCAPS               0x02
+#define VBE_DISPI_8BIT_DAC              0x20
+#define VBE_DISPI_LFB_ENABLED           0x40
+#define VBE_DISPI_NOCLEARMEM            0x80
+
+void BlBochsVbeWrite (uint16_t index, uint16_t value)
+{
+    WRITE_PORT_USHORT(VBE_DISPI_IOPORT_INDEX, index);
+    WRITE_PORT_USHORT(VBE_DISPI_IOPORT_DATA, value);
+}
+
+void BlBochsSetMode (uint16_t xres, uint16_t yres, uint16_t bpp)
+{
+
+    BlBochsVbeWrite (VBE_DISPI_INDEX_ENABLE, VBE_DISPI_DISABLED);
+    BlBochsVbeWrite (VBE_DISPI_INDEX_XRES, xres);
+    BlBochsVbeWrite (VBE_DISPI_INDEX_YRES, yres);
+    BlBochsVbeWrite (VBE_DISPI_INDEX_BPP, bpp);
+    BlBochsVbeWrite (VBE_DISPI_INDEX_ENABLE, VBE_DISPI_ENABLED | VBE_DISPI_LFB_ENABLED);
+}
+</code></pre>
+<p>Recall that there is no standard Super VGA hardware interface. That is, this method is specific to Bochs and may not work in other environments or platforms. Because we assume most readers will be using Bochs as the primary emulator, this is the method we will use in order to maintain the highest form of compatibility. This method is also the simplest.</p>
+<p>For higher compatibility however, it is recommended to use <strong>virtual 8086</strong> mode to utilize VBE services directly.</p>
+<h2 id="demos">Demos</h2>
+<p>There are multiple demos that are planned for release for this article. These are a VGA BIOS demo, VBE SuperVGA demo, and VGA hardware demo.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>We have covered a lot in this chapter including an introduction to the VGA BIOS, VGA hardware, SuperVGA, and VESA BIOS Extensions. We now have covered all of the material needed for switching into low and high resolution graphics modes that will be needed in later chapters. The next few chapters will be focused on the actual graphics rendering and pipeline with possibly some SuperVGA bits thrown in. We might begin with basic primitives and graphics rendering in the next article and transformations.</p>
+<p>The method we will be using in later demos is the last one presented here, the Bochs VBE Interface. This allows us to use high resolution LFB modes for later articles with the assumption that most readers will be using Bochs. Any new code however added in later articles will be hardware interface independent for the most part; that is, you can use any method that you want to set the display mode and can still follow the next few articles that will focus more on graphics.</p>
+<h2 id="resources">Resources</h2>
+<p>The following links were referenced to provide more through and accurate information. Please reference them for additional information.</p>
+<ol>
+<li><a href="http://en.wikipedia.org/wiki/Video_Graphics_Array">http://en.wikipedia.org/wiki/Video_Graphics_Array</a></li>
+<li><a href="http://www.osdever.net/FreeVGA/vga/vga.htm">http://www.osdever.net/FreeVGA/vga/vga.htm</a></li>
+<li><a href="http://wiki.osdev.org/VGA_Hardware">http://wiki.osdev.org/VGA_Hardware</a></li>
+<li>Programmer's Guide to the EGA, VGA, and Super VGA Cards (3rd Edition)</li>
+<li>VESA Bios Extensions (VBE) 2.0 Standard</li>
+</ol>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/Z3b.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

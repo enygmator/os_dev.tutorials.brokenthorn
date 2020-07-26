@@ -1,0 +1,436 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Bootloaders 3 | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Bootloaders 3 | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="bootloaders-3">Bootloaders 3</h1>
+
+<p>Here, we are going to take a look at:</p>
+<ol>
+<li>the different &quot;Rings&quot; that describe differences between <strong>Application Programming</strong> and <strong>Systems Programming.</strong></li>
+<li>single stage and multi stage bootloaders, and pros and cons of each.</li>
+<li><strong>BIOS Interrupt 0x13</strong>, the <strong>OEM Parameter Block</strong>, and <strong>Reading, loading,</strong> and <strong>executing a program</strong>. This program will be our <strong>Second Stage Bootloader</strong>. Our <strong>Second Stage Bootloader</strong> will then set the 32 bit envirement, and prepare to load our <strong>C Kernel</strong>.</li>
+</ol>
+<h2 id="the-rings-of-assembly-language">The Rings of Assembly Language</h2>
+<p>In Assembly Language, you might here the term &quot;Ring 0 program&quot;, or &quot;This program is running in Ring 3&quot;. Understanding the different rings (and what they are) can be usefull in OS Development.</p>
+<h3 id="rings---theory">Rings - Theory</h3>
+<p>Okay, so what is a ring? A &quot;Ring&quot;, in Assembly Language, represents the level of protection and control the program has over the system.
+There are 4 rings: Ring 0, Ring 1, Ring 2, and Ring 3.</p>
+<p>Ring 0 programs have absolute control over everything within a system, while ring 3 has less control. The smaller the ring number, the more control (and less level of protection), the software has.</p>
+<p>A Ring is more then a concept--it is built into the processor architecture.</p>
+<p>When the computer boots up, even when your Bootloader executes, the processor is in Ring 0. Most applications, such as DOS applications, run in Ring 3. This means Operating Systems, as running in Ring 0, have far more control over everything then normal Ring 3 applications.</p>
+<h3 id="switching-rings">Switching Rings</h3>
+<p>Because Rings are part of the processor architecture, the processor changes states whenever it needs to. It may change when...</p>
+<ul>
+<li>A directed instruction executes a program at a different ring level, such as a far jump, far call, far return, etc.</li>
+<li>A <strong>trap</strong> instruction, such as INT, <strong>SYSCALL, SYSENTER</strong></li>
+<li><strong>Exceptions</strong></li>
+</ul>
+<p>We will cover Exception Handling later, as well as the <strong>SYSCALL</strong> and <strong>SYSENTER</strong> instructions.</p>
+<h2 id="multi-stage-bootloaders">Multi Stage Bootloaders</h2>
+<h3 id="single-stage-bootloaders">Single Stage Bootloaders</h3>
+<p>Remember that bootloaders, and bootsectors, are only 512 bytes in size. If the bootloader, within that same 512 bytes, executed the kernel directly, it is called a <strong>Single Stage Bootloader</strong>.
+The problem with this, however, is that of its size. There is so little room to do alot within those 512 bytes. It will be very difficault to set up, load and execute a 32 bit kernel within a 16 bit bootloader. This does not include error handling code. This includes code for: <strong>GDT, IDT, A20, PMode, Loading and finding 32 bit kernel, executing kernel, and error handling.</strong> Fitting all of this code within 512 bytes is impossible. Because of this, <strong>Single stage bootloaders have to load and execute a 16 bit kernel</strong>.</p>
+<p>Because of this problem, most bootloaders are Multi Stage Loaders.</p>
+<h3 id="single-and-multi-stage-bootloaders">Single and Multi Stage Bootloaders</h3>
+<p>A Multi Stage Bootloader consists of a single 512 byte bootloader (The Single Stage Loader), however it just loads and executes another loader - A Second Stage Bootloader. the Second Stage Bootloader is normally 16 bit, however it will include all of the code (listed in the previous section), and more. It will be able to load and execute a 32 bit Kernel.
+The reason this works is because the only 512 byte limitation is the bootloader. As long as the bootloader loads all of the sectors for the Second Stage loader in good manner, the Second Stage Loader has no limitation in size. This makes things much easier to set up for the Kernel.</p>
+<p>We will be using a 2 Stage Bootloader.</p>
+<h2 id="loading-sectors-off-disk">Loading Sectors Off Disk</h2>
+<p>Remember that Bootloaders are limited to 512 bytes. Because of this, there is not a whole lot we can do. As stated in the previous section, we are going to be using a 2 Stage Bootloader. This means, we will need our Bootloader to load and execute our Stage 2 program -- The Kernel Loader.
+If you wanted to, The Stage 2 loader is the place to include your own &quot;Choose your Operating System&quot; and &quot;Advanced Options&quot; menu 😁 Come on, I know you want one. 😁</p>
+<h3 id="bios-interrupt-int-0x13-function-0---reset-floppy-disk">BIOS Interrupt (INT) 0x13 Function 0 - Reset Floppy Disk</h3>
+<p>The BIOS Interrupt 0x13 is used for disk access. You can use INT 0x13, Function 0 to reset the floppy drive. What this means is, wherever the Floppy Controller is reading from, it will immediately go to the first Sector on disk.</p>
+<p><strong>INT 0x13/AH=0x0 - DISK : RESET DISK SYSTEM</strong>
+AH = 0x0
+DL = Drive to Reset</p>
+<p>Returns:
+AH = Status Code
+CF (Carry Flag) is clear if success, it is set if failure</p>
+<p>Here is a complete example. This resets the floppy drive, and will try again if there is an error:</p>
+<pre><code class="lang-armasm">.Reset:
+    mov    ah, 0        ; reset floppy disk function
+    mov    dl, 0        ; drive 0 is floppy drive
+    int    0x13         ; call BIOS
+    jc     .Reset       ; If Carry Flag (CF) is set, there was an error. Try resetting again
+</code></pre>
+<p>Why is this interrupt important to us? Before reading any sectors, we have to insure we begin from sector 0. We dont know what sector the floppy controller is reading from. This is bad, as it can change from any time you reboot. Reseting the disk to sector 0 will insure you are reading the same sectors each time.</p>
+<h3 id="bios-interrupt-int-0x13-function-0x02---reading-sectors">BIOS Interrupt (INT) 0x13 Function 0x02 - Reading Sectors</h3>
+<p><strong>INT 0x13/AH=0x02 - DISK : READ SECTOR(S) INTO MEMORY</strong>
+AH = 0x02
+AL = Number of sectors to read
+CH = Low eight bits of cylinder number
+CL = Sector Number (Bits 0-5). Bits 6-7 are for hard disks only
+DH = Head Number
+DL = Drive Number (Bit 7 set for hard disks)
+ES:BX = Buffer to read sectors to</p>
+<p>Returns:
+AH = Status Code
+AL = Number of sectors read
+CF = set if failure, cleared is successfull</p>
+<p>Okay, This is alot to think about. Some of this is fairly easy, others should be explained more. Lets take a look closer, shall we?</p>
+<pre><code class="lang-html">CH = Low eight bits of cylinder number
+</code></pre>
+<p>What is a <strong>Cylinder</strong>? A cylinder is a group of tracks (with the same radius) on the disk. To better understand this, lets look at a picture:</p>
+<p><img src="../../resources/images/cylinder.gif" alt="Cylinder of floppy disk"></p>
+<p>Looking at the above picture, remember:</p>
+<ul>
+<li>Each Track is useually divided into 512 byte sectors. On floppies, there are 18 sectors per track.</li>
+<li>A Cylinder is a group of tracks with the same radius (The Red tracks in the picture above are one cylinder)</li>
+<li>Floppy Disks have two heads (Displayed in the picture)</li>
+<li>There is 2880 Sectors total.</li>
+</ul>
+<p>What does this mean for us? The Cylinder number basically represents a track number on a single disk. In the case of a floppy disk, <strong>It represents the Track to read from.</strong></p>
+<p><strong>In summary, there are 512 bytes per sector, 18 sectors per track, and 80 tracks per side.</strong></p>
+<pre><code class="lang-html">CL = Sector Number (Bits 0-5). Bits 6-7 are for hard disks only
+</code></pre>
+<p>This is the first sector to begin reading from. Remember: <strong>There is only 18 sectors per track. This means that this value can only be between 0 and 17. You have to increase the current track number, and insure the sector number is correctly set to read the correct sector.</strong>
+<strong>If this value is greater then 18, The Floppy Controller will generate an exception, because the sector does not exist. Because there is no handler for it, The CPU will generate a second fault exception, which will ultimately lead to a Triple Fault</strong>.</p>
+<pre><code class="lang-html">DH = Head Number
+</code></pre>
+<p>Remember that some floppys have <strong>two heads</strong>, or sides, to them. <strong>Head 0</strong> is on the front side, where sector 0 is. Because of this, <strong>We are going to be reading from Head 0.</strong>
+<strong>If this value is greater then 2, The Floppy Controller will generate an exception, because the head does not exist. Because there is no handler for it, The CPU will generate a second fault exception, which will ultimately lead to a Triple Fault.</strong></p>
+<pre><code class="lang-armasm">DL = Drive Number (Bit 7 set for hard disks)
+ES:BX = Buffer to read sectors to
+</code></pre>
+<p>What is a <strong>Drive Number?</strong> Its simply a number that, of course, represents a drive. <strong>Drive Number 0 useually represents a floppy drive</strong>. Drive Number 1 is useually for 5-1/4&quot; Floppy drives.
+Because we are on a floppy, we want to read from the floppy disk. So, <strong>the drive number to read from is 0.</strong></p>
+<p>ES:BX stores the segment:offset base address to read the sectors into. Remember that the Base Address represents the <strong>starting</strong> address.</p>
+<p>With this all in mind, lets try to read a sector.</p>
+<h3 id="reading-and-loading-a-sector">Reading and loading a sector</h3>
+<p>To read a sector from disk, first reset the floppy drive, and just read:</p>
+<pre><code class="lang-armasm">.Reset:
+    mov    ah, 0    ; reset floppy disk function
+    mov    dl, 0    ; drive 0 is floppy drive
+    int    0x13     ; call BIOS
+    jc     .Reset   ; If Carry Flag (CF) is set, there was an error. Try resetting again
+
+    mov    ax, 0x1000    ; we are going to read sector to into address 0x1000:0
+    mov    es, ax
+    xor    bx, bx
+
+.Read:
+    mov    ah, 0x02     ; function 2
+    mov    al, 1        ; read 1 sector
+    mov    ch, 1        ; we are reading the second sector past us, so its still on track 1
+    mov    cl, 2        ; sector to read (The second sector)
+    mov    dh, 0        ; head number
+    mov    dl, 0        ; drive number. Remember Drive 0 is floppy drive.
+    int    0x13         ; call BIOS - Read the sector
+    jc     .Read        ; Error, so try again
+
+    jmp    0x1000:0x0   ; jump to execute the sector!
+</code></pre>
+<div class="NOTE">
+<h5>Note</h5>
+<p>If there is a problem reading the sectors, and you try to jump to it to execute it, The CPU will exeute whatever instructions at that address, weather or not the sector was loaded. This useually means the CPU will run into either an invalid/unkown instruction, or the end of memory, both will result in a Triple Fault.</p>
+</div>
+<p>The above code only reads and executes a raw sector, which is kind of pointless to our needs. For one**,We currently have PartCopy set up to copy only 512 bytes**, which means: Where and how are we going to create a raw sector?</p>
+<p>Also, it is impossible for us to give this Raw Sector a &quot;filename&quot; because it does not exist. Its just a raw sector.</p>
+<p>Finally, We currently have the bootloader setup for a FAT12 File System. Windows will attempt to read certain tables (<strong>File Allocation Tables</strong>) from Sector 2 and 3. However, with a Raw Sector, these tables are nonexistant, so Windows will take garbage values (as if it was the table). The result? When reading the floppy disk from Windows, you will see files and directories with currupt names, and enormous sizes (Have you ever seen a 2.5 Gigabyte file on a 3.14 MB Floppy? I have 😁)</p>
+<p>Of course, <strong>We Will need to load sectors this way</strong>. Before we do, however, we have to find the <strong>Starting Sector, Number of sectors, base address, etc</strong>. of a file in order to load it properly. This is the bases of loading files off disk.</p>
+<p>We will look at this next.</p>
+<h2 id="navigating-the-fat12-filesystem">Navigating The FAT12 FileSystem</h2>
+<h3 id="oem-parameter-block---detail">OEM Parameter Block - Detail</h3>
+<p>In the previous artical, we dumped an ugly table in our code. What was it? Oh yeah...</p>
+<pre><code class="lang-armasm">bpbBytesPerSector:      DW 512
+bpbSectorsPerCluster:   DB 1
+bpbReservedSectors:     DW 1
+bpbNumberOfFATs:        DB 2
+bpbRootEntries:         DW 224
+bpbTotalSectors:        DW 2880
+bpbMedia:               DB 0xF0
+bpbSectorsPerFAT:       DW 9
+bpbSectorsPerTrack:     DW 18
+bpbHeadsPerCylinder:    DW 2
+bpbHiddenSectors:       DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber:          DB 0
+bsUnused:               DB 0
+bsExtBootSignature:     DB 0x29
+bsSerialNumber:         DD 0xa0a1a2a3
+bsVolumeLabel:          DB &quot;MOS FLOPPY &quot;
+bsFileSystem:           DB &quot;FAT12   &quot;
+</code></pre>
+<p>Alot of this is pretty simple. Lets analyze this in some detail:</p>
+<pre><code class="lang-armasm">bpbBytesPerSector:      DW 512
+bpbSectorsPerCluster:   DB 1
+</code></pre>
+<p>bpbBytesPerSector indicates the number of bytes that represents a sector. This must be a power of 2. Normally for floppy disks, it is 512 bytes.</p>
+<p>bpbSectorsPerCluster indicates the number of sectors per <strong>cluster</strong>. In our case, we want one sectorper cluster.</p>
+<pre><code class="lang-armasm">bpbReservedSectors:     DW 1
+bpbNumberOfFATs:        DB 2
+</code></pre>
+<p>A <strong>Reserved Sector</strong> is the number of sectors not included in FAT12. ie, not part of the <strong>Root Directory</strong>. In our case, The <strong>Bootsector</strong>, which contains our bootloader, will not be part of this directory. Because of this, <strong>bpbReservedSectors</strong> should be 1.
+This also means that the reserved sectors (Our bootloader) will not contain a File Allocation Table.</p>
+<p>bpbNumberOfFATs rpresents the number of <strong>File Allocation Tables (FATs)</strong> on the disk. <strong>The FAT12 File System always has 2 FATs.</strong></p>
+<p>Normally, you would need to create these FAT tables. However, Because we are using VFD, **We can have Windows/VFD to create these tables for us when it formats the disk.</p>
+<p>Note: These tables will also be written to by Windows/VFD when you add or delete entrys. ie, when you add a new file or directory.**</p>
+<pre><code class="lang-armasm">bpbRootEntries:         DW 224
+bpbTotalSectors:        DW 2880
+</code></pre>
+<p>Floppy Disks have a maximum of 224 directories within its <strong>Root Directory</strong>. Also, R<strong>emember that there are 2,880 sectors in a floppy disk.</strong></p>
+<pre><code class="lang-armasm">bpbMedia:                DB 0xF0
+bpbSectorsPerFAT:        DW 9
+</code></pre>
+<p>The <strong>Media Descriptor Byte</strong> (bpbMedia) is a byte code that contains information about the disk. This byte is a Bit Pattern:</p>
+<ul>
+<li><strong>Bits 0: Sides/Heads</strong> = 0 if it is single sided, 1 if its double sided</li>
+<li><strong>Bits 1: Size</strong> = 0 if it has 9 sectors per FAT, 1 if it has 8.</li>
+<li><strong>Bits 2: Density</strong> = 0 if it has 80 tracks, 1 if it is 40 tracks.</li>
+<li><strong>Bits 3: Type</strong> = 0 if its a fixed disk (Such as hard drive), 1 if removable (Such as floppy drive)</li>
+<li><strong>Bits 4 to 7</strong> are unused, and always 1.</li>
+</ul>
+<p>0xF0 = 11110000 binary. This means it <strong>is a single sided, 9 sectors per FAT, 80 tracks, and is a movable disk</strong>. Look at <strong>bpbSectorsPerFAT</strong> and you will see that it is also 9.</p>
+<pre><code class="lang-armasm">bpbSectorsPerTrack:     DW 18
+bpbHeadsPerCylinder:    DW 2
+</code></pre>
+<p>Remember: from the previous tutorials/ <strong>There is 18 sectors per track.</strong> bpbHeadsPerCylinder simply represents that there are 2 heads that represents a cylinder. (If you dont know what a Cylinder is, please read the section &quot;BIOS Interrupt (INT) 0x13&quot; on Reading Sectors.)</p>
+<pre><code class="lang-armasm">bpbHiddenSectors:       DD 0
+</code></pre>
+<p>This represents the number of sectors from the start of the physical disk and the start of the volume.</p>
+<pre><code class="lang-armasm">bpbTotalSectorsBig:     DD 0
+bsDriveNumber:          DB 0
+</code></pre>
+<p>Remember that the floppy drive is Drive 0?</p>
+<pre><code class="lang-armasm">bsUnused:             DB 0
+bsExtBootSignature:   DB 0x29
+</code></pre>
+<p>The Boot Signiture represents the type and version of this <strong>BIOS Parameter Block</strong> (This OEM Table) is. The values are:</p>
+<ul>
+<li>0x28 and 0x29 indicate this is a MS/PC-DOS version 4.0 Bios Parameter Block (BPB)</li>
+</ul>
+<p>We have 0x29, so this is the version we are using.</p>
+<pre><code class="lang-armasm">bsSerialNumber:     DD 0xa0a1a2a3
+bsVolumeLabel:      DB &quot;MOS FLOPPY &quot;
+bsFileSystem:       DB &quot;FAT12   &quot;
+</code></pre>
+<p>The serial number is assigned by the utility that formats it. The serial number is unique to that particular floppy disk, and no two serial numbers should be identical.
+Microsoft, PC, and DR-DOS base the Seral number off of the current time and date like this:</p>
+<pre><code class="lang-html">Low 16 bits = ((seconds + month) &lt;&lt; 8) + (hundredths + day_of_month)
+High 16 bits = (hours &lt;&lt; 8) + minutes + year
+</code></pre>
+<p>Because the serial number is overwritten, we could put whatever we want in it--it doesnt matter.
+The Volume Label is a string to indicate what is on the disk. Some OSs display this as its name.</p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>Volume Label string <em>Must</em> be 11 bytes. No more, and no less.</p>
+</div>
+<p>The Filesystem string is used for the same purpose, and no more.</p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>The Filesystem string <em>must</em> be 8 bytes, no more and no less.</p>
+</div>
+<h2 id="demo">Demo</h2>
+<p>Wow, thats alot of stuff, huh? The following is the bootloader I developed in this tutorial, that puts everything together.
+<strong>Please note: This demo will not work <em>as is</em>.</strong> It was originally intended for demonstration purposes only, and is not buildable in its current state. I plan to update this tutorial and make the demo buildable sometime during the next revision of the series.</p>
+<pre><code class="lang-armasm">;*********************************************
+;    Boot1.asm
+;    - A Simple Bootloader
+;
+;    Operating Systems Development Tutorial
+;*********************************************
+
+bits     16            ; We are still in 16 bit Real Mode
+
+org      0x7c00        ; We are loaded by BIOS at 0x7C00
+
+start:   jmp loader    ; jump over OEM block
+
+;*************************************************;
+;    OEM Parameter block / BIOS Parameter Block
+;*************************************************;
+
+TIMES 0Bh-$+start DB 0
+
+bpbBytesPerSector:      DW 512
+bpbSectorsPerCluster:   DB 1
+bpbReservedSectors:     DW 1
+bpbNumberOfFATs:        DB 2
+bpbRootEntries:         DW 224
+bpbTotalSectors:        DW 2880
+bpbMedia:               DB 0xF0
+bpbSectorsPerFAT:       DW 9
+bpbSectorsPerTrack:     DW 18
+bpbHeadsPerCylinder:    DW 2
+bpbHiddenSectors:       DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber:          DB 0
+bsUnused:               DB 0
+bsExtBootSignature:     DB 0x29
+bsSerialNumber:         DD 0xa0a1a2a3
+bsVolumeLabel:          DB &quot;MOS FLOPPY &quot;
+bsFileSystem:           DB &quot;FAT12   &quot;
+
+;***************************************
+;    Prints a string
+;    DS=&gt;SI: 0 terminated string
+;***************************************
+
+Print:
+    lodsb             ; load next byte from string from SI to AL
+    or     al, al     ; Does AL=0?
+    jz     PrintDone  ; Yep, null terminator found-bail out
+    mov    ah, 0eh    ; Nope-Print the character
+    int    10h
+    jmp    Print      ; Repeat until null terminator found
+PrintDone:
+    ret               ; we are done, so return
+
+;*************************************************;
+;    Bootloader Entry Point
+;*************************************************;
+
+loader:
+
+.Reset:
+    mov    ah, 0           ; reset floppy disk function
+    mov    dl, 0           ; drive 0 is floppy drive
+    int    0x13            ; call BIOS
+    jc     .Reset          ; If Carry Flag (CF) is set, there was an error. Try resetting again
+
+    mov    ax, 0x1000      ; we are going to read sector to into address 0x1000:0
+    mov    es, ax
+    xor    bx, bx
+
+    mov    ah, 0x02        ; read floppy sector function
+    mov    al, 1           ; read 1 sector
+    mov    ch, 1           ; we are reading the second sector past us, so its still on track 1
+    mov    cl, 2           ; sector to read (The second sector)
+    mov    dh, 0           ; head number
+    mov    dl, 0           ; drive number. Remember Drive 0 is floppy drive.
+    int    0x13            ; call BIOS - Read the sector
+
+
+    jmp        0x1000:0x0            ; jump to execute the sector!
+
+
+times 510 - ($-$$) db 0              ; We have to be 512 bytes. Clear the rest of the bytes with 0
+
+dw 0xAA55                            ; Boot Signiture
+
+; End of sector 1, beginning of sector 2 ---------------------------------
+
+
+org 0x1000                         ; This sector is loaded at 0x1000:0 by the bootsector
+
+cli                                ; just halt the system
+hlt
+</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>We went in alot of detail about disk reading and the BIOS Parameter Block (BPB). We even developed a simple demo that combined everything together.</p>
+<p>We also have taken a look at the different rings in assembly language, and learned that our OS is at Ring 0, which differenates it then most other programs. This allows us to use more special privedged instructions that application programs dont have.</p>
+<p>Now, we have everything we need to find and load our second stage loader! We will learn everything about FAT12, and load the second stage in the next tutorial. I cant wait! 😁 Until next time,</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T5.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

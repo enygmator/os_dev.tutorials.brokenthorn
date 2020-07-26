@@ -1,0 +1,304 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Kernel: Basic Concepts Part 2 | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Kernel: Basic Concepts Part 2 | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="kernel-basic-concepts-part-2">Kernel: Basic Concepts Part 2</h1>
+
+<p>Here's what's on the menu for today:</p>
+<ul>
+<li>Hardware Abstraction</li>
+<li>Kernel: A new perspective</li>
+<li>Kernel designs: Abstract: Primary Design Models</li>
+<li>Kernel designs: Abstract: Secondary Design Models</li>
+</ul>
+<p>This tutorial will cover the glue between the bootloader and beginning kernel design. This will be the glue that brings everything together for us to see what kernels really are, and to understand what we need to do.</p>
+<p>All the concepts listed here will be very important in the next few tutorials, as we will start designing and developing our Hardware Abstraction Layer (HAL) and our uber-1337 kernel. err ... wait, that's actually the next tutorial!!</p>
+<p>So, lets both lay back in our comfortable seats and take a look at another fun happy tutorial! Oh right, and this tutorial is not that big either, which is nice 😀</p>
+<p><strong>Note: This tutorial recommends that our readers have read through [Tutorial 2] (Fix link) before proceeding.</strong></p>
+<p><em>I plan on adding a section describing exokernels. They are a relatively new kernel design concept. I do not plan on implementing this design within this series, but feel our readers might be interested in the kernel design. Perhaps use the design in their own OS?</em></p>
+<h2 id="hardware-abstraction">Hardware Abstraction</h2>
+<p>Hardware Abstraction is very important. By now, you may know how complex hardware programming can be, and how very hardware dependent it is. This is where a <strong>Hardware Abstraction Layer (HAL)</strong> comes in.</p>
+<p>A HAL is a software abstraction layer used to provide an interface to the physical hardware. It is an abstraction layer. These abstractions provide a way to interact with devices, while not needing to know the details of a particular device or controller.</p>
+<p>Normally in modern OSs, the HAL is a basic <strong>Motherboard chipset driver</strong>. It provides a basic interface between the kernel and the hardware of the machine, including the processor. This is great, as the Kernel can interact with the HAL whenever it needs access to the hardware. This also means that the kernel can be completely hardware independent.</p>
+<p>This also allows us to think in terms of the device itself, rather then specific controllers or mappings. This helps make the kernel itself cleaner as well.</p>
+<p>Another great benefit comes from abstraction itself. If we decide to port our OS to a system with different hardware, all we need to do is develop a new HAL for it. This assumes that the HAL is designed very well to allow this.</p>
+<p>Most modern operating systems use a HAL in some way. We will also be developing a HAL to act as a motherboard chipset driver between the chipset hardware and the kernel. We will start developing on our HAL within the next tutorial, when we abstract the processor itself behind the HAL.</p>
+<h2 id="kernel-a-new-perspective">Kernel: A new perspective</h2>
+<p>A &quot;Kernel&quot; is the central component of a system. This system can be anything. The Kernel is the core of the system; it provides the very basic facilities for the management of efficient execution of the system.</p>
+<p>In an operating system, this all-so-powerful Kernel provides the most basic interface to the system hardware and resources. It also provides the most basic management facilities, such as processor management, I/O management, memory management, and process management. The Kernel can contain more, depending on the complexity of the system being developed.</p>
+<p>Okay...The previous list might sound familiar... hmm ..Where have we seen that before? We actually looked at each inside of [Tutorial 2]  (fix link).</p>
+<p>Lets look at this closer for better understanding.</p>
+<h3 id="kernel-putting-everything-together">Kernel: Putting everything together</h3>
+<h4 id="memory-management">Memory Management</h4>
+<p>Okay, then! Remember again from [Tutorial 2] (fix link). We have created a basic list of items regarding memory management and protection. Lets take another look at that again:</p>
+<p>Memory Management refers to:</p>
+<ul>
+<li>Dynamically giving and using memory to and from programs that request it.</li>
+<li>Implementing a form of Paging, or even Virtual Memory.</li>
+<li>Insuring the OS Kernel does not read or write to unknown or invalid memory.</li>
+<li>Watching and handling Memory Fragmentation.</li>
+</ul>
+<p>Memory Protection refers to:</p>
+<ul>
+<li>Accessing an invalid descriptor in protected mode (Or an invalid segment address)</li>
+<li>Overwriting the program itself.</li>
+<li>Overwriting a part or parts of another file in memory.</li>
+</ul>
+<p>Right about now, you should have a better understanding of everything within [Tutorial 2] (fix link).</p>
+<p>Remember that the Kernel, as it is running in ring 0, has direct control over every single byte in memory...Even if there is none. Also, remember that this is all running directly on physical memory. What happens if we run out of memory? What would happen if we write to nonexistent memory? What about memory locations used by hardware devices? This also does not touch the &quot;gaps&quot; that may be found throughout memory as well.</p>
+<p><strong>Warning: Writing random locations in physical memory may (Depending on where you write to) can cause malfunctions (Depending if a hardware device uses that area of memory), or completely make the system unbootable, and completely useless. (Depending if you write over the BIOS data area.) Never directly probe memory!</strong></p>
+<p>With all of this in mind, you should begin to see how important it is to properly manage physical memory.</p>
+<p>A Kernel that properly manages the physical memory can create a virtual interface between applications and memory. This can be done through separating <strong>User Space</strong> and <strong>Kernel Space</strong> code and data, and through <strong>Virtual Addressing.</strong></p>
+<p>Because of the many problems with directly running in physical memory, we can emulate a better method of memory. This memory emulation (Virtual Memory) can emulate a system with a lot more memory then physical RAM, where each application uses its own virtual memory address space.</p>
+<h4 id="processor-management">Processor Management</h4>
+<p>This is a new one. As you know, the BIOS ROM initializes and starts up the primary processor. It only starts a single core. If you are running your OS on a system with a multicore processor, or a system with multiple processors, you will need to start up the other processors and cores manually.</p>
+<p>Letting applications play with the different processors at any time can cause fatal system problems. Because of this, we should never allow applications the ability to do this.</p>
+<h4 id="io-device-management">I/O Device Management</h4>
+<p>Similar to physical memory, allowing applications direct access to controller ports and registers can cause the controller to malfunction, or system to crash. With this, depending on the complexity of the device, some devices can get surprisingly complex to program, and uses several different controllers. Because of this, providing a more abstract interface to manage the device is important. This interface is normally done by a <strong>Device Driver</strong> or <strong>Hardware Abstraction Layer</strong>. This allows us to think in terms of the device, rather then its details.</p>
+<p>Frequently, applications will require access to these devices. The Kernel must maintain the list of these devices by querying the system for them in some way. This can be done through the BIOS, or through one of the various system buses (Such as PCI/PCIE, or USB.) When an application requests an operation on a device (Such as, displaying a character), the kernel needs to send this request to the current active video driver. The video driver, in turn, needs to carry out this request. This is an example of <strong>Inter Process Communication (IPC).</strong></p>
+<h4 id="process-management">Process Management</h4>
+<p>This is the most important task of the Kernel, and any computer for that matter. The Kernel needs a way of allocating execution time, and executing and management of different applications and processes.</p>
+<p>This is where Program Management, and Multitasking comes in. These terms should sound familiar from <a href="/BrokenThorn%27s-OS-Tutorial/Intro-To-OS-Dev/T2:-Theory-&amp;-History-Of-OSes">Tutorial 2</a>. Lets take another look at that from tutorial 2:</p>
+<p><strong>Program Management is responsible for:</strong></p>
+<ul>
+<li>Insuring the program doesn't write over another program.</li>
+<li>Insuring the program does not corrupt system data.</li>
+<li>Handle requests from the program to complete a task (such as allocate or deallocate memory).</li>
+</ul>
+<p><strong>Multitasking refers to:</strong></p>
+<ul>
+<li>Switching and giving multiple programs a certain timeframe to execute.</li>
+<li>Providing a Task Manager to allow switching (Such as Windows Task Manager).</li>
+<li>TSS (Task State Segment) switching. Another new term!</li>
+<li>Executing multiple programs simultaneously.</li>
+</ul>
+<p>To execute an application, the Kernel must set up the applications own <strong>Virtual Address Space (VAS)</strong>, and load the file into the VAS. the Kernel then sets up the applications stack, and jumps to it to begin execution.</p>
+<p>Through Virtual Addressing, we can insure the application does not run into system memory problems.</p>
+<p>In a multitasking system, the Task Manager will allocate a certain amount of time to each process, and only execute them within that time frame. It will then switch between running applications. Because the time allocated is small, the Task Manager can switch between running process quickly, giving the illusion of multiple processes running simultaneously.</p>
+<p>This can either be done through hardware or software. The processor supports hardware task switching through the use of its <strong>Task State Segment (TSS)</strong> register.</p>
+<h4 id="the-system-api">The System API</h4>
+<p>By now, you should start being able to understand how everything fits together, and where a lot of the concepts from [Tutorial 2] (fix link OSDev2.html) starts to come in. Yet, there is one little detail that we have not covered yet.</p>
+<p>How does the application ask the Kernel for request to a device or system resource? We have seen methods on how the OS manages and control the application, but how does the application control the system?</p>
+<p>This is where the system <strong>Application Programming Interface (API)</strong> comes in. The System API is an API that applications may use to interact with the Kernel and other system software.</p>
+<p>There are a lot of methods for creating the System API. Most systems support System API routines through interrupts. For an example, The Linux Kernel System API primarily uses interrupt number 0x80 for system routines.</p>
+<p>Wow, that is a lot of stuff, huh? Don't worry if you don't understand this yet. Everything will be clear soon enough 😀</p>
+<h2 id="kernel-designs---abstract-primary-design-models">Kernel Designs - Abstract: Primary Design Models</h2>
+<p>By now, you may start realizing how important Kernels are, and where they fit in.</p>
+<p>There has been a lot of operating systems that have been developed using a lot of different designs and setups. A lot of these designs have some similar basic concepts.</p>
+<p>There are a lot of different ways to construct kernels. We will look some of the more used designs here.</p>
+<h3 id="monolithic-kernel-design">Monolithic kernel Design</h3>
+<p><img src="../../resources/images/Monolithic.jpg" alt="Monolithic kernel Design">
+<em>In a Monolithic Kernel, all system process run as part of the Kernel at Ring 0</em></p>
+<p>Lets first look at the term &quot;Monolithic&quot;. The first part--&quot;Mono&quot; means &quot;one&quot;. The second part--&quot;lithic&quot; means &quot;it is of or like stone&quot;.</p>
+<p>In a Monolithic kernel, the entire Kernel executes in Kernel space at Ring 0. It provides a higher level interface over computer resources and hardware. It also provides a basic set of system calls via the System API.</p>
+<p><strong>In a monolithic kernel, most (if not all) Kernel services are part of the kernel, itself.</strong> This does not mean that the services cannot be independent of each other. However, the software is very tightly integrated to the rest of the kernel. This makes monolithic kernels very fast and efficient, compared to other designs.</p>
+<p>Because all OS services run in kernel space as part of the kernel (or as an extension to the kernel), if there is a problem with a device driver or a system service program, it can cause the entire system to crash.</p>
+<p>When an application requests a system service, it executes a system call through the System API.</p>
+<h4 id="examples-of-monolithic-kernels">Examples of Monolithic kernels</h4>
+<p>Several large scale operating systems use a hybrid kernel, including but not limited to:</p>
+<ul>
+<li>Unix-like kernels
+<ul>
+<li>Linux</li>
+<li>Syllable</li>
+<li>Unix kernels
+<ul>
+<li>BSD
+<ul>
+<li>FreeBSD</li>
+<li>NetBSD</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Solaris</li>
+<li>AI</li>
+</ul>
+</li>
+<li>DOS
+<ul>
+<li>DR-DOS</li>
+<li>MS-DOS
+<ul>
+<li>Microsoft Windows 9x series (95, 98, Windows 98SE, Me)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Mac OS kernel, up to Mac OS 8.6</li>
+<li>OpenVMS</li>
+<li>XTS-400</li>
+</ul>
+<h3 id="microkernel-design">Microkernel Design</h3>
+<p><img src="../../resources/images/Microkernel.jpg" alt="Microkernel Design">
+<em>In a Microkernel design, the Kernel only provides basic functionality needed for user mode system services.</em></p>
+<p>A Microkernel is a kernel design that provides no OS services at all, only the mechanisms needed to implement those services. Because of this, the Kernel itself is usually quite small compared to Monolithic kernels. For example, a microkernel may implement low level memory management and thread management, and Inter Process Communication (IPC).</p>
+<p>The above image displays a microkernel. Notice the kernel only implements the very basics of basics. In this case, it implements basic process management and scheduling, Inter Process Communication (IPC), and basic virtual memory management.</p>
+<p><strong>The Kernel would use external user mode services, such as Device Drivers and Filesystems, rather then everything implemented as part of the kernel (As with Monolithic kernels.)</strong> Because of this, if an external service crashes, the system may still be functional, and the system will not crash.</p>
+<p>Inter Process Communication (IPC) and understanding Servers and Device Drivers is important in understanding how Microkernels work.</p>
+<h4 id="microkernel-servers">Microkernel Servers</h4>
+<p>Microkernel &quot;Servers&quot; are external programs that is granted special privileges by the kernel that normal programs do not have. These &quot;privileges&quot; may be direct access to hardware, or even physical memory. This allows server programs to interact directly with the hardware devices they are controlling. Wait...It sounds like a device driver, doesn't it? Yep 😀 That's basically what they are.</p>
+<p>Remember that microkernels are very minimal. They rely on external programs - servers - to help out.</p>
+<p>Servers needed by the kernel itself is normally loaded into memory before the kernel is executed. An example that will be needed is a file system server, that will contain the code for parsing the filesystem. Because the Kernel has no filesystem code, it has no way of loading the filesystem server! Because of this, it needs to be loaded <strong>before</strong> the kernel is executed.</p>
+<p>How can we do this? There are several ways. One method is loading a complete RAM image containing both the kernel and supported severs in it. Another method is simply loading the necessary servers at startup within the bootloader, and in someway giving the server information to the kernel upon executing. In both cases, the bootloader can determine what filesystem loading code to use, however the code can interact with the filesystem server without ever needing to load it in the first place! Cool, huh?</p>
+<p><strong><em>Note: A &quot;server&quot; may also be called a &quot;daemon&quot;.</em></strong></p>
+<h4 id="inter-process-communication-ipc">Inter Process Communication (IPC)</h4>
+<p>IPC is very important in microkernels. It allows separate processes to communicate with each other, usually by sending messages, but it can also be invoked by using shared memory.</p>
+<p>There are a lot of ways a process can &quot;signal&quot; another process. With regards to microkernel severs, the most commonly used is also one of the easiest to understand - message passing.</p>
+<p>IPC allows the servers and kernel to interact with each other.</p>
+<p><strong>Synchronous IPC</strong>: In <strong>Synchronous IPC</strong>, The process sending the message is suspended until the other process responds. If the other process is busy, the message is stored in a queue for that process to act upon when ready.</p>
+<p><strong>Asynchronous IPC</strong>: Similar to <strong>Synchronous IPC</strong>, however both processes continue executing. That is, the process is not suspended.</p>
+<h2 id="kernel-designs---abstract-secondary-design-models">Kernel Designs - Abstract: Secondary Design Models</h2>
+<p>Remember that there are countless of ways that kernels may be designed. The following are common design models that are based off of the primary design models (Monolithic and Microkernels).</p>
+<h3 id="hybrid-kernels">Hybrid kernels</h3>
+<p><img src="../../resources/images/Hybrid.jpg" alt="Hybrid kernels">
+<em>Hybrid kernels are Microkernels with aspects from Monolithic kernels</em></p>
+<p>A Hybrid kernel is a kernel combining aspects from both Monolithic and Microkernel designs.</p>
+<p>Hybrid kernels usually has a structure similar to microkernels, but implemented as a monolithic kernel. Lets look at this another way for better understanding.</p>
+<p><strong>Hybrid Kernels, similar to microkernels, use separate sever programs for filesystems, device drivers, etc. However, like Monolithic Kernels, these severs execute as part of the Kernel, instead of user space.</strong></p>
+<p>There are some controversy on what the term &quot;Hybrid Kernel&quot; applies to. It may be called a &quot;Microkernel&quot;, &quot;Macrokernel&quot;, or &quot;modified microkernel or modified macrokernel&quot;. Hybrid kernels are not in their own design; they are just modified Microkernels with some aspects from monolithic kernels. Do to this, there are some controversy on what to consider hybrid kernels.</p>
+<p>Microsoft's NT Architecture uses a hybrid approach to their kernel design model. Microsoft describes their kernel as a &quot;Modified microkernel&quot;.</p>
+<h4 id="examples-of-hybrid-kernels">Examples of Hybrid kernels</h4>
+<p>Several large scale operating systems use a hybrid kernel, including but not limited to:</p>
+<ul>
+<li>BeOS Kernel
+<ul>
+<li>Haiku Kernel</li>
+</ul>
+</li>
+<li>BSD
+<ul>
+<li>DragonFly BSD Kernel</li>
+<li>XNU Kernel</li>
+</ul>
+</li>
+<li>NetWare Kernel</li>
+<li>Plan 9 Kernel
+<ul>
+<li>Inferno Kernel</li>
+</ul>
+</li>
+<li>Windows (NT,2000,2003,XP,Vista) NT Kernel
+<ul>
+<li>ReactOS Kernel</li>
+</ul>
+</li>
+</ul>
+<h3 id="nanokernel">Nanokernel</h3>
+<p>Nanokernels, also known as <strong>Picokernels</strong>, are a very small kernel. Normally, this would be a minimal microkernel structure. As the kernel itself is very small, it must rely on other software and drivers for the basic resources within the system.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>We will be developing a modified microkernel in this series. This will allow our readers to gain some experience and understanding in both monolithic and microkernel designs, as well as mixing the approaches into a Hybrid Microkernel. In fact, our kernel will look similar to that is displayed in this tutorial. We will touch upon the full design of our kernel within the next tutorial, along with developing the basic building blocks for our HAL to abstract processor dependencies using C++.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T13.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1310 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Floppy Disk Controller (FDC) Programming | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Floppy Disk Controller (FDC) Programming | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="floppy-disk-controller-fdc-programming">Floppy Disk Controller (FDC) Programming</h1>
+
+<p><img src="../../resources/images/Intel-D8272A.jpg" alt="8272A Floppy Disk Controller"><br>
+8272A Floppy Disk Controller</p>
+<p>Yey! Its finally time to work with the floppy drive! This chapter covers almost everything there is to know about the floppy drive and programming the floppy disk!</p>
+<p>Here is what is on the menu for this chapter:</p>
+<ul>
+<li>FDC and FDD History</li>
+<li>Disk Layout</li>
+<li>CHS, LBA</li>
+<li>FDD Structure</li>
+<li>FDC Hardware</li>
+<li>Interfacing with the FDC</li>
+<li>FDC registers and commands</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The <strong>Floppy Disk Controller (FDC)</strong> is the controller that interfaces with the <strong>Floppy Disk Drive (FDD)</strong>. The PC useually uses a form of the <strong>NEC ?PD765 FDC</strong>. PS/2 useally uses a form of the <strong>Intel 82077A</strong> while the AT useally uses a form of the <strong>Intel 82072A</strong> microcontroller.</p>
+<p>The <strong>Floppy disk drive (FDD)</strong> is a device that is capable of reading and writing data to a <strong>floppy disk</strong>.</p>
+<p>In 1971, David L. Noble, hired by Alan Shugart, who was the IBM Direct Access Storage Product Manager, tried to develop a new storage tape format for their System/370 mainframes. IBM was looking to create something that is smaller and faster then tape drives when reloading the microcode for their <strong>Initial Control Program Load (ICPL)</strong>. Nobles team worked on a product under the code name &quot;Minnow&quot; called a &quot;memory disk&quot;. It was a read only, 8 inch diskette, having the capacity of 80 kilobytes. It was commercially released in 1971 and shipped with all System/370 mainframes.</p>
+<p>When Alan Shugart left IBM and moved to Memorex, his team shipped the Memorex 650 in 1972, the first read/write floppy disk drive.</p>
+<p>Floppy disks were invented by IBM in 8 inch, 5 and 1/4 inch and 3 1/2 inch formats.</p>
+<h2 id="disk-structure">Disk Structure</h2>
+<h3 id="physical-layout">Physical Layout</h3>
+<p>Understanding the disk structure is important. Here is the layout of a floppy disk:</p>
+<p><img src="../../resources/images/flpy.png" alt="Physical Layout of floppy disk"></p>
+<p>This is the physical layout of a generic 3-1/2&quot; floppy disk. Here, we are looking at Head 1 (The front side), and the Sector represents 512 bytes. A Track is a collection of sectors.</p>
+<p><strong>Note: Remember that 1 sector is 512 bytes, and there are 18 sectors per track on floppy disks.</strong></p>
+<p>Looking at the above picture, remember:</p>
+<ul>
+<li>Each Track is useually divided into 512 byte sectors. On floppies, there are 18 sectors per track.</li>
+<li>A Cylinder is a group of tracks with the same radius (The Red tracks in the picture above are one cylinder)</li>
+<li>Floppy Disks have two heads (Displayed in the picture)</li>
+<li>There is 2880 Sectors total.</li>
+</ul>
+<p>To better understand everything, we should have a look at <strong>CHS</strong>. Lets take a look at that next!</p>
+<h3 id="cylinder--head--sector-chs">Cylinder / Head / Sector (CHS)</h3>
+<h4 id="sectors">Sectors</h4>
+<p>A &quot;Sector&quot; simply represents a goupe of 512 bytes. So, Sector 1 represents the first 512 bytes of a disk.</p>
+<h4 id="head">Head</h4>
+<p>A &quot;Head&quot; (or Face) represents the side of the disk. Head 0 is the front side, Head 1 is the back side. Most disks only have 1 side, hence only 1 head (&quot;Head 1&quot;)</p>
+<h4 id="track">Track</h4>
+<p>A track is one ring around the disk. In the case of floppy disks, 18 sectors span a single track.</p>
+<p>The <strong>Cylinder number represents a track number on a single disk</strong>. In the case of a floppy disk, It represents the Track to read from.</p>
+<p><strong>There is 18 sectors per track. 80 tracks per side.</strong></p>
+<h4 id="understanding-chs">Understanding CHS</h4>
+<p>The floppy disk addresses using CHS format. In order to read or write from any location on disk, we must tell the FDC to move the <strong>Read/Write Head</strong> to the exact track, cylinder, and sector on the disk to read or write to.</p>
+<h4 id="linear-block-addressing-lba">Linear Block Addressing (LBA)</h4>
+<p>We can also provide a more abstract way of reading and writing to disks using <strong>Linear Block Addressing (LBA)</strong> instead. LBA allows us to be able to read or write to any sector on disk from sector 0-2880.</p>
+<h2 id="floppy-interfacing">Floppy Interfacing</h2>
+<p>Software interfaces with the floppy disk drive by controlling it through a floppy disk controller. Do to differences in floppy disk controllers, I would like to focus on the original 8272A Floppy Disk Controller. The image at the beginning of this chapter shows a typical 8272A Integrated Circuit (IC) controller. This is the IC that we will look at here.</p>
+<h3 id="detail-82072a-floppy-microcontroller">Detail: 82072A Floppy Microcontroller</h3>
+<p>The 8272A IC has 40 pins. Lets take a look at it here. While we will take a brief look at all 40 pins, we will not look at it in full detail here as that is when we cross into the electronics field.</p>
+<p><img src="../../resources/images/8272a.jpg" alt="82072A Floppy Microcontroller pins"></p>
+<p>Most of these pins are not very useful for programming the controller. Other pins are more important to understand, however. Lets take a look. For completness sake, we will look at all of the pins brefily. You will see that the FDC indirectly communicates with both the <strong>Programmable Interrupt Controller (PIC)</strong>, the system bus, as well as the <strong>Direct Memory Access</strong> controller.</p>
+<ul>
+<li><strong>RESET Pin</strong> - places the FDC in an idle state. It drives all output lines low. The <strong>Vcc</strong> pin is a +5 V power input.</li>
+<li><strong>GND Pin</strong> - is the ground pin.</li>
+<li><strong>CLK Pin</strong> - typical Single Phase 8 MHz Squarewave clock signal.</li>
+<li><strong>RD Pin</strong> - tells the FDC that the current operating is a read operation.</li>
+<li><strong>WR Pin</strong> - is simular, but for a write operation.
+<ul>
+<li>These are set by the <strong>Control Bus</strong> in an <strong>I/O read/write</strong> operation by software.</li>
+</ul>
+</li>
+<li><strong>CS Pin</strong> - Chip Select</li>
+<li><strong>DB0 - DB7 Pins</strong> - bidirectional 8 bit data bus. It connects indirectly to the systems primary <strong>Data Bus</strong>.</li>
+<li><strong>A0 Pin</strong> - <strong>Data/Status Register Select</strong> pin. If it is high (1), it tells the FDC to place the contents in its <strong>Data Register</strong> to the data bus. If the line is low (0), it copies the contents of the <strong>Status Register</strong> to the data bus. This is done through the output data bus pins DB0 - DB7, which in turn is through the systems data bus which can be read by software.</li>
+<li><strong>DRQ Pin</strong> - <strong>Data Direct Memory Access (DMA) Request</strong> pin. <strong>If this line is high (1), the FDC is making a DMA request.</strong></li>
+<li><strong>DACK Pin</strong> - <strong>DMA Acknowledge</strong> pin. When the controller is performing a DMA transfer, this line will be low (0).</li>
+<li><strong>TC Pin</strong> - When the DMA transfer is completed, the FDC sets the <strong>Terminal Count</strong> pin, TC to high (1).</li>
+<li><strong>IDX Pin</strong> - high when the FDC is at the beginning of a disk track.</li>
+<li><strong>INT Pin</strong> - is high (1) when the FDC sends an <strong>Interrupt Request (IR)</strong>. This line is indirecty connected to the <strong>IR6</strong> on the <strong>Programmable Interrupt Controller (PIC)</strong>.</li>
+<li><strong>RW/Seek Pin</strong> - Sets seek mode of read/write mode. 1: Seek mode, 0: Read/Write mode.</li>
+<li><strong>LCT/DIR Pin</strong> - <strong>Low current/Direction</strong> pin.</li>
+<li><strong>FR/STP Pin</strong> - <strong>Fault reset/Step</strong> pin.</li>
+<li><strong>HDL Pin</strong> - <strong>Head Load</strong> pin.Command causes the Read/Write head in the FDD to contact the diskette</li>
+<li><strong>RDY Pin</strong> - <strong>Ready</strong> pin. Indicates that the FDD is ready to send or recieve data</li>
+<li><strong>WP/TS Pin</strong> - <strong>Write protect/Two side</strong> pin. In Read/Write mode, set high if media is write protected. If seek mode, set high if media is two sided.</li>
+<li><strong>FLT/TRK0 Pin</strong> - <strong>Fault/Track 0</strong> pin. In Read/Write mode, set high on a detected FDD fault.</li>
+<li><strong>PS0 - PS2 Pins</strong> - <strong>Precompensation (Pre-shift)</strong> pins. Write precompensation status during <strong>MFM</strong> mode.</li>
+<li><strong>WR DATA Pin</strong> - Write data pin</li>
+<li><strong>RD DATA Pin</strong> - Read data pin</li>
+<li><strong>DS0 - DS1 Pins</strong> - Drive select pins</li>
+<li><strong>HDSEL Pin</strong> - <strong>Head Select Pin.</strong> When high (1), the FDC sets the FDD to access Head 1. When low, it is head 0.</li>
+<li><strong>MFM Pin</strong> - When high, FDC is in <strong>MFM</strong> mode. If low (0), it operates in <strong>FM</strong> mode.</li>
+<li><strong>WE Pin</strong> - <strong>Write enable pin.</strong></li>
+<li><strong>VCO Pin</strong> - <strong>VCO Sync pin.</strong> When 0, inhibits <strong>VCO</strong> in <strong>PLL</strong>. When 1, enables <strong>VCO</strong>.</li>
+<li><strong>DW Pin</strong> - Data Window pin. Generated by PLL, used for sample data from the FDD.</li>
+<li><strong>WR CLK Pin</strong> - Write Clock</li>
+</ul>
+<p>The FDC can operate with or without a <strong>Direct Memory Access (DMA) controller</strong>. If it is operating in a non DMA mode, it will generate <strong>IRQ 6</strong> for every transfer of a data byte between the processor and the FDC. In DMA mode, the processor will load a command into the FDC and all data transfers will occur under control of the FDC and DMA controllers.</p>
+<p>This is important! You do not need to know all of the FDC pins. Rather, just remember that the <strong>FDC communicates with three primary controllers.</strong> The first is one of possibly four <strong>Floppy Disk Drives (FDD)</strong> internal controllers, the <strong>programmable interrupt controller (PIC)</strong>, and the <strong>Direct Memory Access (DMA) controller</strong>. Software communicates with the FDC by the processors standard <strong>IN/OUT</strong> port i/o instructions.</p>
+<p>Several registers in the FDC are mapped into the processors i/o address space. As with standard I/O port reads, during an in and out operation, the processor sets the READ or WRITE line on the control bus, and the port address on the address bus. This is done on the <strong>system bus</strong> or the <strong>Industry Standard Architecture (ISA)</strong> bus.</p>
+<p>On newer hardware, the FDC is not directly connected to the ISA bus, but is rather integrated as a Super I/O IC and communicates with the processor through the Super I/O's <strong>Low Pin Count</strong> bus.</p>
+<p>Okay! We know how the software can communicate with the FDC. Where does the PIC and DMA come into play?</p>
+<p>Looking at the pin listing above, we can see that the FDC has a pin called <strong>INT</strong>. This line is indirectly connected to the <strong>Programmable Interrupt Controller IR 6</strong> line. The FDC will pull this line high (1) whenever a byte of data is ready to be read or written. This also pulls the PIC IR 6 line high. From here, the PIC takes control. It masks out the other lines and determins if it can be services. It notifies the processor of an interrupt by activating the processors <strong>Interrupt Acknowledge (INTA)</strong> pin. After the processor verifies that it is safe to service the interrupt, it resets the INTA line to ackowledge the PIC to proceed. The PIC places the interrupt vector that this IRQ is mapped to use (set up during initializing the PIC). The processor takes the IRQ, gets its address from the idtr, and voila - our interrupt is called.</p>
+<p>The FDC can also be programmed to operate in DMA mode. The DMA is a controller that we have not looked at yet. Because of this, I do not want to get too involved with it. However we may go over it in the next chapter for completness. <strong>The FDC is connected to DMA channel 2</strong>.</p>
+<p><img src="../../resources/images/Fdcinpc.jpg" alt="inter-connections of devices on the motherboard"></p>
+<p>Thats all there is to it for the FDC hardware. <strong>Their can be multiple FDCs inside of a computer system. Each FDC can connect up to 4 Floppy Disk Drives (FDDs). This is important!</strong> Alot of times when communicating with a FDC, you have to select which FDD that the request is for.</p>
+<h3 id="floppy-interface-cable">Floppy Interface Cable</h3>
+<p>The FDC communicates with a FDD through a <strong>Floppy Interface Cable</strong>, which is a form of a <strong>Parallel ATA (PATA)</strong> cable also known as an <strong>Integrated Drive Electronics (IDE)</strong> cable which evolved from <strong>Western Digital</strong>.</p>
+<p><img src="../../resources/images/fddcable.jpg" alt="Storage Interface Cable"></p>
+<p>You should notice a twist in the above cable. That will be described a little shortley. This cable has 40 pins. Through these 40 pins, the FDC can talk to different FDD's that are connected to the cable.</p>
+<p>Some registers that are used to communicate with the FDC allow you to detect the input pins of the controller and the cable. Because of this, we should probably at least take a small glance at the 40 lines of the cable.</p>
+<h4 id="floppy-interface-cable-pins">Floppy Interface Cable Pins</h4>
+<table>
+<thead>
+<tr>
+<th>Pin</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Reset</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Ground</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Data pin 7</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Data pin 8</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Data pin 6</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Data pin 9</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Data pin 5</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Data pin 10</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Data pin 4</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Data pin 11</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Data pin 3</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Data pin 12</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Data pin 2</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Data pin 13</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Data pin 1</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Data pin 14</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Data pin 0</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Data pin 15</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Ground</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Key or Vcc_in</td>
+</tr>
+<tr>
+<td>20</td>
+<td>DDRQ</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Ground</td>
+</tr>
+<tr>
+<td>22</td>
+<td>I/O Write</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Ground</td>
+</tr>
+<tr>
+<td>24</td>
+<td>I/O Read</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Ground</td>
+</tr>
+<tr>
+<td>26</td>
+<td>IOCHRDY</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Cable Select (CS)</td>
+</tr>
+<tr>
+<td>28</td>
+<td>DDACK</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Ground</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Interrupt</td>
+</tr>
+<tr>
+<td>31</td>
+<td>(No connection)</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Address 1</td>
+</tr>
+<tr>
+<td>33</td>
+<td>GPIO_DMA66_Detect</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Address 0</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Address 2</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Chip Select 1</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Chip Select 3</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Activity</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Ground</td>
+</tr>
+</tbody>
+</table>
+<p>More to be added later.</p>
+<h2 id="fdc-programming">FDC Programming</h2>
+<h3 id="fdc-operating-modes">FDC Operating Modes</h3>
+<p>Most FDC's these days are more advanced then the original 8272 microcontroller. To acheive backward compatability, newer FDC's add additional pins to the controller and allow different registers to be communicated with when operating in a specific mode. For example, the <strong>Status Register A</strong> mode is only accesable when the controller is running in <strong>PC-AT</strong> mode. Upon controller reset, the controller operates in the default <strong>82077A</strong> mode.</p>
+<h3 id="waiting-for-an-irq">Waiting for an IRQ</h3>
+<p>Remember that the FDC uses IRQ 6? The FDC will send a byte after the completion of a read or write command, or, depending on its mode, for every byte transferred. It will also send an IRQ when the controller is reset during initialization.</p>
+<p>For our purposes, we will be operating the FDC in a DMA mode. Basically what this means is that we will only be getting an interrupt whenever a read, write, seek, or calibrate command completes as well as during initialization.</p>
+<p>In all cases, however, this means that we will need to wait for an IRQ to fire so we know the command completes. A way for us to do this is to have the IRQ set a global when it fires, and provide an irq_wait like function that waits for the IRQ, and resets the global when it fires.</p>
+<p>Lets do that now. First the IRQ:</p>
+<pre><code class="lang-c">const int FLOPPY_IRQ = 6;
+
+//! set when IRQ fires
+static volatile uint8_t _FloppyDiskIRQ = 0;
+
+void _cdecl i86_flpy_irq () {
+
+    _asm   add esp, 12
+    _asm   pushad
+    _asm   cli
+
+    //! irq fired
+    _FloppyDiskIRQ = 1;
+
+    //! tell hal we are done
+    interruptdone( FLOPPY_IRQ );
+
+    _asm   sti
+    _asm   popad
+    _asm   iretd
+}
+</code></pre>
+<p>This looks as simple as the IRQ in the PIT, doesnt it? 😀 Oh, right, and now we wait:</p>
+<pre><code class="lang-c">//! wait for irq to fire
+inline void flpydsk_wait_irq () {
+
+    //! wait for irq to fire
+    while ( _FloppyDiskIRQ == 0)
+        ;
+    _FloppyDiskIRQ = 0;
+}
+</code></pre>
+<p>Simple enough. So, assuming we send a command, like a read or write command, just call <strong>flpydsk_wait_irq()</strong>. When it completes, you know the command finished and its safe to continue. Cool, huh? 😉</p>
+<h3 id="dma">DMA</h3>
+<p>What? We are programming the FDC in DMA mode? But we have not covered the DMA yet! Yes, yes indeed this poses a problem.</p>
+<p>I was originally going to program the FDC in Non-DMA mode. However, while this might work in some cases, alot of emulators and even some hardware do not support it anymore. Because of this, to retain portability, I decided that the best bet is to stick with using the DMA (<strong>Direct Memory Access Controller [DMAC])</strong>.</p>
+<p>However, because we have not covered the DMA yet in detail, we run into a problem. I figure, rather then throwing a whole DMA interface to you without explination, we can just hack together three basic DMA routines and rewrite them more throughley later 😉</p>
+<p><strong>flpydsk_initialize_dma</strong> basically creates a buffer for the DMA to use at physical address 0x1000 - 0x10000 (64k). When we read a sector from disk, the DMA will put the sector data to this location so please be sure that nothing is there as it will be overwritten. You can choose another location if you like, however there are some rules:</p>
+<ul>
+<li>The buffer cannot cross 64k boundaries. It should stay at a 64k boundery for best performance</li>
+<li>The area of memory it writes to must be idenitity mapped or its frame address mapped to a page. The DMA <strong>always</strong> works with physical memory</li>
+</ul>
+<p>The demo uses 0x1000 + 64k for the buffer so you should keep it there if you dont feel confortable changing it.</p>
+<p><strong>dma_read</strong> and <strong>dma_write</strong> just tells the DMA to start reading or writing the data that the FDC sends it. This will be the sector that we tell the FDC to read or write. For example, if we tell the FDC to read a sector, it will give the sector data to the DMA to be placed in the buffer that we set it to (which is at 0x1000). Cool, huh?</p>
+<pre><code class="lang-c">//! initialize DMA to use phys addr 1k-64k
+void flpydsk_initialize_dma () {
+
+    outportb (0x0a,0x06);    //mask dma channel 2
+    outportb (0xd8,0xff);    //reset master flip-flop
+    outportb (0x04, 0);      //address=0x1000
+    outportb (0x04, 0x10);
+    outportb (0xd8, 0xff);   //reset master flip-flop
+    outportb (0x05, 0xff);   //count to 0x23ff (number of bytes in a 3.5&quot; floppy disk track)
+    outportb (0x05, 0x23);
+    outportb (0x80, 0);      //external page register = 0
+    outportb (0x0a, 0x02);   //unmask dma channel 2
+}
+
+//! prepare the DMA for read transfer
+void flpydsk_dma_read () {
+
+    outportb (0x0a, 0x06);  //mask dma channel 2
+    outportb (0x0b, 0x56);  //single transfer, address increment, autoinit, read, channel 2
+    outportb (0x0a, 0x02);  //unmask dma channel 2
+}
+
+//! prepare the DMA for write transfer
+void flpydsk_dma_write () {
+
+    outportb (0x0a, 0x06);  //mask dma channel 2
+    outportb (0x0b, 0x5a);  //single transfer, address increment, autoinit, write, channel 2
+    outportb (0x0a, 0x02);  //unmask dma channel 2
+}
+</code></pre>
+<p>If you dont understand the above code, dont worry. Everything reguarding the DMA will be rewritten and explained in the next tutorial when we cover the DMA in more detail.</p>
+<h3 id="fdc-port-mapping">FDC Port mapping</h3>
+<p>The FDC has four external registers that are mapped into the i86 I/O address space. These can be accessed by software through standard I/O instructions. I <strong>bolded</strong> these registers.</p>
+<p>Some systems may provide more external registers to their FDC's then the primary four.</p>
+<p>The second FDC is typically mapped to I/O ports 0x370 - 0x377.</p>
+<p>Because there are two sets of ports for two different FDC's, this table will include both port sets.</p>
+<h4 id="floppy-disk-controller-ports">Floppy Disk Controller Ports</h4>
+<h5 id="primary-fdc-registers">Primary FDC Registers</h5>
+<table>
+<thead>
+<tr>
+<th>Port (FDC 0)</th>
+<th>Port (FDC 1)</th>
+<th>Read/Write</th>
+<th>Descripton</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x3F2</td>
+<td>0x372</td>
+<td>Write Only</td>
+<td>Digital Output Register (DOR)</td>
+</tr>
+<tr>
+<td>0x3F4</td>
+<td>0x374</td>
+<td>Read Only</td>
+<td>Main Status Register (MSR)</td>
+</tr>
+<tr>
+<td>0x3F5</td>
+<td>0x375</td>
+<td>Read / Write</td>
+<td>Data Register</td>
+</tr>
+<tr>
+<td>0x3F7</td>
+<td>0x377</td>
+<td>Read Only</td>
+<td>AT only. Configuation Control Register (CCR)</td>
+</tr>
+<tr>
+<td>0x3F7</td>
+<td>0x377</td>
+<td>Write Only</td>
+<td>AT only. Digital Input Register (DIR)</td>
+</tr>
+</tbody>
+</table>
+<h5 id="other-fdc-registers">Other FDC Registers</h5>
+<table>
+<thead>
+<tr>
+<th>Port (FDC 0)</th>
+<th>Port (FDC 1)</th>
+<th>Read/Write</th>
+<th>Descripton</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x3F0</td>
+<td>0x370</td>
+<td>Read Only</td>
+<td>PS/2 only. Status Register A (SRA)</td>
+</tr>
+<tr>
+<td>0x3F1</td>
+<td>0x371</td>
+<td>Read Only</td>
+<td>PS/2 only. Status Register B (SRB)</td>
+</tr>
+<tr>
+<td>0x3F4</td>
+<td>0x374</td>
+<td>Write Only</td>
+<td>PS/2 only. Data Rate Select Register (DSR)</td>
+</tr>
+</tbody>
+</table>
+<p>We will take a look at the registers closer - bit by bit - in the next section. Well, the important ones anyways. I may decide to update this chapter covering the other registers for completness purposes, though. For now, we will only focus on the first four registers shown above.</p>
+<p><strong>Remember that all of this code is in the demo at the end of this chapter</strong>.</p>
+<pre><code class="lang-c">enum FLPYDSK_IO {
+
+    FLPYDSK_DOR        =    0x3f2,
+    FLPYDSK_MSR        =    0x3f4,
+    FLPYDSK_FIFO       =    0x3f5,    //data register
+    FLPYDSK_CTRL       =    0x3f7
+};
+</code></pre>
+<h3 id="registers">Registers</h3>
+<h4 id="status-register-a-sra-ps2-mode-only">Status Register A (SRA) (PS2 Mode Only)</h4>
+<p><strong>You do not need to know this register. It is here for completness only.</strong></p>
+<p>This is a read only register that monitors the state of several interface pins on the controller. It is not accessable when the controller is in PC-AT Mode. This is a read only register.</p>
+<p>The exact format of this register may depend on the model of the controller.</p>
+<ul>
+<li><strong>Bit 0</strong> DIR</li>
+<li><strong>Bit 1</strong> WP</li>
+<li><strong>Bit 2</strong> INDX</li>
+<li><strong>Bit 3</strong> HDSEL</li>
+<li><strong>Bit 4</strong> TRKO</li>
+<li><strong>Bit 5</strong> STEP Flip/Flop</li>
+<li><strong>Bit 6</strong> DRV2</li>
+<li><strong>Bit 7</strong> INTERRUPT line state (interrupt pending)</li>
+</ul>
+<p><strong>Warning: These bits can change between controller models.</strong></p>
+<p>Do not worry if this register seems complex; it can be without experience in electronics. It is here for completeness only and will not be used in the series.</p>
+<h4 id="status-register-b-srb-ps2-mode-only">Status Register B (SRB) (PS/2 Mode Only)</h4>
+<p><strong>You do not need to know this register. It is here for completness only.</strong></p>
+<p>Simular to the above register, this allows us to monitor the state of several lines of the FDC. It is not accessable when the FDC is in PC-AT Mode. This is a read only register.</p>
+<ul>
+<li><strong>Bit 0</strong> MOT EN0 (Motor Enable 0)</li>
+<li><strong>Bit 1</strong> MOT EN1 (Motor Enable 1)</li>
+<li><strong>Bit 2</strong> WE Flip/Flop</li>
+<li><strong>Bit 3</strong> Read Data (RDDATA) Flip/Flop</li>
+<li><strong>Bit 4</strong> Write Data (WRDATA) Flip/Flop</li>
+<li><strong>Bit 5</strong> Drive Select 0</li>
+<li><strong>Bit 6</strong> Undefined; Always 1</li>
+<li><strong>Bit 7</strong> Undefined; Always 1</li>
+</ul>
+<p><strong>Warning: These bits can change between controller models.</strong></p>
+<p>Do not worry if this register seems complex; it can be without experience in electronics. It is here for completeness only and will not be used in the series.</p>
+<h4 id="data-rate-select-register-dsr">Data Rate Select Register (DSR)</h4>
+<p><strong>You do not need to know this register. It is here for completness only.</strong></p>
+<p>This is a write only register that allow you to change the timings of the drive control signals. It is used by writing to I/O port 0x3f4 (FDC 0) or 0x374 (FDC 1).</p>
+<p>This is an 8 bit register. It has the following format:</p>
+<ul>
+<li><strong>Bit 0</strong> DRATE SEL0</li>
+<li><strong>Bit 1</strong> DRATE SEL1</li>
+<li><strong>Bit 2</strong> PRE-COMP 0</li>
+<li><strong>Bit 3</strong> PRE-COMP 1</li>
+<li><strong>Bit 4</strong> PRE-COMP 2</li>
+<li><strong>Bit 5</strong> Must be 0</li>
+<li><strong>Bit 6</strong> POWER DOWN: Deactivates internal clocks and shuts off the internal oscillator</li>
+<li><strong>Bit 7</strong> S/W RESET: Reset the internal oscillator</li>
+</ul>
+<p><strong>PRE-COMP 0 - PRE-COMP 2</strong> are a little complex. These adjusts the <strong>WRDATA</strong> output pins for the <strong>bit shifting</strong> that can occur on magnetic media, such as floppy drives. To adjust the precompensation delay, we can set these bits to one of the following:</p>
+<ul>
+<li><strong>000</strong> Default (250-500 Kbps, 125 ns. 1 Mbps, 41.67 ns)</li>
+<li><strong>110</strong> 250 ns</li>
+<li><strong>101</strong> 208.33 ns</li>
+<li><strong>100</strong> 166.67 ns</li>
+<li><strong>011</strong> 125 ns</li>
+<li><strong>010</strong> 83.34 ns</li>
+<li><strong>001</strong> 41.67 ns</li>
+<li><strong>111</strong> Disabled</li>
+</ul>
+<p><strong>DRATE SEL0 - DERATE SEL 1</strong> are used to set the data rate. Valid values are shown below.</p>
+<ul>
+<li><strong>00</strong> 500 Kbps</li>
+<li><strong>10</strong> 250 Kbps</li>
+<li><strong>01</strong> 300 Kbps</li>
+<li><strong>11</strong> 1 Mbps</li>
+</ul>
+<p><strong>Warning: Setting Data Rates greater then drive can handle may cause errors.</strong></p>
+<h4 id="digital-output-register-dor">Digital Output Register (DOR)</h4>
+<p>Yey! The first useful register! <strong>This one is important to know</strong>.</p>
+<p>This is a <strong>write only</strong> register that allows you to control different functions of the FDC, such as the FDD motor control, operation mode (DMA and IRQ), reset, and drive. It has the format:</p>
+<ul>
+<li><strong>Bits 0-1</strong> DR1, DR2
+<ul>
+<li>00 - Drive 0</li>
+<li>01 - Drive 1</li>
+<li>10 - Drive 2</li>
+<li>11 - Drive 3</li>
+</ul>
+</li>
+<li><strong>Bit 2</strong> REST
+<ul>
+<li>0 - Reset controller</li>
+<li>1 - Controller enabled</li>
+</ul>
+</li>
+<li><strong>Bit 3</strong> Mode
+<ul>
+<li>0 - IRQ channel</li>
+<li>1 - DMA mode</li>
+</ul>
+</li>
+<li><strong>Bits 4 - 7</strong> Motor Control (Drives 0 - 3)
+<ul>
+<li>0 - Stop Motor for drive</li>
+<li>1 - Start Motor for drive</li>
+</ul>
+</li>
+</ul>
+<p>This is an easy one! Basically when sending a command to control the functionality of the FDC, just build up a bit pattern to select what drive this is for (Remember that a single FDC can communicate with four FDD's!), the controller reset status, mode of operation (Remeber that the FDC can operate in both DMA and IRQ modes?) and the status of that particular FDD internal motor.</p>
+<p>Here is an example. Lets say we want to start up the motor for the first floppy drive (FDD 0). <strong>Starting the motor for the FDD is needed before performing any read or write operations to it!</strong> To start it, just set the bit (4-7) that corrosponds to the drive you want to start or stop the motor. Keeping all other bits at 0 will be a normal operation (IRQ mode, reset controller.) Knowing that the DOR is mapped to the processors i/o address space at port 0x3f2, this becomes very simple. First, we will create bit masks for the register to increase readability. Rememeber that all of this code is also in the demo at the end of this tutorial.</p>
+<pre><code class="lang-c">enum FLPYDSK_DOR_MASK {
+
+    FLPYDSK_DOR_MASK_DRIVE0            =    0,    //00000000    = here for completeness sake
+    FLPYDSK_DOR_MASK_DRIVE1            =    1,    //00000001
+    FLPYDSK_DOR_MASK_DRIVE2            =    2,    //00000010
+    FLPYDSK_DOR_MASK_DRIVE3            =    3,    //00000011
+    FLPYDSK_DOR_MASK_RESET             =    4,    //00000100
+    FLPYDSK_DOR_MASK_DMA               =    8,    //00001000
+    FLPYDSK_DOR_MASK_DRIVE0_MOTOR      =    16,   //00010000
+    FLPYDSK_DOR_MASK_DRIVE1_MOTOR      =    32,   //00100000
+    FLPYDSK_DOR_MASK_DRIVE2_MOTOR      =    64,   //01000000
+    FLPYDSK_DOR_MASK_DRIVE3_MOTOR      =    128   //10000000
+};
+</code></pre>
+<p>Using the above bit masks, we can just bitwise OR the different bits that we would like to set. So, to start the motor for floppy drive 0:</p>
+<pre><code class="lang-c">outportb (FLPYDSK_DOR, FLPYDSK_DOR_MASK_DRIVE0_MOTOR | FLPYDSK_DOR_MASK_RESET);
+</code></pre>
+<p>Remember that FLPYDSK_DOR was defined ealier as 0x3f2, which is the i/o address of the DOR FDC register. The above also resets the controller.</p>
+<p>To turn this same motor off, just send the same command but without the motor bit set:</p>
+<pre><code class="lang-c">outportb (FLPYDSK_DOR, FLPYDSK_DOR_MASK_RESET);
+</code></pre>
+<p><strong>Warning: Give the motor some time to start up!</strong> Remember that the internal FDD motor is mechanical. Like all mechanical devices, they tend to be slower then the speed of the running software. Because of this, whenever starting up a FDD motor, always give it a little time to spin up before attempting to read or write to it.</p>
+<p>The DOR is a write only register. To inforce this, lets create a routine for it:</p>
+<pre><code class="lang-c">void flpydsk_write_dor (uint8_t val ) {
+
+    //! write the digital output register
+    outportb (FLPYDSK_DOR, val);
+}
+</code></pre>
+<p>Lets move on to the next important register!</p>
+<h4 id="main-status-register-msr">Main Status Register (MSR)</h4>
+<p>The <strong>Main Status Register (MSR)</strong> follows a <em>gasp!</em> specific bit format! Bet you did not see that one coming! Okay, okay, lets get back on track here (pun intended). Here is the format of the MSR:</p>
+<ul>
+<li><strong>Bit 0</strong> - FDD 0: 1 if FDD is busy in seek mode</li>
+<li><strong>Bit 1</strong> - FDD 1: 1 if FDD is busy in seek mode</li>
+<li><strong>Bit 2</strong> - FDD 2: 1 if FDD is busy in seek mode</li>
+<li><strong>Bit 3</strong> - FDD 3: 1 if FDD is busy in seek mode
+<ul>
+<li>0: The selected FDD is not busy</li>
+<li>1: The selected FDD is busy</li>
+</ul>
+</li>
+<li><strong>Bit 4</strong> - FDC Busy; Read or Write command in progress
+<ul>
+<li>0: Not busy</li>
+<li>1: Busy</li>
+</ul>
+</li>
+<li><strong>Bit 5</strong> - FDC in Non DMA mode
+<ul>
+<li>0: FDC in DMA mode</li>
+<li>1: FDC not in DMA mode</li>
+</ul>
+</li>
+<li><strong>Bit 6</strong> - DIO: direction of data transfer between the FDC IC and the CPU
+<ul>
+<li>0: FDC expecting data from CPU</li>
+<li>1: FDC has data for CPU</li>
+</ul>
+</li>
+<li><strong>Bit 7</strong> - RQM: Data register is ready for data transfer
+<ul>
+<li>0: Data register not ready</li>
+<li>1: Data register ready</li>
+</ul>
+</li>
+</ul>
+<p>This MSR is a simple one. It containes the current status information for the FDC and disk drives. Before sending a command or reading from the FDD, we will need to always check the current status of the FDC to insure it is ready.</p>
+<p>Here is an example of reading from this MSR to see if its busy. We first define the bit masks that will be used in the code. Notice how it follows the format shown above.</p>
+<pre><code class="lang-c">enum FLPYDSK_MSR_MASK {
+    FLPYDSK_MSR_MASK_DRIVE1_POS_MODE    =    1,    //00000001
+    FLPYDSK_MSR_MASK_DRIVE2_POS_MODE    =    2,    //00000010
+    FLPYDSK_MSR_MASK_DRIVE3_POS_MODE    =    4,    //00000100
+    FLPYDSK_MSR_MASK_DRIVE4_POS_MODE    =    8,    //00001000
+    FLPYDSK_MSR_MASK_BUSY               =    16,   //00010000
+    FLPYDSK_MSR_MASK_DMA                =    32,   //00100000
+    FLPYDSK_MSR_MASK_DATAIO             =    64,   //01000000
+    FLPYDSK_MSR_MASK_DATAREG            =    128   //10000000
+};
+</code></pre>
+<p>Easy, huh? So lets test if the FDC is busy (BUSY flag is set.) Knowing that FLPYDSR_MSR is 0x3f4, the i/o port address for the MSR, all we need to do is this:</p>
+<pre><code class="lang-c">if ( inportb (FLPYDSK_MSR) &amp; FLPYDSK_MSR_MASK_BUSY )
+    //! FDC is busy
+</code></pre>
+<p>When sending a read or write command, all we need to do is wait until this bit is 0. Cool, huh?</p>
+<p>To make readability easier, I decided to hide this in a routine so here it is. This routine just returns the status of the FDC.</p>
+<pre><code class="lang-c">uint8_t flpydsk_read_status () {
+
+    //! just return main status register
+    return inportb (FLPYDSK_MSR);
+}
+</code></pre>
+<h4 id="tape-drive-register-tdr">Tape Drive Register (TDR)</h4>
+<p><strong>You do not need to know this register. It is here for completness only.</strong></p>
+<p>This register allows us to assign tape drive support to a specific drive during initialization of that drive. This is a read/write register and is 8 bits in size. However only the first two bits are defined. They both are used to select between drive 0 - 3. Selecting Drive 0 is not allowed as that is reserved for the floppy boot device. Because of this, it is not in the bit list shown below.</p>
+<ul>
+<li>00: None.</li>
+<li>01: Drive 1</li>
+<li>10: Drive 2</li>
+<li>11: Drive 3</li>
+</ul>
+<p>Only a hardware reset will reset this register. A software reset has no effect. Do not worry if you dont know much about tape drives - this register does not apply to us and will not be used in the series. It is here only for completeness. 😀</p>
+<h4 id="data-register">Data Register</h4>
+<p>This is a 8 or 16 bit read/write register. The actual size of the register is specific on the type of controller. <strong>All command paramaters and disk data transfers are read to and written from the data register.</strong> This register does not follow a specific bit format and is used for generic data. It is accessed through I/O port 0x3f5 (FDC 0) or 0x375 (FDC 1).</p>
+<p><strong>Note: Before reading or writing this register, you should always insure it is valid by first reading its status in the Master Status Register (MSR)</strong>.</p>
+<p><strong>Remember: All command bytes and command paramaters are sent to the FDC through this register!</strong> You will see examples of this in the command section below, so dont worry to much about it yet.</p>
+<p><strong>If an invalid command was issued, the value returned from the data register is 0x80</strong>.</p>
+<p>The following routines read from this register and are use in the demo. It attemps to wait until the data register is safe to read or write to, then it either reads it (read_data function) or write it (send_command function).</p>
+<pre><code class="lang-c">void flpydsk_send_command (uint8_t cmd) {
+
+    //! wait until data register is ready. We send commands to the data register
+    for (int i = 0; i &lt; 500; i++ )
+        if ( flpydsk_read_status () &amp; FLPYDSK_MSR_MASK_DATAREG )
+            return outportb (FLPYDSK_FIFO, cmd);
+}
+
+uint8_t flpydsk_read_data () {
+
+    //! same as above function but returns data register for reading
+    for (int i = 0; i &lt; 500; i++ )
+        if ( flpydsk_read_status () &amp; FLPYDSK_MSR_MASK_DATAREG )
+            return inportb (FLPYDSK_FIFO);
+}
+</code></pre>
+<h4 id="digital-input-register-dir">Digital Input Register (DIR)</h4>
+<p><strong>You do not need to know this register. It is here for completness only.</strong></p>
+<p>Okay, there was a digital output register (DOR) so I am sure you seen this one coming 😀 This is a read only register in all operation modes of the controller. Only bit 7 is defined when running in PC-AT Mode, all other bits are undefined and should not be used. In other operation modes, Bit 7 is undefined.</p>
+<p>Bit 7 (DSK CHG) monitors the DSK CHG pin of the FDC. Looking at our pin layout at the beginning of this chapter, you will see that there is no DSK CHG pin. This has to do with the differences between the newer FDC models and the original model. Newer models added and changed different bits in this register to monitor newer pins on the FDC, such as DMA GATE, DRATE SEL0/1, etc. The values of this register is specific to the operation mode of the FDC.</p>
+<p><strong>Note that the bits in this register can change between models</strong>.</p>
+<h4 id="configuation-control-register-ccr">Configuation Control Register (CCR)</h4>
+<p>In PC/AT Mode, this register is known as the <strong>Data Rate Select Register (DSR)</strong> and only has the first two bits set (Bit 0=DRATE SEL0, Bit 1=DRATE SEL1.) This was listed in a table in the DSR register section. Lets take another look...</p>
+<ul>
+<li><strong>00</strong> 500 Kbps</li>
+<li><strong>10</strong> 250 Kbps</li>
+<li><strong>01</strong> 300 Kbps</li>
+<li><strong>11</strong> 1 Mbps</li>
+</ul>
+<p>Bit 2 is NOPREC in Model 30/CCR modes and has no function. Other bits are undefined and may change depending on controller.</p>
+<p>Like the other registers, I created a routine so we can write to this register.</p>
+<pre><code class="lang-c">void flpydsk_write_ccr (uint8_t val) {
+
+    //! write the configuation control
+    outportb (FLPYDSK_CTRL, val);
+}
+</code></pre>
+<h3 id="commands">Commands</h3>
+<h4 id="abstract">Abstract</h4>
+<p>Commands are used to control a FDD connected to the FDC for different operations, like reading and writing. They are written to the data register over the data bus (D0-D7) pins during a write operation (IO and WRITE control lines are set on the control bus.) In other words, a OUT assembly language instruction to the data register at port 0x3f5 (FDC 0) or 0x375 (FDC 1.)</p>
+<p><strong>Warning: Before sending a command or paramamter byte, insure the data register is ready to recieve data by testing bit 7 of the Main Status Register (MSR) first.</strong></p>
+<p>There are <strong>thirteen</strong> (or more depending on controller) commands. Each command can be 1 to 9 bytes in size. The FDC knows how many bytes to expect from the first command byte. That is, the first byte is the actual command that tells the FDC what we want it to do. The FDC knows how many more bytes to expect from this command (The command paramaters.)</p>
+<p><strong>Commands will only operate on a single head of the track.</strong> If you want to operate on both heads, you need to set the <strong>Multiple Track Bit</strong>. Alot of these commands follow bit formats (Will be shown below). This is where things get complicated.</p>
+<p>A command byte only uses the low 4 bits of the byte for the actual command (can be more.) The high bits of these command bytes are for optional settings for the command. I call these <strong>extended command bits</strong> but it does not have an official name. There is a couple of these bits that are common for alot of the commands that we will need to use. We will look at these bits in the command byte later.</p>
+<p>Okay, first lets take a look the command listing. We will then look at each one separately. Notice how they all only use the first 4 bits of the command byte.</p>
+<pre><code class="lang-c">enum FLPYDSK_CMD {
+
+    FDC_CMD_READ_TRACK    =    2,
+    FDC_CMD_SPECIFY       =    3,
+    FDC_CMD_CHECK_STAT    =    4,
+    FDC_CMD_WRITE_SECT    =    5,
+    FDC_CMD_READ_SECT     =    6,
+    FDC_CMD_CALIBRATE     =    7,
+    FDC_CMD_CHECK_INT     =    8,
+    FDC_CMD_WRITE_DEL_S   =    9,
+    FDC_CMD_READ_ID_S     =    0xa,
+    FDC_CMD_READ_DEL_S    =    0xc,
+    FDC_CMD_FORMAT_TRACK  =    0xd,
+    FDC_CMD_SEEK          =    0xf
+};
+</code></pre>
+<p>To send a command to the FDC, remember that we have to write it to the data register, aka the FIFO. To do this, we first need to wait until the data register is ready by checking the bit in the MSR. Assuming <strong>flpydsk_read_status ()</strong> just returns the value from the MSR, lets hide all of this inside of a simpler method:</p>
+<pre><code class="lang-c">void flpydsk_send_command (uint8_t cmd) {
+
+    //! wait until data register is ready. We send commands to the data register
+    for (int i = 0; i &lt; 500; i++ )
+        if ( flpydsk_read_status () &amp; FLPYDSK_MSR_MASK_DATAREG )
+            return outportb (FLPYDSK_FIFO, cmd);
+}
+</code></pre>
+<h4 id="extended-command-bits">Extended Command Bits</h4>
+<p>Some of these commands require you to pass several bytes before the command is executed. Others return several bytes. To make things easier to read, I have listed all of the commands, formats, and paramater bytes in tables. Each command comes with an explination and an example routine.</p>
+<p>Okay, now remember when we mentioned exteneded command bits and how the commands above are only four bits? The upper four bits can be used for different things and purposes.</p>
+<p>When describing the format of a command, we represent an extended bit with a character (like M or F.) For example, the Write Sector command has the format M F 0 0 0 1 1 0, where the first four bits (0 1 1 0) are the command byte and the top four bits, M F 0 0 represent different settings. M is set for multitrack, F to select what density mode to operate in for the command.</p>
+<p>Here is a list of common bits:</p>
+<ul>
+<li>M - MultiTrack Operation
+<ul>
+<li>0: Operate on one track of the cylinder</li>
+<li>1: Operate on both tracks of the cylinder</li>
+</ul>
+</li>
+<li>F - FM/MFM Mode Setting
+<ul>
+<li>0: Operate in FM (Single Density) mode</li>
+<li>1: Operate in MFM (Double Density) mode</li>
+</ul>
+</li>
+<li>S - Skip Mode Setting
+<ul>
+<li>0: Do not skip deleted data address marks</li>
+<li>1: Skip deleted data address marks</li>
+</ul>
+</li>
+<li>HD - Head Number</li>
+<li>DR0 - DR1 - Drive Number Bits (2 bits for up to 4 drives)</li>
+</ul>
+<p>The M, F, and S bits are very common to alot of the commands, so I decided to stick them in a nice enumeration. To set them, just bitwise OR these settings with the command that you would like to use.</p>
+<pre><code class="lang-c">enum FLPYDSK_CMD_EXT {
+
+    FDC_CMD_EXT_SKIP         =    0x20,    //00100000
+    FDC_CMD_EXT_DENSITY      =    0x40,    //01000000
+    FDC_CMD_EXT_MULTITRACK   =    0x80     //10000000
+};
+</code></pre>
+<h4 id="gap-3">GAP 3</h4>
+<p><strong>GAP 3</strong> referrs to the space between sectors on the physical disk. It is a type of <strong>GPL (Gap Length)</strong>.</p>
+<pre><code class="lang-c">enum FLPYDSK_GAP3_LENGTH {
+
+    FLPYDSK_GAP3_LENGTH_STD  = 42,
+    FLPYDSK_GAP3_LENGTH_5_14 = 32,
+    FLPYDSK_GAP3_LENGTH_3_5  = 27
+};
+</code></pre>
+<p>Some commands require us to pass the GAP 3 code, so there it is 😀</p>
+<h4 id="bytes-per-sector">Bytes Per Sector</h4>
+<p>Some commands require us to pass in the bytes per sector. These cannot be any size, however, and always follows a formula:</p>
+<pre><code class="lang-html">2^n * 128, where ^ denotes &quot;to the power of&quot;
+</code></pre>
+<p><em>n</em> is a number from 0-7. It cannot go higher then 7, as 2^7 * 128 = 16384 (16 kbytes). It is possible to select up to 16 Kbytes per sector on the FDC. Most drives may not support it, however.</p>
+<p>Our list has the most common:</p>
+<pre><code class="lang-c">enum FLPYDSK_SECTOR_DTL {
+
+    FLPYDSK_SECTOR_DTL_128    =    0,
+    FLPYDSK_SECTOR_DTL_256    =    1,
+    FLPYDSK_SECTOR_DTL_512    =    2,
+    FLPYDSK_SECTOR_DTL_1024   =    4
+};
+</code></pre>
+<p>...So, if a command requires us to pass the number of bytes per sector, dont put 512! rather, put FLPYDSK_SECTOR_DTL_512, which is 2.</p>
+<h4 id="how-to-pass-paramaters-to-commands">How to pass paramaters to commands</h4>
+<p>If you recall, alot of commands require us to pass paramaters to it. To pass the paramaters, simply send them the same way the command was sent. For example, the specify command requires us to pass two paramaters to it. The command wont start without it so...</p>
+<pre><code class="lang-c">flpydsk_send_command (FDC_CMD_SPECIFY);
+flpydsk_send_command (data);
+flpydsk_send_command (data2);
+</code></pre>
+<p>Thats all there is to it 😉</p>
+<h4 id="how-to-get-return-values-from-commands">How to get return values from commands</h4>
+<p>Unlike functions in programming in which you can ignore return values, the FDC requires for them to be processed in some way. Granted, you can still ignore them, but you must get them from the FDC. The FDC wont allow any more commands until it is done.</p>
+<p>If the command returns data, it will be returned -- one at a time -- in the FIFO (Data register). So, to read them, you must continually read the FIFO to get all of the returned data.</p>
+<p><strong>Note: If a command returns data, it will send an interrupt that you must wait for. This is how you will know when the command is done and that it is safe to read the return values from the FIFO.</strong></p>
+<p>A good example of return values is the read sectors command. It requires us to wait for an IRQ so we know it completes, and returns 7 bytes. So to read all of the returned data bytes, we have to read from the data register one at a time:</p>
+<pre><code class="lang-c">for (int j=0; j&lt;7; j++)
+    flpydsk_read_data ();
+</code></pre>
+<p>Of course, for error checking purposes you should actually check some of the return values.</p>
+<h4 id="write-sector">Write Sector</h4>
+<ul>
+<li>Format: M F 0 0 0 1 1 0</li>
+<li>Paramaters:
+<ul>
+<li>x x x x x HD DR DR0</li>
+<li>Cylinder</li>
+<li>Head</li>
+<li>Sector Number</li>
+<li>Sector Size</li>
+<li>Track Length</li>
+<li>Length of GAP3</li>
+<li>Data Length</li>
+</ul>
+</li>
+<li>Return:
+<ul>
+<li>Return byte 0: ST0</li>
+<li>Return byte 1: ST1</li>
+<li>Return byte 2: ST2</li>
+<li>Return byte 3: Current cylinder</li>
+<li>Return byte 4: Current head</li>
+<li>Return byte 5: Sector number</li>
+<li>Return byte 6: Sector size</li>
+</ul>
+</li>
+</ul>
+<p>This command reads a sector from a FDD. For every byte in the sector, the FDC issues interrupt 6 and places the byte read from the disk into the data register so that we can read it in.</p>
+<h4 id="read-sector">Read Sector</h4>
+<ul>
+<li>Format: M F S 0 0 1 1 0</li>
+<li>Paramaters:
+<ul>
+<li>x x x x x HD DR1 DR0 = HD=head DR0/DR1=Disk</li>
+<li>Cylinder</li>
+<li>Head</li>
+<li>Sector Number</li>
+<li>Sector Size</li>
+<li>Track Length</li>
+<li>Length of GAP3</li>
+<li>Data Length</li>
+</ul>
+</li>
+<li>Return:
+<ul>
+<li>Return byte 0: ST0</li>
+<li>Return byte 1: ST1</li>
+<li>Return byte 2: ST2</li>
+<li>Return byte 3: Current cylinder</li>
+<li>Return byte 4: Current head</li>
+<li>Return byte 5: Sector number</li>
+<li>Return byte 6: Sector size</li>
+</ul>
+</li>
+</ul>
+<p>This command reads a sector from a FDD. For every byte in the sector, the FDC issues interrupt 6 and places the byte read from the disk into the data register so that we can read it in.</p>
+<p>The following is the routine used in the demo. It first sets up the DMA to prepare for a read operation. It then executes the read sector command (FDC_CMD_READ_SECT) setting the commands M, F, and S bits with it (Multitrack read, double density, skip deleted address marks. Please see above for a list of all of these.)</p>
+<p>Afterwords, it passes all of the commands paramaters to it to begin the read command. The sector size paramater is FLPYDSK_SECTOR_DTL_512 (bytes per sector), which, if you recall, is the value 2 (Please see the above <strong>Bytes per sector</strong> section for details.) Next paramater is the sectors per track (18). The next paramater is the GAP 3 length. We pass the value of the standard 3-1/2&quot; floppy disk GAP 3 length (FLPYDSK_GAP3_LENGTH_3_5, which is 27).</p>
+<p>The <strong>Data Length</strong> paramater byte is only valid if the sector size is 0. Else, it should be 0xff.</p>
+<p>Because this command sends an IRQ after completion, we need to wait for the IRQ.</p>
+<pre><code class="lang-c">void flpydsk_read_sector_imp (uint8_t head, uint8_t track, uint8_t sector) {
+
+    uint32_t st0, cyl;
+
+    //! set the DMA for read transfer
+    flpydsk_dma_read ();
+
+    //! read in a sector
+    flpydsk_send_command (
+        FDC_CMD_READ_SECT | FDC_CMD_EXT_MULTITRACK |
+        FDC_CMD_EXT_SKIP | FDC_CMD_EXT_DENSITY);
+    flpydsk_send_command ( head &lt;&lt; 2 | _CurrentDrive );
+    flpydsk_send_command ( track);
+    flpydsk_send_command ( head);
+    flpydsk_send_command ( sector);
+    flpydsk_send_command ( FLPYDSK_SECTOR_DTL_512 );
+    flpydsk_send_command (
+        ( ( sector + 1 ) &gt;= FLPY_SECTORS_PER_TRACK )
+            ? FLPY_SECTORS_PER_TRACK : sector + 1 );
+    flpydsk_send_command ( FLPYDSK_GAP3_LENGTH_3_5 );
+    flpydsk_send_command ( 0xff );
+
+    //! wait for irq
+    flpydsk_wait_irq ();
+
+    //! read status info
+    for (int j=0; j&lt;7; j++)
+        flpydsk_read_data ();
+
+    //! let FDC know we handled interrupt
+    flpydsk_check_int (&amp;st0,&amp;cyl);
+}
+</code></pre>
+<p>...After the IRQ fires, we read in all 7 return bytes. Then we send a SENSE_INTERRUPT command with flpydsk_check_int () which tells the FDC that we have handled the interrupt. (Please see the <strong>Check Interrupt Status</strong> section below.)</p>
+<p>Wait... Where is the data at? Looking at the above command, we dont tell the FDC will to put the data at. This poses an interesting problem, dont you think?</p>
+<p>Depending on the FDCs mode of operation, in Non-DMA mode, it will fire IRQ 6 for every byte. The byte of data read from disk is in the FIFO. In DMA mode (where we are in), it will give the data to the DMA, which will put the data into a buffer (wherever location we told the DMA to put it at.)</p>
+<p>So, in our case, we set up the DMA buffer to 0x1000, remember? After calling the above routine, the sector data will be at 0x1000! Cool, huh? We can change its location by giving the DMA a different address.</p>
+<h4 id="fix-drive-data--specify">Fix Drive Data / Specify</h4>
+<ul>
+<li>Format: 0 0 0 0 0 0 1 1</li>
+<li>Paramaters:
+<ul>
+<li>S S S S H H H H - S=Step Rate H=Head Unload Time</li>
+<li>H H H H H H H NDM - H=Head Load Time NDM=0 (DMA Mode) or 1 (DMA Mode)</li>
+</ul>
+</li>
+<li>Return: None</li>
+</ul>
+<p>This command is used to pass controlling information to the FDC about the mechanical drive connected to it. To make working with this command easier, lets write a routine for it:</p>
+<pre><code class="lang-c">void flpydsk_drive_data (uint32_t stepr, uint32_t loadt, uint32_t unloadt, bool dma ) {
+
+    uint32_t data = 0;
+
+    flpydsk_send_command (FDC_CMD_SPECIFY);
+
+    data = ( (stepr &amp; 0xf) &lt;&lt; 4) | (unloadt &amp; 0xf);
+    flpydsk_send_command (data);
+
+    data = (loadt) &lt;&lt; 1 | (dma==true) ? 1 : 0;
+    flpydsk_send_command (data);
+}
+Check Status
+</code></pre>
+<h4 id="check-status">Check Status</h4>
+<ul>
+<li>Format: 0 0 0 0 0 1 0 0</li>
+<li>Paramaters:
+<ul>
+<li>x x x x x HD DR1 DR0</li>
+</ul>
+</li>
+<li>Return:
+<ul>
+<li>Byte 0: Status Register 3 (ST3)</li>
+</ul>
+</li>
+</ul>
+<p>This command returns the drive status.</p>
+<h4 id="calibrate-drive">Calibrate Drive</h4>
+<ul>
+<li>Format: 0 0 0 0 0 1 1 1</li>
+<li>Paramaters:
+<ul>
+<li>x x x x x 0 DR1 DR0</li>
+</ul>
+</li>
+<li>Return: None</li>
+</ul>
+<p>This command is used to position the read/write head to cylinder 0. After completion, the FDC issues an interrupt. If the disk has more then 80 tracks, you may need to issue this command several times. After issuing this command, always check to insure it is on the right track (<strong>Check Interrupt Status</strong> command.)</p>
+<p>If, after the command, we are not on cylinder 0 yet, we issue the command again. When we find cylinder 0, we turn the motor off and return success. If we dont fine it after 10 tries we bail.</p>
+<p>Note that we have to insure that the motor is running during this command. Also notice how we use the SENSE_INTERRUPT command (the flpydsk_check_int () call) to abtain the current cylinder.</p>
+<pre><code class="lang-c">int flpydsk_calibrate (uint32_t drive) {
+
+    uint32_t st0, cyl;
+
+    if (drive &gt;= 4)
+        return -2;
+
+    //! turn on the motor
+    flpydsk_control_motor (true);
+
+    for (int i = 0; i &lt; 10; i++) {
+
+        //! send command
+        flpydsk_send_command ( FDC_CMD_CALIBRATE );
+        flpydsk_send_command ( drive );
+        flpydsk_wait_irq ();
+        flpydsk_check_int ( &amp;st0, &amp;cyl);
+
+        //! did we fine cylinder 0? if so, we are done
+        if (!cyl) {
+
+            flpydsk_control_motor (false);
+            return 0;
+        }
+    }
+
+    flpydsk_control_motor (false);
+    return -1;
+}
+</code></pre>
+<h4 id="check-interrupt-status">Check Interrupt Status</h4>
+<ul>
+<li>Format: 0 0 0 0 1 0 0 0</li>
+<li>Paramaters: None</li>
+<li>Return:
+<ul>
+<li>Byte 0: Status Register 0 (ST0)</li>
+<li>Byte 1: Current Cylinder</li>
+</ul>
+</li>
+</ul>
+<p>This command is used to check information on the state of the FDC when an interrupt returnes.</p>
+<pre><code class="lang-c">void flpydsk_check_int (uint32_t* st0, uint32_t* cyl) {
+
+    flpydsk_send_command (FDC_CMD_CHECK_INT);
+
+    *st0 = flpydsk_read_data ();
+    *cyl = flpydsk_read_data ();
+}
+</code></pre>
+<h4 id="seek--park-head">Seek / Park Head</h4>
+<ul>
+<li>Format: 0 0 0 0 1 1 1 1</li>
+<li>Paramaters:
+<ul>
+<li>x x x x x HD DR1 DR0 - HD=Head DR1/DR0 = drive</li>
+<li>Cylinder</li>
+</ul>
+</li>
+<li>Return: None</li>
+</ul>
+<p>This command is used to move the read/write head to a specific cylinder. Simular to the calibrate command, we may need to send the command multiple times. Notice the call to check_int () to get the current cylinder after every attempt. We then test if the current cylinder is the cylinder we are looking for. If it is not, we try again. If it is, we return success.</p>
+<pre><code class="lang-c">int flpydsk_seek ( uint32_t cyl, uint32_t head ) {
+
+    uint32_t st0, cyl0;
+
+    if (_CurrentDrive &gt;= 4)
+        return -1;
+
+    for (int i = 0; i &lt; 10; i++ ) {
+
+        //! send the command
+        flpydsk_send_command (FDC_CMD_SEEK);
+        flpydsk_send_command ( (head) &lt;&lt; 2 | _CurrentDrive);
+        flpydsk_send_command (cyl);
+
+        //! wait for the results phase IRQ
+        flpydsk_wait_irq ();
+        flpydsk_check_int (&amp;st0,&amp;cyl0);
+
+        //! found the cylinder?
+        if ( cyl0 == cyl)
+            return 0;
+    }
+
+    return -1;
+}
+</code></pre>
+<h4 id="invalid-commands">Invalid Commands</h4>
+<p>If an invalid command is sent to the FDC, the FDC ignores it and goes into standy mode.</p>
+<h3 id="resetting-the-fdc">Resetting the FDC</h3>
+<h4 id="disabling-the-controller">Disabling the Controller</h4>
+<p>If the DOR RESET line is low, the controller will be in a disabled state. In other words, just write 0 to the DOR register to disable the controller:</p>
+<pre><code class="lang-c">void flpydsk_disable_controller () {
+
+    flpydsk_write_dor (0);
+}
+</code></pre>
+<h4 id="enabling-the-controller">Enabling the Controller</h4>
+<p>To enable the controller, set the RESET line high in DOR. Also, because we want the FDC to operate in DMA mode, you must also set that bit in DOR:</p>
+<pre><code class="lang-c">void flpydsk_enable_controller () {
+
+    flpydsk_write_dor ( FLPYDSK_DOR_MASK_RESET | FLPYDSK_DOR_MASK_DMA);
+}
+</code></pre>
+<p>When the controller is enabled after being disabled, it will issue an interrupt. During this time, you must reinitialize the controller and drive configuation.</p>
+<h4 id="initializing-the-fdc">Initializing the FDC</h4>
+<p>During a controller reset, you need to reinitialize the controller. After resetting the controller, it will fire IRQ 6. After it has been fired, you must send a SENSE_INTERRUPT command to all drives connected to the FDC (by calling <strong>flpydsk_check_int</strong> 4 times.)</p>
+<p>Afterwords its time to reconfigure the controller. Remember that the <strong>CCR (Configuation Control Register)</strong> only has 2 bits for the data rate. By setting both to 0, we set the data rate to 500 Kbps, which is a nice default value.</p>
+<p>Then we call flpydsk_drive_data which sends a <strong>Fix Drive Data / Specify</strong> command to the controller to set the drives mechanical information, including: Step rate, head load and unload time, and if it supports DMA mode or not.</p>
+<p>Then we recalibrate the drive so it is on cylinder 0.</p>
+<pre><code class="lang-c">void flpydsk_reset () {
+
+    uint32_t st0, cyl;
+
+    //! reset the controller
+    flpydsk_disable_controller ();
+    flpydsk_enable_controller ();
+    flpydsk_wait_irq ();
+
+    //! send CHECK_INT/SENSE INTERRUPT command to all drives
+    for (int i=0; i&lt;4; i++)
+        flpydsk_check_int (&amp;st0,&amp;cyl);
+
+    //! transfer speed 500kb/s
+    flpydsk_write_ccr (0);
+
+    //! pass mechanical drive info. steprate=3ms, unload time=240ms, load time=16ms
+    flpydsk_drive_data (3,16,240,true);
+
+    //! calibrate the disk
+    flpydsk_calibrate ( _CurrentDrive );
+}
+</code></pre>
+<p>After a reset, the drive is ready to be used by us.</p>
+<h2 id="demo">Demo</h2>
+<p><img src="../../resources/images/fdc.jpg" alt="Screenshot: FDC Demo in action">
+FDC Demo in action</p>
+<p><a href="../../resources/OSDev_tools/Demo15a.zip">Demo Download</a></p>
+<p><strong>Note: There is a known bug in the demo that causes VPC to only read the first sector read. This will be resolved as soon as possible.</strong> No known issues when running in Bochs.</p>
+<h3 id="updates-and-changes">Updates and Changes</h3>
+<h4 id="string-to-int-convertion---stdiohstdiocpp">String to int convertion - stdio.h/stdio.cpp</h4>
+<p>In order to make this demo more interactive, I included three functions in the standard library that are used for converting strings into integers. This includes <strong>strtol</strong>, <strong>strtoul</strong> and <strong>atoi</strong>. The demo uses <strong>atoi</strong> to convert a string entered from the user into a useable integer.</p>
+<h4 id="installing-the-floppy-driver---flpydskcpp">Installing the floppy driver - flpydsk.cpp</h4>
+<p>The floppy driver comes with a nice install routine that allows the demo to easily set it up. All it does is install our interrupt handler using our HAL's setvect () routine, initializes the DMA for transfers, and resets the controller so it is ready for use.</p>
+<pre><code class="lang-c">void flpydsk_install (int irq) {
+
+    //! install irq handler
+    setvect (irq, i86_flpy_irq);
+
+    //! initialize the DMA for FDC
+    flpydsk_initialize_dma ();
+
+    //! reset the fdc
+    flpydsk_reset ();
+
+    //! set drive information
+    flpydsk_drive_data (13, 1, 0xf, true);
+}
+</code></pre>
+<p>The demo calls this function during initialization to set up the driver before attempting to read from it.</p>
+<h3 id="reading-any-sector---lba-and-chs---flpydskcpp">Reading any sector - LBA and CHS - flpydsk.cpp</h3>
+<p>The driver hides the details of CHS behind two nice functions. Knowing that the drive works in CHS (Cylinder/Head/Sector) and does not know anything about LBA (Linear Block Addressing), we should provide a routine to convert between these two. This way we can just pass in a sector number to read or write to/from without worry of what physical CHS it is at.</p>
+<p>Remember the formula to convert LBA to CHS? Lets apply it here:</p>
+<pre><code class="lang-c">void flpydsk_lba_to_chs (int lba,int *head,int *track,int *sector) {
+
+   *head = ( lba % ( FLPY_SECTORS_PER_TRACK * 2 ) ) / ( FLPY_SECTORS_PER_TRACK );
+   *track = lba / ( FLPY_SECTORS_PER_TRACK * 2 );
+   *sector = lba % FLPY_SECTORS_PER_TRACK + 1;
+}
+</code></pre>
+<p>FLPY_SECTORS_PER_TRACK is 18. Great! So now we can just call this function to convert any linear sector number into a CHS location! Cool, huh?</p>
+<p>Because we are wanting to be able to read any sector from disk, we can provide a routine for just that. And because we already have <strong>flpydsk_read_sector_imp</strong>, which containes the code to send the read command to the controller, this routine is very simple.</p>
+<pre><code class="lang-c">uint8_t* flpydsk_read_sector (int sectorLBA) {
+
+    if (_CurrentDrive &gt;= 4)
+        return 0;
+
+    //! convert LBA sector to CHS
+    int head=0, track=0, sector=1;
+    flpydsk_lba_to_chs (sectorLBA, &amp;head, &amp;track, §or);
+
+    //! turn motor on and seek to track
+    flpydsk_control_motor (true);
+    if (flpydsk_seek (track, head) != 0)
+        return 0;
+
+    //! read sector and turn motor off
+    flpydsk_read_sector_imp (head, track, sector);
+    flpydsk_control_motor (false);
+
+    //! warning: this is a bit hackish
+    return (uint8_t*) DMA_BUFFER;
+}
+</code></pre>
+<p>Whenever the demo wants to read a sector, it calls this routine. This routine converts the sector into a physical location on disk (CHS). It turns the motor on and seeks to the cylinder that this sector is on. After words, it calls <strong>flpydsk_read_sector_imp</strong> to perform the magic of actually reading the sector and turns the motor off afterwords.</p>
+<p>After the flpydsk_read_sector_imp call, the data for the sector should be in the DMA buffer. We return a pointer to this buffer, which now containes the sector data just read. Cool, huh?</p>
+<p>This is the magical routine that ties everything together 😀</p>
+<h4 id="new-read-command---maincpp">New Read Command - main.cpp</h4>
+<p>This demo builds on the last demo. Because of this, it keeps the command line interface (CLI) that was built in the previous demo. This also makes this demo the most complex demo yet.</p>
+<p>I have added a new command to our list of commands in the CLI - <strong>read</strong> - that allows us to read any sector off disk. It uses out floppy driver built in this tutorial to do it.</p>
+<p>The command is inside of a function and is executed in the demo by typing <strong>read</strong>. It dumps the 512 bytes into 4 128-byte blocks for readability. After each block, you will be prompted to press a key to continue with the next chunk. It uses the new <strong>atoi</strong> function to convert the sector number entered (which is an LBA sector number) into an int, and reads it in. This, dear readers, is the function that makes the magic happen:</p>
+<pre><code class="lang-c">void cmd_read_sect () {
+
+    uint32_t sectornum = 0;
+    char sectornumbuf [4];
+    uint8_t* sector = 0;
+
+    DebugPrintf (&quot;\n\rPlease type in the sector number [0 is default] &gt;&quot;);
+    get_cmd (sectornumbuf, 3);
+    sectornum = atoi (sectornumbuf);
+
+    DebugPrintf (&quot;\n\rSector %i contents:\n\n\r&quot;, sectornum);
+
+    //! read sector from disk
+    sector = flpydsk_read_sector ( sectornum );
+
+    //! display sector
+    if (sector!=0) {
+
+        int i = 0;
+        for ( int c = 0; c &lt; 4; c++ ) {
+
+            for (int j = 0; j &lt; 128; j++)
+                DebugPrintf (&quot;0x%x &quot;, sector[ i + j ]);
+            i += 128;
+
+            DebugPrintf(&quot;\n\rPress any key to continue\n\r&quot;);
+            getch ();
+        }
+    }
+    else
+        DebugPrintf (&quot;\n\r*** Error reading sector from disk&quot;);
+
+    DebugPrintf (&quot;\n\rDone.&quot;);
+}
+</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>Yeesh, this is a long tutorial. I might be making some changes to help improve it and make it better and more complete. 😀</p>
+<p>In the next tutorial, we will be looking at the DMA. We will create an interface for programming the DMA and better use it in the FDC driver. After all of this...I suppose its filesystems again (ugh). Dont worry - After that it is Multitasking!</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T20.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

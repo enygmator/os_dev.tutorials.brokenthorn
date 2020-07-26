@@ -1,0 +1,637 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>User land | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="User land | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="user-land">User land</h1>
+
+<p>Welcome!</p>
+<p>In the last chapter we have looked at VFS's and loaded and displayed a text file. We can use this VFS to also load program files that can be executed. This includes drivers, program software, shared, runtime libraries, and more.</p>
+<p>In this chapter we will take the jump into supporting user land software. We will also be taking a look at System API's and how they work.</p>
+<p><em>Lets get started!</em></p>
+<h2 id="protection-levels">Protection Levels</h2>
+<h3 id="the-rings-of-assembly-language">The Rings of Assembly Language</h3>
+<h4 id="kernel-land">Kernel Land</h4>
+<p>In [Chapter 5] (fix link OSDev5.html) we have took a quick look at the concept of the rings used in assembly language. These rings represent different protection levels. These protection levels are a hardware detail; they are implemented by the hardware.</p>
+<p>Software running in ring 0 have the most control. They can execute priveldge instructions which allow the software to be able to perform more actions: hardware PIO, MMIO, Processor hardware controls and tables (like CPU cache controls and MMRs, et al.)</p>
+<p>The list of privileged instructions have been shown in [Chapter 7] (fix link OSDev7.html) however will also be listed here for completness.</p>
+<p>If any software running in a protection level greater then 0 attempts to execute the above instructions, the processor generates a <strong>Protection fault (#PF)</strong> exception.</p>
+<h5 id="privileged-level-instructions-table">Privileged Level Instructions table</h5>
+<table>
+<thead>
+<tr>
+<th>Instruction</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LGDT</td>
+<td>Loads an address of a GDT into GDTR</td>
+</tr>
+<tr>
+<td>LLDT</td>
+<td>Loads an address of a LDT into LDTR</td>
+</tr>
+<tr>
+<td>LTR</td>
+<td>Loads a Task Register into TR</td>
+</tr>
+<tr>
+<td>MOV Control Register</td>
+<td>Copy data and store in Control Registers</td>
+</tr>
+<tr>
+<td>LMSW</td>
+<td>Load a new Machine Status WORD</td>
+</tr>
+<tr>
+<td>CLTS</td>
+<td>Clear Task Switch Flag in Control Register CR0</td>
+</tr>
+<tr>
+<td>MOV Debug Register</td>
+<td>Copy data and store in debug registers</td>
+</tr>
+<tr>
+<td>INVD</td>
+<td>Invalidate Cache without writeback</td>
+</tr>
+<tr>
+<td>INVLPG</td>
+<td>Invalidate TLB Entry</td>
+</tr>
+<tr>
+<td>WBINVD</td>
+<td>Invalidate Cache with writeback</td>
+</tr>
+<tr>
+<td>HLT</td>
+<td>Halt Processor</td>
+</tr>
+<tr>
+<td>RDMSR</td>
+<td>Read Model Specific Registers (MSR)</td>
+</tr>
+<tr>
+<td>WRMSR</td>
+<td>Write Model Specific Registers (MSR)</td>
+</tr>
+<tr>
+<td>RDPMC</td>
+<td>Read Performance Monitoring Counter</td>
+</tr>
+<tr>
+<td>RDTSC</td>
+<td>Read time Stamp Counter</td>
+</tr>
+</tbody>
+</table>
+<p>The kernel or executive of an operating system typically resides in ring 0. Because of this, <strong>kernel land</strong> or <strong>kernel mode</strong> is any software running in <strong>ring 0</strong>. Ring 0 is also known as <strong>Supervisor Mode</strong>.</p>
+<p>All of the software that we have written in this series so far has been kernel mode software: kernel and minidrivers. Microkernels and hybrids typically employ a more advanced driver interfacing scheme then what we use in the series that allow proper driver installation and drivers running in user mode, completely separate from the kernel. It is even possible to have a part of the kernel in user mode; it all depends on your design.</p>
+<p>When the system is first started, the system is running in supervisor mode to allow the BIOS and operating system to start up.</p>
+<h4 id="user-land-1">User Land</h4>
+<p>Software running in ring 1 through ring 3 have less control of the machine then software running in ring 0. This is for protection of the machine; if there is an error caused by the software running in rings 1 through 3, the processor notifies the system executive or kernel of the problem using a <strong>general protection (#GP)</strong> exception.</p>
+<p>Most operating systems employ a 2 mode system, kernel mode and user mode. While the x86 family supports 4 protection modes, these operating systems only use 2 for easier portability across architectures.</p>
+<p>The design of these operating systems is for kernel mode software to run in ring 0 while user land software run in ring 3. Rings 1 and 2 are not used. Driver software can either operate in ring 0 to access hardware devices, or ring 3 using the provided driver API or System API to communicate with the hardware devices.</p>
+<p>Because user mode software can not access hardware devices directly, they must notify the operating system in order to complete system tasks. This includes displaying text, obtaining input from user, printing a document, etc. These functions are provided to the user mode software in the form of libraries and APIs. These libraries and APIs communicate with the System API.</p>
+<p><em>System API</em> ... you have seen this term before. We will look closer on System APIs in a little bit. For now, lets take a closer look at user mode!</p>
+<h4 id="ring--1">Ring -1</h4>
+<p>Some recent processors have a special protection level that allows a <strong>hypervisor</strong> ring 0 access. This is sometimes known as &quot;Ring -1&quot;.</p>
+<h2 id="welcome-to-user-land">Welcome to User Land</h2>
+<p>There are a few steps required to enter user mode. (Come on, you didnt think it would be easy 😀 ) Its not that bad though.</p>
+<h3 id="step-1-global-descriptor-table">Step 1: Global Descriptor Table</h3>
+<p>We will be needing to go back to the <strong>Global Descriptor Table (GDT)</strong> first. The GDT was that big ugly structure that we needed when setting up protected mode for the first time. Recall that the GDT contains a list of 8 byte entries that contains information for the processor. Lets take another look at the GDT entry bit format again: (I have <strong>bolded</strong> the important parts)</p>
+<ul>
+<li><strong>Bits 56-63:</strong> Bits 24-32 of the base address</li>
+<li><strong>Bit 55:</strong> Granularity
+<ul>
+<li><strong>0:</strong> None</li>
+<li><strong>1:</strong> Limit gets multiplied by 4K</li>
+</ul>
+</li>
+<li><strong>Bit 54:</strong> Segment type
+<ul>
+<li><strong>0:</strong> 16 bit</li>
+<li><strong>1:</strong> 32 bit</li>
+</ul>
+</li>
+<li><strong>Bit 53:</strong> Reserved-Should be zero</li>
+<li><strong>Bits 52:</strong> Reserved for OS use</li>
+<li><strong>Bits 48-51:</strong> Bits 16-19 of the segment limit</li>
+<li><strong>Bit 47:</strong> Segment is in memory (Used with Virtual Memory)</li>
+<li><strong>Bits 45-46: Descriptor Privilege Level</strong>
+<ul>
+<li><strong>0: (Ring 0) Highest</strong></li>
+<li><strong>1: (Ring 1)</strong></li>
+<li><strong>2: (Ring 2)</strong></li>
+<li><strong>3: (Ring 3) Lowest</strong></li>
+</ul>
+</li>
+<li><strong>Bit 44:</strong> Descriptor Bit
+<ul>
+<li><strong>0:</strong> System Descriptor</li>
+<li><strong>1:</strong> Code or Data Descriptor</li>
+</ul>
+</li>
+<li><strong>Bits 41-43:</strong> Descriptor Type
+<ul>
+<li><strong>Bit 43:</strong> Executable segment
+<ul>
+<li><strong>0:</strong> Data Segment</li>
+<li><strong>1:</strong> Code Segment</li>
+</ul>
+</li>
+<li><strong>Bit 42:</strong> Expansion direction (Data segments), conforming (Code Segments)</li>
+<li><strong>Bit 41:</strong> Readable and Writable
+<ul>
+<li><strong>0:</strong> Read only (Data Segments); Execute only (Code Segments)</li>
+<li><strong>1:</strong> Read and write (Data Segments); Read and Execute (Code Segments)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>Bit 40:</strong> Access bit (Used with Virtual Memory)</li>
+<li><strong>Bits 16-39:</strong> Bits 0-23 of the Base Address</li>
+<li><strong>Bits 0-15:</strong> Bits 0-15 of the Segment Limit</li>
+</ul>
+<p>Yikes, okay ... The <strong>Descriptor Privilege Level (DPL)</strong> bits above represents the priveldge level used for that descriptor. So, by setting those bits to 3, we effectivley make the descriptor a user mode descriptor.</p>
+<p>So the first step is to create two new descriptors in the GDT - one for user mode data and the other for user mode code. This is done by modifying <strong>i86_gdt_initialize</strong> to add two new GDT entries for user mode code and data. Lets do that now:</p>
+<pre><code class="lang-c">//! initialize gdt
+int i86_gdt_initialize () {
+
+    //! etc...
+
+    //! set default user mode code descriptor
+    gdt_set_descriptor (3,0,0xffffffff,
+        I86_GDT_DESC_READWRITE|I86_GDT_DESC_EXEC_CODE|I86_GDT_DESC_CODEDATA|
+        I86_GDT_DESC_MEMORY|I86_GDT_DESC_DPL,
+            I86_GDT_GRAND_4K | I86_GDT_GRAND_32BIT | I86_GDT_GRAND_LIMITHI_MASK);
+
+    //! set default user mode data descriptor
+    gdt_set_descriptor (4,0,0xffffffff,
+        I86_GDT_DESC_READWRITE|I86_GDT_DESC_CODEDATA|I86_GDT_DESC_MEMORY|
+        I86_GDT_DESC_DPL,
+            I86_GDT_GRAND_4K | I86_GDT_GRAND_32BIT | I86_GDT_GRAND_LIMITHI_MASK);
+
+    // etc...
+
+    return 0;
+}
+</code></pre>
+<p>The above code is the same as what we did when creating the other GDT entries, with one change. Notice the I86_GDT_DESC_DPL flag. This will set both DPL bits to 2 which makes them for user mode (ring 3). Please note that none of this is new; all of the above flags were written from an ealier chapter when we covered protected mode.</p>
+<p>Thats all that is needed! Note that the user mode code descriptor is installed at index 3 in the GDT, while the user mode data descriptor is at index 4. Remember that segment registers contain the offset of the selector it uses. Because each GDT entry is 8 bytes in size, it would be: <strong>code selector 0x18</strong> (8<em>3) and <strong>data selector 0x20</strong> (8</em>4).</p>
+<p>So in order to use one of these selectors, just copy one of the above segment selectors into the segment register that will be used.</p>
+<h4 id="dpl">DPL</h4>
+<p>The <strong>Descriptor Protection Level (DPL)</strong> is the protection level of a segment descriptor. For example, our kernels code and data segments DPL are 0 for ring 0 access.</p>
+<h4 id="rpl">RPL</h4>
+<p>The <strong>Requested Protection Level (RPL)</strong> allows software to override the CPL to select a new protection level. This is what allows software to request changes to other protection levels, such as ring 0 to ring 3. The RPL is stored in bits 0 and 1 of a descriptor selector.</p>
+<p>Wait, <em>what</em>? Remember that a segment selector is just an offset into the GDT. So, for example, 0x8 bytes was the offset for our ring 0 code descriptor. 0x10 was the offset of our data selector. 0x8 and 0x10 are <strong>segment selectors</strong>. GDT entries are all 8 bytes, so the value of a segment selector will always be a multiple of 8: 8, 16, 24, 32 etc. 8, in binary, is 1000. This means, with any value of a segment selector, the low three bits are zero.</p>
+<p>The RPL is stored in the low two bits of the segment selector. So, if our segment selector is 0x8, the RPL is 0. If its 0xb (0x8 but with first two bits set, binary 1011 instead of 1000) the RPL is 3. This is required; this is how our software can switch to user mode.</p>
+<h4 id="cpl">CPL</h4>
+<p>The <strong>Current Protection Level (CPL)</strong> is the protection level of the currently executing program. The CPL is stored in bits 0 and 1 of SS and CS.</p>
+<p>Remember that GDT entries are 8 bytes in size. Because segment registers, in protected mode, contain a segment selector (GDT entry offset), the low three bits are guaranteed to be zero. The low two bits of CS and SS are used to store the CPL of the software.</p>
+<h4 id="protection-levels-step-1">Protection Levels (Step 1)</h4>
+<p>If a software attempts to load a new segment into a segment register, the processor performs checks against the CPL of the software and RPL of the segment that it is trying to load. If the RPL is higher then the CPL, the software can load the segment. If it is not, the processor will raise a <strong>General Protection Fault (#GP)</strong>.</p>
+<p>It is important to understand how RPL works, it is required information used when switching to user mode.</p>
+<h3 id="step-2-the-switch">Step 2: The switch</h3>
+<p>Now we can make the switch to user mode!</p>
+<p>There are two ways of performing the jump: Using <strong>SYSEXIT</strong> instruction or with an <strong>IRET</strong>. Both of these methods have their advantages and disadvantages so lets take a closer look. We will be using IRET in the series for portability purposes.</p>
+<h4 id="sysexit-instruction">SYSEXIT Instruction</h4>
+<p>This section is planned to be expanded on.</p>
+<h4 id="iret--iretd-instruction">IRET / IRETD Instruction</h4>
+<p>A lot of operating systems may employ this method as it is more portable then using SYSEXIT. Larger operating systems might even support this as a back up method in the case SYSEXIT is not avialable.</p>
+<p>Okay, so how can IRET help us perform the switch? Recall from [Chapter 3] (fix link OSDev5.html) the different methods used when switching modes. IRET is a trap return instruction. When executing an IRET, we can adjust the stack frame so it returns to user mode code.</p>
+<p>When IRETD is executed, it expects the stack to have the following:</p>
+<ul>
+<li>SS</li>
+<li>ESP</li>
+<li>EFLAGS</li>
+<li>CS</li>
+<li>EIP</li>
+</ul>
+<p>IRETD causes the processor to jump to CS:EIP, which it obtains from the stack. It also sets the EFLAGS register with the value above from the stack. SS:ESP will be set to point to the SS and ESP values that was obtained from the stack.</p>
+<p>These are automatically pushed on the stack when an <strong>INT</strong> instruction is executed. Because of this, in the normal case these values would remain untouched. However, we can modify these values to cause IRET to perform a mode switch.</p>
+<p>Okay, so first is setting the segment selectors. Recall that the low two bits represent the RPL that we want. In our case, we want 3 for user mode. So lets do that now:</p>
+<pre><code class="lang-c">void enter_usermode () {
+
+    _asm {
+
+        cli
+        mov ax, 0x23    ; user mode data selector is 0x20 (GDT entry 3). Also sets RPL to 3
+        mov ds, ax
+        mov es, ax
+        mov fs, ax
+        mov gs, ax
+</code></pre>
+<p>Now we can perform the switch to user mode. This is done by building the stack frame for IRET and issuing the IRET:</p>
+<pre><code class="lang-c">        push 0x23     ; SS, notice it uses same selector as above
+        push esp      ; ESP
+        pushfd        ; EFLAGS
+        push 0x1b     ; CS, user mode code selector is 0x18. With RPL 3 this is 0x1b
+        lea eax, [a]  ; EIP first
+        push eax
+
+        iretd
+    a:
+        add esp, 4 // fix stack
+    }
+}
+</code></pre>
+<p>Notice that the stack frame matches that of what was in the list above. The IRETD instruction will cause 0x1B:a to be called in the above code inside of ring 3.</p>
+<p>There is a slight problem however. If you try to use the above routine, or switch to user mode in a different way in the kernel, it will cause a <strong>Page Fault (PF)</strong> exception. This is do to the pages for the kernel being mapped for kernel mode-access only. To fix this, we will either need to enter user mode a different way or map the kernel so user mode software can access it.</p>
+<p>For now, we are just going to map the kernel so user mode software can access it. This involves updating the <strong>vmmngr_initialize()</strong> routine and setting the USER bit in the PTEs and PDEs.</p>
+<p>In a more complex operating system, this approach would not be used. This approach only works if we map kernel pages so they can be accessed by user mode software, which is bad. A more recommended approach is to keep kernel pages mapped for kernel-only access, and have the loader component of your kernel to map user mode pages when loading a user program. A stack and heap allocator would then map a region for program stack and heap to user mode. This current method <strong>shares</strong> the kernel stack with user land; larger systems should not do this.</p>
+<h4 id="entering-v8086-mode">Entering v8086 Mode</h4>
+<p>These are the same steps involved when setting up v8086 mode. v8086 mode requires a user mode task in order to enter v86 mode. Thus, by doing the above, you can enter v86 mode as well. However, there is one slight modification needed.</p>
+<p>Recall the format of the EFLAGS register. Bit 17 (VM) is the <strong>v8086 Mode Control Flag</strong>. Because we push a value for EFLAGS on the stack when performing an IRET, in order to enter v86 mode, just set bit 17 of EFLAGS before pushing it on the stack. This will cause IRET to set the VM bit in the EFLAGS register on return.</p>
+<p>Thats all that is needed to enter v8086 mode.</p>
+<h4 id="notes-on-design-the-switch">Notes on design (The switch)</h4>
+<p>The above method presents an easy way to get into user mode, but at a cost: in order for the above method to work, the kernel region must be mapped to allow ring 3 software access to kernel memory. Because of this, while running in ring 3, the software-while will have some limitations do to protected mode, will be able to call kernel routines directly or even trash kernel space.</p>
+<p>A possible way to resolve the above issues is to keep kernel memory reserved for ring 0 software. The loader component of the kernel can then map the necessary ring 3 regions of memory for the process <em>while</em> loading the program.</p>
+<p>This will be looked at further in the next chapter when we develop a loader for the OS.</p>
+<h2 id="switching-back-to-kernel-land">Switching back to kernel land</h2>
+<h3 id="step-1-setting-up-the-tss">Step 1: Setting up the TSS</h3>
+<p>The x86 architecture supports hardware assisted task switching. This means the architecture includes hardware defined structures that allow the processor to select between different tasks.</p>
+<p>Most modern operating systems do not utilize the hardware task switching support for portability purposes. These operating systems typically employ software task switching methods.</p>
+<h4 id="task-state-segment-tss">Task State Segment (TSS)</h4>
+<p>The TSS structure is quite large:</p>
+<pre><code class="lang-c">#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+
+struct tss_entry {
+    uint32_t prevTss;
+    uint32_t esp0;
+    uint32_t ss0;
+    uint32_t esp1;
+    uint32_t ss1;
+    uint32_t esp2;
+    uint32_t ss2;
+    uint32_t cr3;
+    uint32_t eip;
+    uint32_t eflags;
+    uint32_t eax;
+    uint32_t ecx;
+    uint32_t edx;
+    uint32_t ebx;
+    uint32_t esp;
+    uint32_t ebp;
+    uint32_t esi;
+    uint32_t edi;
+    uint32_t es;
+    uint32_t cs;
+    uint32_t ss;
+    uint32_t ds;
+    uint32_t fs;
+    uint32_t gs;
+    uint32_t ldt;
+    uint16_t trap;
+    uint16_t iomap;
+};
+
+#ifdef _MSC_VER
+#pragma pack (pop, 1)
+#endif
+</code></pre>
+<p>The TSS is used to store information about the state of the machine prior to a hardware task switch. It has a lot of members, so lets take a look!</p>
+<ul>
+<li><strong>General Fields:</strong>
+<ul>
+<li>State of LDT,EIP,EFLAGS,CS,DS,ES,FS,GS,SS,EAX,EBX,ECX,EDX,ESP,EBP,ESI,EDI <strong>prior</strong> to task switch</li>
+</ul>
+</li>
+<li><strong>prevTSS</strong> - Segment Selector of previous TSS in task list</li>
+<li><strong>cr3</strong> - PDBR, address of page directory for current task</li>
+<li><strong>trap</strong>
+<ul>
+<li><strong>Bit 0:</strong> 0: Disabled; 1: Raise Debug exception when task switch to task occurs</li>
+</ul>
+</li>
+<li><strong>iomap</strong> - 16 bit offset from TSS base to I/O permissions and interrupt redirection bit maps</li>
+<li><strong>esp0,esp1,esp2</strong> - ESP stack pointers for ring 0, 1, and 2</li>
+<li><strong>ss0,ss1,ss2</strong> - SS stack segments for ring 0, 1, and 2</li>
+</ul>
+<p>Most of these fields are pretty simple. While we are not using hardware assisted task switching, we need to let the processor know how to go back to ring 0. Because of this, we need to set some of the fields in this structure - in particular the ring 0 stack and selector fields.</p>
+<h3 id="step-2-installing-the-tss">Step 2: Installing the TSS</h3>
+<h4 id="descriptor-segment">Descriptor Segment</h4>
+<p>A TSS as implied by its name is a <strong>segment</strong>. Simular to all segments, the TSS requires an entry in the GDT. This allows us to control the TSS: setting if the task is busy or inactive; what software can access it (DPL) and other flags that can be set with descriptors. <strong>The Base Address fields</strong> must be the base address of the TSS structure that we set up.</p>
+<h4 id="ltr-instruction">LTR Instruction</h4>
+<p>The <strong>LTR</strong> (Load Task Register) instruction is used to load the TSS into <strong>TSR</strong> register. For example:</p>
+<pre><code class="lang-c">void flush_tss (uint16_t sel) {
+
+    _asm ltr [sel]
+}
+</code></pre>
+<p><strong>ax</strong> is the segment selector for the TSS. Because the architecture supports hardware task switching, TSR stores the address of the TSS that defines the current task.</p>
+<p>The <strong>Task State Register (TSR)</strong> is a register that stores the <strong>TSS Selector</strong>, <strong>TSS Base Address</strong> and <strong>TSS Limit</strong>. Only the TSS Selector can be modified by software however.</p>
+<h4 id="installing-the-tss">Installing the TSS</h4>
+<p>In order to install the TSS structure, first install the GDT entry for the TSS. Then select the TSS as the current task by calling <strong>flush_tss</strong> above.</p>
+<pre><code class="lang-c">void install_tss (uint32_t idx, uint16_t kernelSS, uint16_t kernelESP) {
+
+    //! install TSS descriptor
+    uint32_t base = (uint32_t) &amp;TSS;
+    gdt_set_descriptor (idx, base, base + sizeof (tss_entry),
+        I86_GDT_DESC_ACCESS|I86_GDT_DESC_EXEC_CODE|I86_GDT_DESC_DPL|I86_GDT_DESC_MEMORY,
+        0);
+
+    //! initialize TSS
+    memset ((void*) &amp;TSS, 0, sizeof (tss_entry));
+
+    TSS.ss0 = kernelSS;
+    TSS.esp0 = kernelESP;
+
+    TSS.cs=0x0b;
+    TSS.ss = 0x13;
+    TSS.es = 0x13;
+    TSS.ds = 0x13;
+    TSS.fs = 0x13;
+    TSS.gs = 0x13;
+
+    //! flush tss
+    flush_tss (idx * sizeof (gdt_descriptor));
+}
+</code></pre>
+<p>In the above code, <strong>TSS</strong> is a global structure definition for our <strong>tss_entry</strong> structure. We set up the TSSs selector entries to match the previous task (user mode selectors) and ring 0 stack (kernel stack, located at kernelSS:kernelESP). <strong>flush_tss</strong> installs the TSS into TSR.</p>
+<h2 id="additional-instructions">Additional Instructions</h2>
+<p>There are a few other instructions that can be useful. All of these instructions can be executed by user mode software.</p>
+<h3 id="verr-instruction">VERR Instruction</h3>
+<p><strong>VERR</strong> (Verify Segment is Readable) can be used to check if a segment is readable. The processor will set the zero flag (ZF) to 1 if it can be read. This instruction can be executed at any proviledge level.</p>
+<pre><code class="lang-armasm">verr [ebx]
+jz .readable
+</code></pre>
+<h3 id="verw-instruction">VERW Instruction</h3>
+<p><strong>VERW</strong> (Verify Segment is Writable) can be used to check if a segment is writable. The processor will set the zero flag (ZF) to 1 if it can be written. This instruction can be executed at any proviledge level.</p>
+<pre><code class="lang-armasm">verw [ebx]
+jz .readable
+</code></pre>
+<h3 id="lsl-instruction">LSL Instruction</h3>
+<p>This instruction can be used to load the segment limit of a selector into a register.</p>
+<pre><code class="lang-armasm">lsl ebx, esp
+jz .success
+</code></pre>
+<h3 id="arpl-instruction">ARPL Instruction</h3>
+<p>This instruction can be used to adjust the RPL of a selector. It takes the form <strong>arpl dest,src</strong>, where dest is a memory location or register, src is a register. If the RPL of dest are less then src, the RPL bits of dest are set to the RPL bits of src. For example:</p>
+<pre><code class="lang-armasm">arpl ebx, esp
+</code></pre>
+<h2 id="system-api">System API</h2>
+<h3 id="abstract">Abstract</h3>
+<p>A <strong>System API</strong> provides tools, documentations, and interfaces that allow software to interact with the operating system. Different operating systems may use different termonology but the basic idea is the same. For example, Windows calls this API the &quot;Native API&quot;.</p>
+<p>The System API facilitates software interacting with the operating system and device drivers. The System API is the interface between user mode software and kernel mode software. Whenever the software needs system information or to perform a system task, such as creating a file, the software would invoke a system call.</p>
+<p>A <strong>System Call</strong> also known as a <strong>System Service</strong> is a service provided by the operating system. This service is usually a function or routine. Software can invoke system calls in order to perform system tasks.</p>
+<h3 id="design">Design</h3>
+<h4 id="sysenter--sysexit">SYSENTER / SYSEXIT</h4>
+<p>This section is planned to be expanded on.</p>
+<h4 id="software-interrupt">Software Interrupt</h4>
+<p>Most System APIs are implemented by using a software interrupt. Software can use an instruction, like <strong>int 0x21</strong> to call an operating system service. For example, to call the DOS's Terminate function we would do:</p>
+<pre><code class="lang-armasm">mov ax, 0x4c00 ; function 0x4c (terminate) return code 0
+int 0x21 ; call DOS service
+</code></pre>
+<p>In the above code, AH contains a function number. The int 0x21 calls the 0x21 interrupt vector to call DOS.</p>
+<p>In order for the above to work, the operating system will need to install an ISR for interrupt vector 0x21. The ISR would be a <strong>Finity State Machine (FSM)</strong> that compares AH and passes control to the correct kernel mode function. And that, dear readers, is the design.</p>
+<p>Software interrupts are more portable then SYSENTER and SYSEXIT. Because of this, most operating systems provide support for this method (possibly along with other methods.) We will be using this method in the series.</p>
+<h4 id="examples">Examples</h4>
+<p>System APIs typically consist of hundreds of system calls.</p>
+<p>This lists some operating systems and what methods they support. The INT numbers are software interrupt vector numbers using the above method.</p>
+<ul>
+<li>DOS: INT 0x21</li>
+<li>Win9x (95,98): INT 0x2F</li>
+<li>WinNT (2k,XP,Vista,7): INT 0x2E, SYSENTER/SYSEXIT, SYSCALL/SYSRET
+<ul>
+<li>Over 211 functions</li>
+</ul>
+</li>
+<li>Linux: INT 0x80, SYSENTER/SYSEXIT
+<ul>
+<li>Over 190 functions</li>
+</ul>
+</li>
+</ul>
+<h3 id="basic-system-api">Basic System API</h3>
+<h4 id="step-1-system-call-table">Step 1: System Call Table</h4>
+<p>Most System APIs implement a System Call table that contains all services. This table can be static, dynamic, auto generated, or a combination of the three. Large operating systems typically employ an auto-generated dynamic size table of system calls. This is do to the large number of system services that might be in this table; it would be very tedius to create it by hand.</p>
+<p>For our purposes, we can just define a system service table in the kernel. It would contain the addresses of different functions that we have in the kernel that would like to be callable:</p>
+<pre><code class="lang-c">#define MAX_SYSCALL 3
+
+void* _syscalls[] = {
+
+    DebugPrintf
+};
+</code></pre>
+<p>Hm, this table is quite small. We will add more to this list in the upcoming chapters, however it wont be too complex.</p>
+<p>Because DebugPrintf is accessable from user mode (do to the kernel pages being mapped to allow this), and DebugPrintf not using any privedge instruction, the user mode software can technically call this routine directly without any problems. Depending on the design of your operating system or executive software this can cause security and stabability issues.</p>
+<p>This is why it is typically recommended to keep the kernel pages accessable only from kernel mode. While it adds complexity to the software, the end result might be worth the effort.</p>
+<h3 id="step-2-the-service-dispatcher">Step 2: The Service Dispatcher</h3>
+<p>The next step is to create the service dispatcher ISR. Before that, we need to decide on what ISR to use... hm... Ill just follow Linux here and use 0x80. You can use any interrupt vector you like however, a lot of OSs use different vectors. So, lets install the ISR.</p>
+<p>Remember that ISRs are stored in the IDT managed by the HAL layer. Also recall from [chapter 15] (fix link OSDev15.html) that each IDT descriptor has its own DPL setting. <strong>If the DPL of an IDT entery is less then the CPL, a GPF will result.</strong> In other words, when we enter user mode, we can only call ISRs with IDT descriptors with DPL 3. Because we want our system interrupt callable from ring 3 software, we must install this ISR with the correct flags.</p>
+<p>However, do to the current design of the HAL subsystem, this cannot be done by just calling setvect(), as this function does not allow us to set specific flags. To work around this issue, <strong>setvect() has been modified with a second paramater to allow optional flags to be set.</strong> This uses the C++ default paramater feature to achieve this so no other code needs to be updated.</p>
+<pre><code class="lang-c">void syscall_init () {
+
+    //! install interrupt handler!
+    setvect (0x80, syscall_dispatcher, I86_IDT_DESC_RING3);
+}
+</code></pre>
+<p>Thats all there is to it 😀</p>
+<p><strong>syscall_dispatcher</strong> is our ISR for system calls. This ISR will need to determin what system service to call by looking up the function in <strong>_syscalls</strong>. Usually System APIs use EAX to idenitify function numbers. We are going to do the same here. Thanks to the system service table we defined above, we can use EAX as an index. So, the function to call will be <strong>_syscalls [eax]</strong>.</p>
+<pre><code class="lang-c">_declspec(naked)
+void syscall_dispatcher () {
+
+    static int idx=0;
+    _asm mov [idx], eax
+
+    //! bounds check
+    if (idx&gt;=MAX_SYSCALL)
+        _asm iretd
+
+    //! get service
+    static void* fnct = _syscalls[idx];
+</code></pre>
+<p>Okay, so now we have a pointer to the function to call. However now we a small problem. The above will effectively get a pointer to the service function we want based on the value given by EAX. However we dont know what function it is. We also dont know what to pass to the function nor the amount of paramaters it has.</p>
+<p>One possible solution is to push all registers on the stack for the function call. Because the services are all C routines, we have to pass the paramaters in the way C functions would expect them.</p>
+<pre><code class="lang-c">    //! and call service
+    _asm {
+        push edi
+        push esi
+        push edx
+        push ecx
+        push ebx
+        call fnct
+        add esp, 20
+        iretd
+    }
+}
+</code></pre>
+<p>Thats it 😀 The <strong>add esp, 20</strong> pops the 20 bytes off the stack that we pushed; and notice we return from the ISR with an <strong>IRETD</strong> instruction.</p>
+<p>After the system software or executive installs their ISR to their respective interrupt vector, the software can call it by issuing a software interrupt. For example, if we call <strong>syscall_init</strong> to install our ISR, we can call a system service like this:</p>
+<pre><code class="lang-c">_asm {
+    xor eax, eax ; function 0, DebugPrintf
+    lea ebx, [stringToPrint]
+    int 0x80 ; call OS
+}
+</code></pre>
+<h3 id="notes-on-design-basic-system-api">Notes on design (Basic System API)</h3>
+<p>Most operating systems abstract the interrupt vector number and register details behind C interfaces. While calling system services in larger OSs directly is still possible, it is recommended to develop a standard C interface around the system services your system provides to user land software.</p>
+<p>Large OSs typically wont have a system service for printing a message to the display. Rather it would contain services that can be called from user land software that allows user APIs to interact with kernel mode services, servers, or device drivers. Because of this, large OSs typically contain system APIs consisting of several hundred function calls.</p>
+<h2 id="demo">Demo</h2>
+<p><img src="../../resources/images/ch23.png" alt="Screenshot: Enter into user mode"><br>
+Enter into user mode
+<a href="../../resources/OSDev_tools/demo23.zip">Demo download</a></p>
+<h3 id="new-and-modified-files">New and Modified Files</h3>
+<p>This chapter adds a few more files to the series demo. This includes:</p>
+<ul>
+<li>hal/tss.h</li>
+<li>hal/tss.cpp
+<ul>
+<li>Includes TSS routines described in this chapter</li>
+</ul>
+</li>
+<li>hal/user.cpp
+<ul>
+<li>Includes user mode switching routines</li>
+</ul>
+</li>
+</ul>
+<p>This chapter also modifies the following files:</p>
+<ul>
+<li>kernel/mmngr_virtual.cpp
+<ul>
+<li>vmmngr_initialize has been updated to allow kernel pages to be user accessable</li>
+</ul>
+</li>
+<li>hal/hal.h/cpp
+<ul>
+<li>set_vect() has been modified with an added second paramater</li>
+</ul>
+</li>
+<li>hal/gdt.h
+<ul>
+<li>MAX_DESCRIPTORS has been redefined to 6 for the added GDT entries</li>
+</ul>
+</li>
+<li>hal/gdt.cpp
+<ul>
+<li>Upgraded to include the installation of the user mode descriptors</li>
+</ul>
+</li>
+<li>kernel/main.cpp
+<ul>
+<li>Updated to reflect new changes</li>
+</ul>
+</li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>Welcome to user land!</p>
+<p>Now we have everything that is needed to switch between user land and kernel land. With this, we now have the capability of mapping user mode pages, loading, and running a program in usermode. We dont quite have the capability of returning back to the kernel of the OS in a nice way do to the system not managing tasks. We will look at this in the next chapter.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T23.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>
