@@ -1,0 +1,628 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Enabling A20 | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Enabling A20 | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="enabling-a20">Enabling A20</h1>
+
+<p>we have looked at how to switch the processor into a 32 bit mode. We also learned how we can access up to 4 GB of memory. This is great--but, <strong>how</strong>?</p>
+<p>Also, remember that the PC boots into real mode, which has the limitation of 16 bit registers. And, hence, 16 bit segment addressing. This limits the amount of memory you can access in real mode. Because of this, we still cannot access even up to 1 GB of memory yet. Heck, we cannot even go passed the 1 MB barrier yet! What to do? We have to enable the 20th address line. This will require direct hardware programming, so we will talk about that as well.</p>
+<p>So, This is what's on the menu:</p>
+<ul>
+<li>Direct Hardware Programming - Theory</li>
+<li>Direct Hardware Programming and Controllers</li>
+<li>Keyboard Controller Programming - Basics</li>
+<li>Enabling A20</li>
+<li>Pizza 😁</li>
+</ul>
+<p><strong>Do to the use of high level languages, like C, being able to access more then 1 MB of memory can be critical. Because of this, enabling A20 (Address line 20) will be important!</strong></p>
+<p><strong>Note: Remember that we cannot access over 1 MB yet! Doing so will cause a triple fault.</strong></p>
+<p>Also, because we are going to go over direct hardware programming, this tutorial will be a little more complicated then previous ones. Don't worry - You will get more experience with direct hardware programming later when we develop device drivers for the Kernel.</p>
+<p><em>Ready?</em></p>
+<h2 id="get-ready">Get Ready</h2>
+<p>For those who have been with me this far, I am certain you know how hard OS development is. However, we have not touched anything close to hard. All of the concepts listed here is still very basic, and yet quite advanced. However: <strong>Things are only going to get much more harder.</strong></p>
+<p>Every single controller must be programmed a special way in order to work correctly. For example, to write (or read) a hard drive, you must first determine if it is an IDE or SCSI drive. Then, you have to determine the drive number it is, and program it using either the <strong>IDE Controller</strong> or <strong>SCSI Controller</strong>, which control the IDE and SCSI connections, respectively. Both of these controllers are different.</p>
+<p>To add more complexity, a &quot;Sector&quot; might not be 512 bytes. Hence, &quot;Reading and writing sectors&quot; is vague.</p>
+<p>Then comes memory management and fragmentation. This is where <strong>Paging</strong>, <strong>Virtual Address Space</strong>, and the <strong>Memory Management Unit (MMU)</strong> comes into play.</p>
+<p>Reading and writing any drive is very different then any other drive. This is even true at the bootsector level. The typical format and file system is different between media, so code that boots from a FAT12 floppy will <strong>Not</strong> work to boot a CDFS Filesystem CD ROM. By Abstracting hardware specific (And low level code), we can make most of the code, however, work for these devices.</p>
+<p>When we say &quot;Write a file to hard drive&quot;, we normally don't want to define what a &quot;file&quot; is, because we shouldn't. We shouldn't have to worry about what controller to read to/from, nor the exact location on disk. <strong>This is why abstraction is <em>very</em> important!</strong></p>
+<p>Everything here is primarily for protected mode (i.e., it is 32 bit code), although it will work in real mode as well. Because of this, remember the rule of protected mode: <strong>No interrupts are available! The use of any interrupt will cause a triple fault</strong></p>
+<p>...Hence, you are <strong>Completely</strong> on your own.</p>
+<h2 id="kernel-debugging">Kernel Debugging</h2>
+<p>Debugging is an art form. It provides a way of trapping problems, and fixing errors through software before they become serious. <strong>Kernel Debugging</strong> relates to debugging kernel-level Ring 0 programs. This is never an easy task.</p>
+<h3 id="debuggers-in-high-level-languages">Debuggers in High Level Languages</h3>
+<p>Most debuggers in languages, like C and C++, provide a way of displaying variable and routine names, and their values, locations, etc during runtime. The problem? We don't have any symbolic names yet in any of our programs. We are still working at the <strong>Binary</strong> level.</p>
+<p>What this means is that we need a debugger that could work and display memory directly. Bochs has a debugger just for us.</p>
+<h3 id="bochs-debugger">Bochs Debugger</h3>
+<p>Bochs comes with a debugger called <strong>bochsdbg.exe</strong>. When you launch it, you will be given the same startup screen from Bochs.exe. Load your configuration file, and start the emulation.</p>
+<p>Bochs debugger and display window will now appear, and you should see the line:</p>
+<pre><code class="lang-bash">    [0x000ffff0] f000:fff0 (unk. ctxt): jmp f000:e05b         ; ea5be000f0
+    &lt; bochs:1&gt; _
+</code></pre>
+<p>In the second line, bochs tells you the number of commands sent to it (In this case, this is the first command, so a 1 is displayed). You can type your commons here.</p>
+<p>The first line is the important line. It tells you the current instruction, absolute address, and seg:offset address. It also gives you the machine language <strong>Operation Code (Opcode)</strong> equivalent.</p>
+<h4 id="help-command">HELP command</h4>
+<p>The <strong>help</strong> command gives you a list of available commands.</p>
+<h4 id="break-command">BREAK command</h4>
+<p>The <strong>b (break)</strong> command allows you to set breakpoints at addresses in memory. For example, if we are trying to debug our OS, we need to start at the bootloader (07c00:0). However, Bochs Debugger starts where the BIOS is at. Because of this, we will need to set a breakpoint to 0x7c00:0, and continue execution until that breakpoint is reached:</p>
+<pre><code class="lang-bash">    // BIOS is at 0xea5be000f0
+    [0x000ffff0] f000:fff0 (unk. ctxt): jmp f000:e05b
+    &lt; bochs:1&gt; b 0x7c00                     // Sets the breakpoint to 0x7c00:0
+    &lt; bochs:2&gt; c                            // Continue execution
+    &lt; 0&gt; Breakpoint 1, 0x7c00 in ?? &lt; &gt;     // Our breakpoint is hit
+    Next at t=834339
+                                // We are now at our bootloaders first instruction
+    &lt; 0&gt; [0x00007c00] 0000:7c00 (unk. ctxt): jmp 7cb5         ; e9b200/DIV&gt;
+</code></pre>
+<p>The above tells us that our main() function in our bootloader is at 0x7cb5. This makes since because, remember that the OEM Parameter Block is between this jump instruction, and the start of main().</p>
+<p>Knowing that the bootloader loads stage 2 at 0x500, lets break to it:</p>
+<pre><code class="lang-armasm">    &lt; bochs:3&gt; b 0x500
+    &lt; bochs:4&gt; c
+    &lt; 0&gt; Breakpoint 2, 0x500 in ?? &lt; &gt;
+    Next at t=934606
+    &lt;0&gt; [0x000000500] 0050:0000 (ink. ctxt): jmp 00a0        ; e99d00
+    &lt; bochs:5&gt; _
+</code></pre>
+<p>Now, we are at the beginning of stage 2, and could follow the debugger with our assembly file! Cool, huh? Best of all, you can see the window dynamically update to display the output of your system.</p>
+<h4 id="single-step">Single Step</h4>
+<p>The <strong>s (Single Step)</strong> command is used to walk through one instruction at a time:</p>
+<pre><code class="lang-bash">    &lt; bochs:6&gt; s
+    Next at t=934607
+    &lt;0&gt; [0x0000005a0] 0050:00a0 (ink. ctxt): cli             ; fa
+    &lt; bochs:7&gt; s
+    Next at t=934608
+    &lt;0&gt; [0x0000005a1] 0050:00a1 (ink. ctxt): xor AX, AX      ; 31c0
+    &lt; bochs:8&gt; _
+</code></pre>
+<h4 id="dump_cpu">dump_cpu</h4>
+<p>This command displays the current value of all cpu registers, including RFLAGS, General Purpose, Test, Debug, Control, and Segment registers. It also includes GDTR, IDTR, LDTR, TR, and EIP.</p>
+<h4 id="print_stack">print_stack</h4>
+<p>This displays the current values of the stack. This is critical considering that we use the stack very often.</p>
+<p>There are more commands then this, however these are the most useful. Learning how to use the debugger is very important, especially in the early stages like we are in now.</p>
+<h2 id="direct-hardware-programming---theory">Direct Hardware Programming - Theory</h2>
+<p>This is where things start getting very hard in operating system development.</p>
+<p>&quot;Direct hardware programming&quot; simply refers to communicating directly (and controlling) individual chips. As long as these chips are programmable (In some way), we can control them.</p>
+<p>In [Tutorial 7] (fix link), we took a very detailed look at how the system works. We also talked about how software ports work, port mapping, the IN and OUT instructions, and I gave a huge table with common port mappings on x86 architectures.</p>
+<p>Remember that, whenever the processor receives an <strong>IN</strong> or <strong>OUT</strong> instruction, It enables the <strong>I/O Access Line</strong> on the <strong>Control Bus</strong>, which, of course, is part of the <strong>System Bus</strong>, in the <strong>Motherboards North Bridge</strong>. Because the system bus is connected to both the <strong>Memory Controller</strong> and <strong>I/O Controller</strong>, both controllers listen for specific addresses and activated lines in the control bus. If the <strong>I/O Access line</strong> is set electricity runs through it--which means it is active (1), The I/O controller takes the address.</p>
+<p>The I/O Controller then gives the port address to every other device, and awaits a signal from a controller chip (meaning that it belongs to some device--so give whatever data to that device). If no controller chip responds, and the port address is set back, it is ignored.</p>
+<p>This is how port mapping works. (Please see [Tutorial 7] (fix link) for more detail.)</p>
+<p>Also, remember that a single controller chip may be assigned a range of port addresses. Port addresses are assigned by the BIOS POST, even before the BIOS is loaded and executed. Why? A lot of devices need different types of information. Some ports may represent &quot;registers&quot;, while others may be &quot;data&quot; or &quot;ready&quot; ports. It's ugly, I know. But it gets worse. On different systems, port addresses may vary widely. Because x86 architectures are backwards compatible, basic devices (Such as keyboards and mice) are usually always the same address. More complex devices, however, may not be.</p>
+<h2 id="direct-hardware-programming-and-controllers">Direct Hardware Programming and Controllers</h2>
+<p>To better understand how everything works, lets look at controllers. After all, we will be talking to them a lot--especially in protected mode.</p>
+<p>Many PCs are based off of the early <strong>Intel 8042 Microcontroller chip</strong>. This controller chip is either embedded as an IC (Integrated Circuit) chip, or directly in the motherboard. It is usually located in the <strong>South Bridge</strong>.</p>
+<p>This microcontroller communicates through a cord connecting to your keyboard, to another microcontroller chip in your keyboard.</p>
+<p>When you press a key on the keyboard, It presses down on a rubber dome setting beneath the key itself. On the underside of the rubber dome is a conductive contact that, when pressed down, comes in contact with two conductive contacts on the keyboard circuit. Because of this, current can flow through. Each key is connected by a pair of electrical lines. As each signal changes (Depending on weather keys are pressed), a make code is generated (From the series of lines). This make code is sent to the microcontroller chip inside of the keyboard, and sent through the cord connecting to the computer hardware port. It is sent through as a series of on and off electrical pulses. Depending on the clock cycles, each pulse can be converted to a series of bits representing a bit pattern.</p>
+<p>We are on the motherboard. This series of bits goes through the south bridge as electrical signals, all the way to the 8042 microcontroller. This microcontroller decodes the make code into a scan code, and stores it within an internal register. That is, our buffer. The internal registers can be an EEPROM chip, or similar, so we can electrically overwrite the data whenever we want.</p>
+<p>When booting, the BIOS POST assigns each device (Through the I/O Controller) port addresses. It does this by querying the devices. In the usual case, the BIOS POST sets this internal register at port address 0x60. This means, <strong>Whenever we reference port 0x60, we are requesting to read from this internal register.</strong></p>
+<p>You know the rest of the story regarding port mapping, and IN/ OUT instructions, so lets read from that register:</p>
+<pre><code class="lang-armasm">in al, 0x60        ; get byte from 8042 microcontroller input register
+</code></pre>
+<p>As you can probably guess, <strong>The 8042 Microcontroller is the Keyboard Controller</strong>. By communicating with the various of registers with the chip, we can read input from the keyboard, map scan codes, even several other things: <strong>Like enabling A20.</strong></p>
+<p>You might be wondering why you have to communicate to the keyboard controller to enable A20. We will look at this next.</p>
+<h2 id="gate-a20---theory">Gate A20 - Theory</h2>
+<p>Finally we cover A20. I know, I know...Most of this tutorial so far covers other topics that are not directly related to A20. However, I wanted to start with the basics of direct hardware programming first before going into A20..as enabling A20 requires it, along with any microcontroller programming.</p>
+<p>Enabling the A20 line may require programming the keyboard microcontroller. Because of this, I will cover a little bit about programming the keyboard controller but will not go into keyboard programming just yet.</p>
+<h3 id="a-little-history">A little history</h3>
+<p>When IBM designed the <strong>IBM PC AT</strong> machines, it used their newer <strong>Intel 80286 microprocessor</strong>, which was not entirely compatible with previous x86 microprocessors when in real mode. The problem? The older x86 processors <strong>did not</strong> have address lines A20 through A31. They did not have an address bus that size yet. <strong>Any programs that go beyond the first 1 MB would appear to wrap around.</strong> While it worked back then, the 80286's address space required 32 address lines. However, if all 32 lines are accessible, we get the wrapping problem again.</p>
+<p>To fix this problem, Intel put a logic gate on the 20th address line between the processor and system bus. This logic gate got named <strong>Gate A20</strong>, as it can be enabled and disabled. For older programs, it an be disabled for programs that rely on the wrap around, and enabled for newer programs.</p>
+<p><strong>When booting, the BIOS enables A20 when counting and testing memory, and then disables it again before giving our operating system control.</strong></p>
+<p>There are a lot of ways to enable A20. By enabling the A20 gate, we have access to all 32 lines on the address bus, and hence, can reference 32 bit addresses, or up to 0xFFFFFFFF - 4 GB of memory.</p>
+<p>The Gate A20 is an electronic OR gate that was originally connected to the P21 electrical line of the 8042 microcontroller (The keyboard controller). This gate is an output line that is treated as <strong>Bit 1</strong> of the output port data. We can send a command to receive this data and even modify it. By setting this bit, and writing the output line data we can have the microcontroller set the OR gate thus enabling the A20 line. We can either do this ourselves directly or indirectly. We will look more in the next section.</p>
+<p>During bootup, the BIOS enables the A20 line to test the memory. After the memory test, the BIOS disables the A20 line to retain compatibility with older processors. Because of this, by default, the A20 line is disabled for our operating system.</p>
+<p>There can be several different ways to re-enable gate A20 depending on the motherboard configuration. Because of this, I will cover several different more common methods to enable A20.</p>
+<p>Lets look at this next. 😉</p>
+<h2 id="gate-a20---enabling">Gate A20 - Enabling</h2>
+<p>Remember that there are a lot of different ways to enable A20. If you are wanting to just get your system working, all you need to do is use a method that works for you. If portability is a requirement, you may be required to use a mixture of methods.</p>
+<h3 id="method-1-system-control-port-a">Method 1: System Control Port A</h3>
+<p>This is a very fast, yet less portable method of enabling the A20 address line.</p>
+<p>Sone systems, including MCA and EISA we can control A20 from the system control port I/O 0x92. The exact details and functions of port 0x92 vary greatly by manufacturer. There are several bits that are commonly used though:</p>
+<ul>
+<li><strong>Bit 0</strong> - Setting to 1 causes a fast reset (Used to switch back to real mode)</li>
+<li><strong>Bit 1</strong> - 0: disable A20; 1: enable A20</li>
+<li><strong>Bit 2</strong> - Manufacturer defined</li>
+<li><strong>Bit 3</strong> - power on password bytes (CMOS bytes 0x38-0x3f or 0x36-0x3f). 0: accessible, 1: inaccessible</li>
+<li><strong>Bits 4-5</strong> - Manufacturer defined</li>
+<li><strong>Bits 6-7</strong> - 00: HDD activity LED off; any other value is &quot;on&quot;</li>
+</ul>
+<p>Here is an example that enables A20 using this method:</p>
+<pre><code class="lang-armasm">mov    al, 2    ; set bit 2 (enable a20)
+out    0x92, al
+</code></pre>
+<p>Notice there is a lot of other things we can do with this port:</p>
+<pre><code class="lang-armasm">mov    al, 1    ; set bit 1 (fast reset)
+out    0x92, al
+</code></pre>
+<p>This method seems to work with Bochs as well.</p>
+<div class="WARNING">
+<h5>Warning</h5>
+<p>While this is one of the easier methods, I have seen this method conflict with some other hardware devices. It would normally cause the system to halt. If you want to use this method (and it works for you), I would stick with using it, but please keep this in mind.</p>
+</div>
+<h4 id="other-ports">Other Ports</h4>
+<p>I feel that I should mention that some systems allow the use of other I/O ports to enable and disable A20.</p>
+<p>The most common of these are I/O port 0xEE. If I/O port 0xEE (&quot;FAST A20 GATE&quot;) is enabled on these systems, reading from this port enables A20, and writing to it disables A20. A similar effect occurs for port 0xEF (&quot;FAST CPU RESET&quot;) as well for resetting the system.</p>
+<p>Other systems may use different ports (i.e.; AT&amp;T 6300+ needs a write of 0x90 to I/O port 0x3f20 to enable A20, and a write of 0 to disable A20). There are also rumors of systems that exist that use bit 2 of I/O port 0x65 or bit 0 of I/O port 0x1f8 for enabling and disabling A20 (0: disable, 1: enable).</p>
+<p>As you can see, there are a lot of headaches when it comes to working with A20. The only way to be sure is with your motherboard manufacturer.</p>
+<h3 id="method-2-bios">Method 2: Bios</h3>
+<p>A lot of Bioses make interrupts available for enabling and disabling A20.</p>
+<h4 id="bochs-support">Bochs Support</h4>
+<p>It seems some versions of Bochs recognizes these methods but it may not be supported on some versions of Bochs.</p>
+<h4 id="int-0x15-function-2400---disable-a20">INT 0x15 Function 2400 - Disable A20</h4>
+<p>This function disables the A20 gate. It is very easy to use:</p>
+<pre><code class="lang-armasm">mov  ax, 0x2400
+int  0x15
+</code></pre>
+<p>Returns:CF = clear if success<br>
+AH = 0<br>
+CF = set on error<br>
+AH = status (01=keyboard controller is in secure mode, 0x86=function not supported)</p>
+<h4 id="int-0x15-function-2401---enable-a20">INT 0x15 Function 2401 - Enable A20</h4>
+<p>This function enables the A20 gate.</p>
+<pre><code class="lang-armasm">mov ax, 0x2401
+int 0x15
+</code></pre>
+<p>Returns:CF = clear if success<br>
+AH = 0<br>
+CF = set on error<br>
+AH = status (01=keyboard controller is in secure mode, 0x86=function not supported)</p>
+<h4 id="int-0x15-function-2402---a20-status">INT 0x15 Function 2402 - A20 Status</h4>
+<p>This function returns the current status of the A20 gate.</p>
+<pre><code class="lang-armasm">mov ax, 0x2402
+int 0x15
+</code></pre>
+<p>Returns:CF = clear if success<br>
+AH = status (01: keyboard controller is in secure mode; 0x86: function not supported)<br>
+AL = current state (00: disabled, 01: enabled)<br>
+CX = set to 0xffff is keyboard controller is no ready in 0xc000 read attempts<br>
+CF = set on error</p>
+<h4 id="int-0x15-function-2403---query-a20-support">INT 0x15 Function 2403 - Query A20 support</h4>
+<p>This function is used to query the system for A20 support.</p>
+<pre><code class="lang-armasm">mov ax, 0x2403
+int 0x15
+</code></pre>
+<p>Returns:CF = clear if success<br>
+AH = status (01: keyboard controller is in secure mode; 0x86: function not supported)<br>
+BX = status.</p>
+<p>BX contains a bit pattern:</p>
+<ul>
+<li><strong>Bit 0</strong> - 1 if supported on keyboard controller</li>
+<li><strong>Bit 1</strong> - 1 if supported on bit 1 of I/O port 0x92</li>
+<li><strong>Bits 2-14</strong> - Reserved</li>
+<li><strong>Bit 15</strong> - 1 if additional data is available.</li>
+</ul>
+<h3 id="method-3-keyboard-controller">Method 3: Keyboard Controller</h3>
+<p>This is probably the most common method of enabling A20. Its quite easy, but requires some knowledge of programming the keyboard microcontroller. This will be the method I will be using as it seems it is also the most portable. Because this requires some knowledge of programming the keyboard microcontroller, we should look at that a little bit first.</p>
+<p>This is also the reason why I wanted to cover hardware programming first. This will be our first glimpse into direct hardware programming, and what it is all about. Don't worry, it's not too bad 😉 It can get quite complex at times though 😁</p>
+<h4 id="8043-keyboard-controller---port-mapping">8043 Keyboard Controller - Port Mapping</h4>
+<p>Remember that -- in order for us to communicate with this controller, we must know what I/O ports the controller uses.</p>
+<p>This controller has the following port mapping:</p>
+<h5 id="port-mapping-table">PORT MAPPING table</h5>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Read/Write</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x60</td>
+<td>Read</td>
+<td>Read Input Buffer</td>
+</tr>
+<tr>
+<td>0x60</td>
+<td>Write</td>
+<td>Write Output Buffer</td>
+</tr>
+<tr>
+<td>0x64</td>
+<td>Read</td>
+<td>Read Status Register</td>
+</tr>
+<tr>
+<td>0x64</td>
+<td>Write</td>
+<td>Send Command to controller</td>
+</tr>
+</tbody>
+</table>
+<p>We send commands to this controller by writing the command byte to I/O Port 0x64. If the command accepts a parameter, this parameter is sent to port 0x60. Likewise, any results returned by the command may be read from port 0x60.</p>
+<p>We must note that the keyboard controller itself is quite slow. Because our code will be executing faster then the keyboard controller, we must provide a way to wait for the controller to be ready before we continue on.</p>
+<p>This is usually done by querying for the controllers status. If this seems confusing, don't worry--everything will be clear soon enough.</p>
+<h4 id="8043-keyboard-controller-status-register">8043 Keyboard Controller Status Register</h4>
+<p>Okay, how do we get the status of the controller? Looking at the table above, we can see that we must read from I/O port 0x64. The value read from this register is an 8 bit value that follows a specific format. Here it is...</p>
+<ul>
+<li><strong>Bit 0: Output Buffer Status</strong>
+<ul>
+<li>0: Output buffer empty, don't read yet</li>
+<li>1: Output buffer full, please read me 😁</li>
+</ul>
+</li>
+<li><strong>Bit 1: Input Buffer Status</strong>
+<ul>
+<li>0: Input buffer empty, can be written</li>
+<li>1: Input buffer full, don't write yet</li>
+</ul>
+</li>
+<li><strong>Bit 2:</strong> System flag
+<ul>
+<li>0: Set after power on reset</li>
+<li>1: Set after successful completion of the keyboard controllers self-test (Basic Assurance Test, BAT)</li>
+</ul>
+</li>
+<li><strong>Bit 3:</strong> Command Data
+<ul>
+<li>0: Last write to input buffer was data (via port 0x60)</li>
+<li>1: Last write to input buffer was a command (via port 0x64)</li>
+</ul>
+</li>
+<li><strong>Bit 4:</strong> Keyboard Locked
+<ul>
+<li>0: Locked</li>
+<li>1: Not locked</li>
+</ul>
+</li>
+<li><strong>Bit 5:</strong> Auxiliary Output buffer full
+<ul>
+<li>PS/2 Systems:
+<ul>
+<li>0: Determines if read from port 0x60 is valid If valid, 0=Keyboard data</li>
+<li>1: Mouse data, only if you can read from port 0x60</li>
+</ul>
+</li>
+<li>AT Systems:
+<ul>
+<li>0: OK flag</li>
+<li>1: Timeout on transmission from keyboard controller to keyboard. <strong>This may indicate no keyboard is present.</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>Bit 6:</strong> Timeout
+<ul>
+<li>0: OK flag</li>
+<li>1: Timeout</li>
+<li>PS/2:
+<ul>
+<li>General Timeout</li>
+</ul>
+</li>
+<li>AT:
+<ul>
+<li>Timeout on transmission from keyboard to keyboard controller. <strong>Possibly parity error (In which case both bits 6 and 7 are set)</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>Bit 7:</strong> Parity error
+<ul>
+<li>0: OK flag, no error</li>
+<li>1: Parity error with last byte</li>
+</ul>
+</li>
+</ul>
+<p>As you can see, there is a lot going on here! The important bits are bolded above--they will tell us if the controllers output or input buffers are full or not.</p>
+<p>Here is an example. Lets say we send a command to the controller. This is placed in the controllers input buffer. So, as long as this buffer is still full, we know our command is still being performed. Here is what our code might look like:</p>
+<pre><code class="lang-armasm">wait_input:
+    in      al,0x64        ; read status register
+    test    al,2           ; test bit 2 (Input buffer status)
+    jnz     wait_input     ; jump if its not 0 (not empty) to continue waiting
+</code></pre>
+<p>We will be needing to do this for both the input and output buffers.</p>
+<p>Now that we are able to wait for the controller, we must be able to actually tell the controller what we need it to do. This is done through command bytes. Lets take a look!</p>
+<h4 id="8043-keyboard-controller-command-register">8043 Keyboard Controller Command Register</h4>
+<p>Looking back at the I/O port table, we can tell that we need to write to I/O Port 0x64 to send commands to the controller.</p>
+<p>The keyboard controller has <strong>a lot</strong> of commands. Because this is not a tutorial on keyboard programming, I will not list them all here. However, I will list the more important ones:</p>
+<h5 id="keyboard-controller-commands-table">KEYBOARD CONTROLLER COMMANDS Table</h5>
+<table>
+<thead>
+<tr>
+<th>Keyboard Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x20</td>
+<td>Read Keyboard Controller Command Byte</td>
+</tr>
+<tr>
+<td>0x60</td>
+<td>Write Keyboard Controller Command Byte</td>
+</tr>
+<tr>
+<td>0xAA</td>
+<td>Self Test</td>
+</tr>
+<tr>
+<td>0xAB</td>
+<td>Interface Test</td>
+</tr>
+<tr>
+<td>0xAD</td>
+<td>Disable Keyboard</td>
+</tr>
+<tr>
+<td>0xAE</td>
+<td>Enable Keyboard</td>
+</tr>
+<tr>
+<td>0xC0</td>
+<td>Read Input Port</td>
+</tr>
+<tr>
+<td>0xD0</td>
+<td>Read Output Port</td>
+</tr>
+<tr>
+<td>0xD1</td>
+<td>Write Output Port</td>
+</tr>
+<tr>
+<td>0xDD</td>
+<td>Enable A20 Address Line</td>
+</tr>
+<tr>
+<td>0xDF</td>
+<td>Disable A20 Address Line</td>
+</tr>
+<tr>
+<td>0xE0</td>
+<td>Read Test Inputs</td>
+</tr>
+<tr>
+<td>0xFE</td>
+<td>System Reset</td>
+</tr>
+</tbody>
+</table>
+<h5 id="mouse-controller-commands-table">Mouse CONTROLLER COMMANDS Table</h5>
+<table>
+<thead>
+<tr>
+<th>Mouse Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0xA7</td>
+<td>Disable Mouse Port</td>
+</tr>
+<tr>
+<td>0xA8</td>
+<td>Enable Mouse Port</td>
+</tr>
+<tr>
+<td>0xA9</td>
+<td>Test Mouse Port</td>
+</tr>
+<tr>
+<td>0xD4</td>
+<td>Write to mouse</td>
+</tr>
+</tbody>
+</table>
+<p>Again, please take note there are <strong>a lot</strong> more commands then this. We will look at them all later, don't worry 😁</p>
+<h4 id="method-31-enabling-a20-through-keyboard-controller">Method 3.1: Enabling A20 through keyboard controller</h4>
+<p>Notice the command bytes <strong>0xDD</strong> and <strong>0xDF</strong> in the above table. This is one way to enable A20 using the keyboard controller:</p>
+<pre><code class="lang-armasm">; Method 3.1: Enables A20 through keyboard controller
+mov   al, 0xdd    ; command 0xdd: enable a20
+out   0x64, al    ; send command to controller
+</code></pre>
+<p>Not all keyboard controllers support this function. If it works, I would stick with it for its simplicity 😉</p>
+<h4 id="method-32-enabling-a20-through-output-port">Method 3.2: Enabling A20 through Output Port</h4>
+<p>Yet <em>another</em> method of enabling A20 is through the keyboard controllers output port. To do this, we need to use commands D0 and D1 to read and write the output port (Please see the <strong>Keyboard Controller Commands</strong> table again for reference.)</p>
+<p>This method is a little bit more complex then the other methods, but it is not too bad. Basically, we can disable the keyboard and read the output port from the controller. The 8042 contains thee ports: One is input, the other is output. Oh right... The third is for testing. These &quot;ports&quot; are just the hardware pins on the microcontroller.</p>
+<p>To keep things simple (And because this isn't a keyboard programming tutorial), we will just look at the output port for now.</p>
+<p>Okay... read from the output port, simply send the... erm ...read output port command (0xD0) to the controller: (Please see the keyboard controller commands table for reference)</p>
+<pre><code class="lang-armasm">; read output port into al
+mov     al,0xD0
+out     0x64,al
+</code></pre>
+<p>Now we have gotten the output port data. Great, but that isn't very useful, is it? Well, actually the output port data follows ..yet again.. a specific bit format.</p>
+<p><em>Lets take a look...</em></p>
+<ul>
+<li><strong>Bit 0: System Reset</strong>
+<ul>
+<li>0: Reset computer</li>
+<li>1: Normal operation</li>
+</ul>
+</li>
+<li><strong>Bit 1: A20</strong>
+<ul>
+<li>0: Disabled</li>
+<li>1: Enabled</li>
+</ul>
+</li>
+<li><strong>Bit 2-3:</strong> Undefined</li>
+<li><strong>Bit 4:</strong> Input buffer full</li>
+<li><strong>Bit 5:</strong> Output Buffer Empty</li>
+<li><strong>Bit 6:</strong> Keyboard Clock
+<ul>
+<li>0: High-Z</li>
+<li>1: Pull Clock Low</li>
+</ul>
+</li>
+<li><strong>Bit 6:</strong> Keyboard Data
+<ul>
+<li>0: High-Z</li>
+<li>1: Pull Data Low</li>
+</ul>
+</li>
+</ul>
+<p>Most of these bits we do not want to change. Setting bit 0 to 1 resets the computer; setting bit 1 enables gate A20. You should OR this value to set the bit to insure none of the other bits get touched. After setting the bit, just write the value back (Command byte 0xD1).</p>
+<p><strong>The commands used to read and write the output port use the input and output buffers of the controller for its data.</strong></p>
+<p>This means, if we read the output port, the data read will be in the controllers input buffer register. Looking back at the I/O port table, this means to get the data we read from I/O port 0x60.</p>
+<p>Lets look at an example. During any read or write operation, we will want to wait for the controller to be ready. <strong>wait_input</strong> waits for the input buffer to be empty, while <strong>wait_output</strong> waits for the output buffer to be empty.</p>
+<pre><code class="lang-armasm">; send read output port command
+mov     al,0xD0
+out     0x64,al
+call    wait_output
+
+; read input buffer and store on stack. This is the data read from the output port
+in      al,0x60
+push    eax
+call    wait_input
+
+; send write output port command
+mov     al,0xD1
+out     0x64,al
+call    wait_input
+
+; pop the output port data from stack and set bit 1 (A20) to enable
+pop     eax
+or      al,2        ; 2 = 10 binary
+out     0x60,al     ; write the data to the output port.
+                    ; This is done through the output buffer
+</code></pre>
+<p>That's all there is to it! 😁 This method is a bit more complex then the other methods, but it is also the most portable.</p>
+<h3 id="cautions-to-look-out-for">Cautions to look out for</h3>
+<p>Because of it's emulation, most of these do not apply with Bochs, but to real hardware instead.</p>
+<h4 id="controller-executes-the-wrong-command">Controller executes the wrong command</h4>
+<p>If the controller executes the wrong command, it will usually do something you don't want. Like, perhaps, read data from a port instead of write data, which may corrupt your data. For example, using <strong>in al, 0x61</strong> instead of <strong>in al, 0x60</strong>, which will read from a different register in the keyboard microcontroller, instead of the status register (Port 0x60).</p>
+<h4 id="unknown-controller-command">Unknown Controller Command</h4>
+<p>Most controllers ignore commands it does not know, and just discards it (Clears it's command register, if any.)</p>
+<p>Some controllers may malfunction, however. Please see the &quot;Malfunction&quot; section for more information.</p>
+<h4 id="controller-malfunctions">Controller Malfunctions</h4>
+<p>This happens rarely, but is possible. Two notable instances are both with the Pentium processor, including the infamous FDIV and foof bugs. The FDIV bug was an internal CPU design flaw, in which the FPU inside the processor gives incorrect results.</p>
+<p>The foof problem is more series. When the processor is given the command bytes 0xf0 0x0f 0xc7 0xc8, which is an example of an <strong>Halt and Catch Fire (HCF)</strong> instruction. (An <strong>Undocumented Instruction</strong>). Most of these instructions may lock up the processor itself, forcing the user to hard reboot. Others may cause unusual side effects from the use of these instructions.</p>
+<p>One should consider these problems that may happen. It does happen, and controllers are no exception. (Remember that we send instruction bytes to individual ports? For example, Port 0x64--The Command Register in the Keyboard Controller).</p>
+<p>Most of these malfunctions can easily be considered &quot;Design Flaws&quot; of the device, though.</p>
+<h4 id="physical-hardware-damage">Physical Hardware damage</h4>
+<p>Although also rare, it is possible to inflict hardware damage through software. An easy example is the floppy drive. You have to control the <strong>floppy drive motor</strong> directly through the <strong>Floppy Drive Controller (FDC)</strong>. Forgetting to send the command to stop the motor can cause the floppy drive to wear out and break. Be careful!</p>
+<h3 id="triple-fault">Triple Fault</h3>
+<p>The microcontroller may signal the primary processor that there is a problem via the Control Bus, in which case the processor signals an exception, which will, of course, reboot the computer.</p>
+<h4 id="controller-problems-in-bochs">Controller problems in Bochs</h4>
+<p>If there is a controller problem, Bochs will provoke a Triple fault, and log the information (The problem) into the log.</p>
+<p>For example, if you try to send an unknown command (Such as 0) to the keyboard controller:</p>
+<pre><code class="lang-armasm">    mov        al, 0x00        ; some random command
+    out        0x64, al        ; try to send command to controller
+</code></pre>
+<p>Bochs will provoke a triple fault, and log the information:</p>
+<pre><code class="lang-armasm">    [KBD   ] unsupported IO write to keyboard port 64, value = 0
+</code></pre>
+<p>&quot;KBD&quot; represents that the log was written by the keyboard controller device.</p>
+<h2 id="demo">Demo</h2>
+<p>All of the A20 code is in <strong>A20.inc</strong>. I wrote several different routines that uses different methods of enabling A20. So if one method fails, try using another method.</p>
+<p>Do to the increase in complexity, I have decided to have this demo downloadable. The current <strong>Stage2.asm</strong> has not changed that much either.</p>
+<p>Because the demo does not display anything new, there is not a new picture to display.</p>
+<p>Download the latest demo (*.ZIP: 8KB) <a href="../../resources/OSDev_tools/Demo2.zip">Here</a>.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Remember: <strong>This is the only way of communicating with hardware in protected mode!</strong> Good bye interrupts. Good bye BIOS. Good bye everything--we are now completely on our own.</p>
+<p>Right now, you can probably start appreciating Windows a little more 😁 After all, they all had to start at our level.</p>
+<p>Don't worry if you do not understand everything yet--It is complicated, I know. When we get to our Kernel, we are going to have an entire tutorial dedicated to programming the keyboard microcontroller, and writing a driver for it.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T9.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

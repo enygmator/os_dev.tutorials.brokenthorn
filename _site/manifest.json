@@ -1,0 +1,1839 @@
+{
+  "homepages": [],
+  "source_base_path": "N:/ENYGMATOR/PROJECTS/BrokenThorn_OS_Dev_Series/BrokenThorn-OS-Dev-Series_(github)/docfx_base",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Resource",
+      "output": {
+        "resource": {
+          "relative_path": "index.json"
+        }
+      },
+      "is_incremental": false
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/1_Overview.html",
+          "hash": "SZ2SQSIArfPdoHe1zThjOA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/2_Programming.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/2_Programming.html",
+          "hash": "WotHWejM9btvY/G+ITWz6Q=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/3_C_lang.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/3_C_lang.html",
+          "hash": "0vCrINpQfTb221eq5C8+1g=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/4_About_OSDev.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/4_About_OSDev.html",
+          "hash": "gDE1rbpV3r2rHi5DN9l1YQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/5_OSDev_setup.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/5_OSDev_setup.html",
+          "hash": "NRttHkVoLrzsViCT1yzxpw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/6_OSDev_History.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/6_OSDev_History.html",
+          "hash": "P7EksUzkzEpPXksPGxyoFQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/01_Intro_to_OSDev/7_Basic_OS_Concepts.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/01_Intro_to_OSDev/7_Basic_OS_Concepts.html",
+          "hash": "H/8zJVNGw4Bns3ifITt+Iw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/02_Bootloader_Stage_1/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/02_Bootloader_Stage_1/1_Overview.html",
+          "hash": "qaRYCkoPINkIA8XdfpEnOQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/02_Bootloader_Stage_1/2_Booting_Process.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/02_Bootloader_Stage_1/2_Booting_Process.html",
+          "hash": "nZvTEFR7aJMPBQrfud8POg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/03_Bootloader_Stage_2/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/03_Bootloader_Stage_2/1_Overview.html",
+          "hash": "iLTptD5HWZjc8Vn4w3npFw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/51_Using_the_Toolchain/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/51_Using_the_Toolchain/1_Overview.html",
+          "hash": "B43EWurAS7WTK/RkBTN8/g=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/1_Overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/1_Overview.html",
+          "hash": "G5XDzSLDx6hFPJFnDUZ3vA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T10.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T10.html",
+          "hash": "NJvpv+GPFsnKCx1qBsn4Xg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T11.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T11.html",
+          "hash": "Asr4/4b2KgVksDxCuEYJrQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T12-13.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T12-13.html",
+          "hash": "QEfxQYDTcb6fgvnlUg7Nig=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T12.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T12.html",
+          "hash": "dR1eXsm/rN9d1pcS7iVHvw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T13.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T13.html",
+          "hash": "vbDaKKLyuetvoe9FBBClUw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T13_1.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T13_1.html",
+          "hash": "2AK/fCOHkaRZKszxEkl9kw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T14-25.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T14-25.html",
+          "hash": "ZCU2G53a5e8DmYkO5VOX8w=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T14.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T14.html",
+          "hash": "ArXhUY0Fm9jYXZyqAo9oRQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T15.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T15.html",
+          "hash": "gBhuUCfFatbMOoGWBaVGmQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T16.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T16.html",
+          "hash": "kIpxIe1Gtzlc62wcrEQ5dA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T17.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T17.html",
+          "hash": "LKJUOB4jqiHac9gjOKGJow=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T18.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T18.html",
+          "hash": "HSFzkekJpEG6qok0HXp2Sg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T19.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T19.html",
+          "hash": "B+KroUkDDkhDfDmnBlp2CQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T20.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T20.html",
+          "hash": "mBXvAGPNrYbbRJNzPKHYlA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T21.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T21.html",
+          "hash": "4VwPM2X6Af30NIOSW4Jh8w=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T22.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T22.html",
+          "hash": "OR3dVLRY98BwM4I7KqluLQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T23.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T23.html",
+          "hash": "NNyeWbm8qVEZGMEGve5LxA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T24.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T24.html",
+          "hash": "kORgFJbzIJz73+m1BwVD5w=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T25.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T25.html",
+          "hash": "/DBQoJD7sWbCz/RSXoj5xQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T3-6.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T3-6.html",
+          "hash": "cb39DQPTT95yQ2Y6BeCmgg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T3.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T3.html",
+          "hash": "3AAt8rc+YOvCSG+gcsui1Q=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T4.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T4.html",
+          "hash": "f0tXfYE0NBkwC/3Djmhc3A=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T5.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T5.html",
+          "hash": "fIR0kF3heVY2IZYr5tYE/A=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T6.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T6.html",
+          "hash": "E+7a+K855yek2eiDyomlBw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T7-11.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T7-11.html",
+          "hash": "Cg423yJtKIpNzSI09bqwwg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T7.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T7.html",
+          "hash": "NwLrdrYl2bm9aerAt2HzwA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T8.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T8.html",
+          "hash": "47X+27Z1VwdKlvCypAXUFw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/T9.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/T9.html",
+          "hash": "h1XU2JM3twqMidbe2/CHTg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z1.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z1.html",
+          "hash": "3pPtW20AAkkZ1WM8PdBRKw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z1a.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z1a.html",
+          "hash": "dd+JKFO8KYSki7qRkSNAIQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z2.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z2.html",
+          "hash": "VVplFlg6qv3jXOd2OGL3Rw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z2a.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z2a.html",
+          "hash": "ZUeS8UZMMtjE/SUzby4ulA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z2b.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z2b.html",
+          "hash": "pZdPN5FpP6XV+xE9iq9lCg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z3.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z3.html",
+          "hash": "rZIA0r9m2yejdOEUxJcI7g=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z3a.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z3a.html",
+          "hash": "VDUFfclBRLaMpDskQuZ+NQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z3b.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z3b.html",
+          "hash": "AlVybANpirwiFjnSCCMjDg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z4.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z4.html",
+          "hash": "2aWLxQ/8mh80VSgU68kbig=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z4a.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z4a.html",
+          "hash": "+VIV3m9aHORQSFo86M6Uaw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z4b.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z4b.html",
+          "hash": "gw4+wqMO88z5mML5zYJ0kw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/61_unorganised_tutorial/Z4c.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/61_unorganised_tutorial/Z4c.html",
+          "hash": "+409kVP/rztEQ/J+BHPGrA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/About/About_BrokenThorn.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/About/About_BrokenThorn.html",
+          "hash": "L5+tUn9Mq84saHZErG1ajA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/About/About_This_Project.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/About/About_This_Project.html",
+          "hash": "t5R8acqUESRoxULARfLQgw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "articles/About/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "articles/About/toc.html",
+          "hash": "s7zZCyKW3zFKjeoQ/HWilQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/Forums.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/Forums.html",
+          "hash": "6U++UVvZxq+7X5TfFadlnw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "articles/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "articles/toc.html",
+          "hash": "8ME7EwhsgkiydhuU1rXBtA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html",
+          "hash": "Y538wzMWYcDMzv2OnvoLog=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo1.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo1.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo11.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo11.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo12.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo12.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo14a.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo14a.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo15a.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo15a.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo2.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo2.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo21a.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo21a.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo25.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo25.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo3.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo3.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo4.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo4.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo5_1.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo5_1.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo6_1.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo6_1.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo7.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo7.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/Demo8.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/Demo8.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/DemoGfx1.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/DemoGfx1.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/demo22.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/demo22.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/demo23.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/demo23.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/demo24.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/demo24.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/OSDev_tools/pcopy02.zip",
+      "output": {
+        "resource": {
+          "relative_path": "resources/OSDev_tools/pcopy02.zip"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/icons/favicon.ico",
+      "output": {
+        "resource": {
+          "relative_path": "resources/icons/favicon.ico"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/8042_3.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/8042_3.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/8042_4.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/8042_4.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/8086_interrupts-11.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/8086_interrupts-11.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/8086_interrupts-18.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/8086_interrupts-18.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/8237a.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/8237a.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/8253.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/8253.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/8272a.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/8272a.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Arch.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Arch.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Bochs.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Bochs.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/DOS[1].gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/DOS[1].gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Demo16.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Demo16.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Fdcinpc.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Fdcinpc.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Hybrid.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Hybrid.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Inside_of_keyboard.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Inside_of_keyboard.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Intel-D8259A-2.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Intel-D8259A-2.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Intel-D8272A.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Intel-D8272A.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Intel-P8253-5.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Intel-P8253-5.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Krnl1.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Krnl1.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/MSVCBoot.jpeg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/MSVCBoot.jpeg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/MemFrag.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/MemFrag.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Microkernel.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Microkernel.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Monolithic.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Monolithic.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/OSDevVid2_html_4142b2d0.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/OSDevVid2_html_4142b2d0.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/OSDevVid2_html_4db38949.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/OSDevVid2_html_4db38949.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/OSDevVid2_html_m331d1b82.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/OSDevVid2_html_m331d1b82.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/P3chiplarg.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/P3chiplarg.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/PEload.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/PEload.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Project.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Project.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Project1_a.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Project1_a.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/SHARE.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/SHARE.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Text1.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Text1.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Tutorial10.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Tutorial10.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/VFD.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/VFD.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Windows1.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Windows1.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Windows2.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Windows2.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/Windows3.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/Windows3.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/bankSwitch.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/bankSwitch.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/boot.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/boot.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/ch23.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/ch23.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/chapt19_demo.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/chapt19_demo.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/crt.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/crt.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/cylinder.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/cylinder.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/demo21.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/demo21.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/demo22.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/demo22.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/demo25.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/demo25.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/demo25_fix.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/demo25_fix.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/demo25_problem.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/demo25_problem.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/dmac-x86.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/dmac-x86.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/favicon.svg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/favicon.svg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/fdc.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/fdc.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/fddcable.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/fddcable.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/flpy.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/flpy.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/fpdin1.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/fpdin1.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/header_left.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/header_left.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/intGen.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/intGen.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/intStarting.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/intStarting.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/memory.jpeg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/memory.jpeg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/mode13h.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/mode13h.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/mode13hDem.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/mode13hDem.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/osdev24.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/osdev24.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/osdev24_html_27b37f61.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/osdev24_html_27b37f61.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/osdev24_html_3f0ec2da.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/osdev24_html_3f0ec2da.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/osdev25_a.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/osdev25_a.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/osdev25_b.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/osdev25_b.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/paging.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/paging.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/paging2.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/paging2.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/pixel.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/pixel.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/planer.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/planer.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/platter[1].gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/platter[1].gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/pmm.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/pmm.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/sdl.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/sdl.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/seg.gif",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/seg.gif"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/spindin1.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/spindin1.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/vintage-computer.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/vintage-computer.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/virtual-memory[1].png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/virtual-memory[1].png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/vmem.png",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/vmem.png"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "resources/images/vram.jpg",
+      "output": {
+        "resource": {
+          "relative_path": "resources/images/vram.jpg"
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html",
+          "hash": "U51z/XXlo1K50IJW8d6joQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    }
+  ],
+  "incremental_info": [
+    {
+      "status": {
+        "can_incremental": true,
+        "incrementalPhase": "build",
+        "total_file_count": 0,
+        "skipped_file_count": 0
+      },
+      "processors": {
+        "ConceptualDocumentProcessor": {
+          "can_incremental": true,
+          "incrementalPhase": "build",
+          "total_file_count": 56,
+          "skipped_file_count": 56
+        },
+        "ResourceDocumentProcessor": {
+          "can_incremental": false,
+          "details": "Processor ResourceDocumentProcessor cannot support incremental build because the processor doesn't implement ISupportIncrementalDocumentProcessor interface.",
+          "incrementalPhase": "build",
+          "total_file_count": 0,
+          "skipped_file_count": 0
+        },
+        "TocDocumentProcessor": {
+          "can_incremental": false,
+          "details": "Processor TocDocumentProcessor cannot support incremental build because the processor doesn't implement ISupportIncrementalDocumentProcessor interface.",
+          "incrementalPhase": "build",
+          "total_file_count": 0,
+          "skipped_file_count": 0
+        }
+      }
+    },
+    {
+      "status": {
+        "can_incremental": false,
+        "details": "Cannot support incremental post processing, the reason is: should not trace intermediate info.",
+        "incrementalPhase": "postProcessing",
+        "total_file_count": 0,
+        "skipped_file_count": 0
+      },
+      "processors": {}
+    }
+  ],
+  "version_info": {},
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}

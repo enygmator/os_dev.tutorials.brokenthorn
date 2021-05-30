@@ -1,0 +1,439 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>8253 Programmable Interval Timer | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="8253 Programmable Interval Timer | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="8253-programmable-interval-timer">8253 Programmable Interval Timer</h1>
+
+<p>8253 PIT Microcontroller with all pins labled:
+<img src="../../resources/images/Intel-P8253-5.jpg" alt="8253 PIT Microcontroller with all pins labled"></p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>This tutorial may require some knowledge of hardware interrupt handling and the 8259 Programmable Interrupt Controller (PIC). Please see [this tutorial] (fix link) for information on them.</p>
+</div>
+<p>This tutorial will cover everything you ever wanted to know about system timing and programming the <strong>Intel 8253 Programmable Interval Timer (PIT)</strong>.</p>
+<p>The 8253 PIT has had a long history, and has played an important part in nearly every x86 PC. It is the &quot;System clock&quot;, and is responsible for many very important functions within the PC. This erm.. &quot;chip&quot; is no longer distributed as an independent chip (as a <strong>Dual Inline Package (DIP)</strong> to be more precise), but rather integrated into the motherboards southbridge chipset.</p>
+<p>Everything about the 8253 still remains, however. Because of this, its input and output facilities, hardware, and the way we program the 8253 remains the same. Because there is not of any difference (besides speed) between this and the older DIPs, we will be looking at the older 8253 DIP to help keeping things simple.</p>
+<p>The picture at the beginning of this tutorial displays what we will be looking at and programming.</p>
+<p>Lets have some fun 😉</p>
+<h2 id="programmable-interval-timers">Programmable Interval Timers</h2>
+<p>A <strong>Programmable Interval Timer (PIT)</strong> is a counter which triggers an interrupts when they reach their programmed count. The <strong>8253</strong> and <strong>8254</strong> microcontrollers are PITs avialble for the i86 architectures used as timer for i86-compatable systems.</p>
+<p>These PICs include three timers that are used for different putposes. The first timer is useually used as the <strong>System Clock</strong>. Timer 2 was used for RAM refreshing, and timer 3 is connected to the PC speaker. We will see all of the connections a little later, so we won't go into much detail now.</p>
+<p>Instead, lets take a closer look at one of these famous PITs... The 8253 Microcontroller.</p>
+<h2 id="8253-hardware">8253 Hardware</h2>
+<p>Before looking at the software side of things, it will be helpful to learn more about what we are actually programming. Because of this, we will look at the 8253 hardware first, and learn how it works and is connected to the rest of the PC. We will also be looking at internal registers, pin layout, command words, and more that will be needed for the software side of things.</p>
+<h3 id="8253-hardware-description">8253 Hardware: Description</h3>
+<p>The 8253 PIT has a simple interface, and is not that hard to program.</p>
+<p><img src="../../resources/images/8253.gif" alt="8253 PIT ports"></p>
+<p>Yep--There is the chip that we will program.</p>
+<p>Here is the complete pin layout. We will be refrencing these pins throughout this tutorial, so it is important to know what they are.</p>
+<ul>
+<li><strong>D0...D7:</strong> 8 bit data lines. This is connected to the data bus so we can read and send commands.</li>
+<li><strong>CLK 0, CLK 1, CLK 2:</strong> Clock input pins. There are 3 pins for 3 separate counters</li>
+<li><strong>OUT 0, OUT 1, OUT 2:</strong> Output data line. There are 3 pins for 3 separate counters</li>
+<li>**GATE 0, GATE 1, GATE 2:**Gate data line. There are 3 pins for 3 separate counters</li>
+<li><strong>GND:</strong> Ground</li>
+<li><strong>Vcc:</strong> Input voltage</li>
+<li><strong>WR:</strong> Write enable. When this line is active, lets the 8253 that we are writing data</li>
+<li><strong>RD:</strong> Read enable. When this line is active, lets the 8253 that we are reading data</li>
+<li><strong>CS:</strong> Chip select signal</li>
+<li><strong>A0, A1:</strong> Address lines. Used to determin what register we are accessing.</li>
+</ul>
+<p>Not to bad. There are a couple of important pins here that we need to look at.</p>
+<p>The <strong>D0-D7</strong> pins connect to the <strong>systems data bus</strong>. These pins carry our data when we are sending or reading data to the controller.</p>
+<p><strong>Vcc</strong> and <strong>GND</strong> complete the circuit (Voltage input, Ground output.)</p>
+<p>The <strong>WR</strong> pin tells the controller that we are writing (expect input on the data pins.) When the signal in this pin is &quot;low&quot;, we are currently sending data. The <strong>RD</strong> pin is very simular in this manner, but it tells the controller we are reading data instead. The <strong>CS</strong> pin is a special pin that determins what the controller should do with the <strong>RD</strong> and <strong>WR</strong> pins. If the CS pin is &quot;low&quot;, the controller will respond to the RD and WR pins. If CS is not, they are ignored. <strong>WR</strong> and <strong>RD</strong> connect to the <strong>Systems Control Bus</strong>. The <strong>CS</strong> pin connects to the systems <strong>Address Bus</strong> for port i/o operations.</p>
+<p>The <strong>A0</strong> and <strong>A1</strong> pins are connected to the <strong>Systems Address Bus</strong>, and are used to determin what register we are accessing. These, in conjunction with <strong>WR</strong> and <strong>RD</strong> allows the controller to determin if are reading to or from a register.</p>
+<p><strong>Notice that there are three groups of the CLK, OUT, and GATE pins.</strong> Yes, there is indeed a reason for this: <strong>The 8253/8254 microcontrollers contain 3 independent timers.</strong></p>
+<p>Lets look closer on how this works...</p>
+<h3 id="8253-hardware-counters">8253 Hardware: Counters</h3>
+<p>The 8253 consists of three counters: Counter 0, Counter 1, and Counter 2. Each counter has 2 input pins: <strong>CLK (Clock Input)</strong> and <strong>GATE</strong>, and one pin for output--<strong>OUT</strong>.</p>
+<p>As there are three counters, they are used for different purposes within the system. Each counter are 16 bit down counters.</p>
+<p>Typical computers connect the first timer's <strong>OUT</strong> pin to a <strong>Programmable Interrupt Controller (PIC)</strong> to generate an interrupt for every clock tick. This is useually used as the <strong>System Timer</strong>. The second counter was used for generating a timing signal to the Memory Controller to refresh DRAM memory. The third counter is used to generate tones to the PC speaker.</p>
+<p>As you can probably guess, the PIT uses the OUT pins to signal these devices when its counter reaches 0. When the PIT's counter reaches 0, it simply wraps around and starts again.</p>
+<p><strong>CLK</strong> is the clock input for the timer. It may be used with the <strong>GATE</strong> pin depending on the current mode of operation. The following table describes the operation depending on if the current in GATE is low, rising, or high.</p>
+<h4 id="gate-input-pin-operations-table">GATE Input pin operations Table</h4>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Low or going low</th>
+<th>Rising</th>
+<th>High</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Disables Counting</td>
+<td>-</td>
+<td>Enables Counting</td>
+</tr>
+<tr>
+<td>1</td>
+<td>-</td>
+<td>Initiates Counting and resets OUT after next CLK</td>
+<td>-</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Disables Counting, Sets OUT to high</td>
+<td>Reloads counter and initiates counting</td>
+<td>Enables Counting</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Disables Counting, Sets OUT to high</td>
+<td>Initiates Counting</td>
+<td>Enables Counting</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Disables Counting</td>
+<td>-</td>
+<td>Enables Counting</td>
+</tr>
+<tr>
+<td>5</td>
+<td>-</td>
+<td>Initiates Counting</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>The 8253 Counters are also known as Channels. Knowing that the 8253/8254 PITs contain three channels, lets look at each of them more closer...</p>
+<h4 id="channel-0">Channel 0</h4>
+<p>Channel 0 is connected to the <strong>8259 PIC</strong> to generate an <strong>Interrupt Request (IRQ)</strong>. The PITs <strong>OUT</strong> pin connects to the PIC's <strong>IR0</strong> pin. Typically the BIOS configures this channel with a count of 65536, which gives an output frequency of 18.2065 Hz. This fires IRQ 0 every 54.9254 ms.</p>
+<p>The is the primary timer used on almost all x86 machines. the clock rate (Signalled through Counter 0's <strong>CLK</strong> pin) is at 1193181.6666... Hz, one third of the NTSC subcarrier frequency. This was required do to backward compatability with the older CGA PC's.</p>
+<p>Channel 0 is typically programmed in most systems to act as the <strong>System Clock</strong>. This is made possible do to channel 0's <strong>OUT</strong> pin indirectly connecting to the <strong>PIC's IR0</strong> line. Depending on the mode that we set it in, we can set the timer to a good frequency, and have it enable the PIC's IR0 line at a constant rate. Afterwords, reseting itself and starting over again. Because the PIC is used to handle <strong>hardware interrupts</strong>, we will need to first reprogram the <strong>PIC</strong>.</p>
+<p>Because it is connected to the interrupt with the lowest number (IR0), it also has the highest priority over all other hardware interrupts.</p>
+<p>Its lowest frequency rate is normally used for computers running the old DOS systems (Are there any left?) at about 18.2 Hz. Its highest frequency rate is a little over a megahertz.</p>
+<p>In real mode operating systems, the BIOS normally increments the number of times IRQ0 is fired to 0000:046C, which can be read by any running program.</p>
+<h4 id="channel-1">Channel 1</h4>
+<p>Many video cards and the BIOS may reprogram the second channel for their own uses. This channel was originally used for generating a timing pulse signal to signal the memory controller to refresh the DRAM memory. In modern times, this is no longer needed as the refresh is done by the memory controller. Because of this, there is no guarantee at what devices may use this counter.</p>
+<h4 id="channel-2">Channel 2</h4>
+<p>This channel is connected to the <strong>PC Speaker</strong> to generate sounds. the <strong>PC speaker</strong> is normally meant to produce a square wave with two levels of output. However, it is possible to go between the two true defined sound square levels. This is called <strong>Pulse-Width Modulation (PWM)</strong>.</p>
+<p>We can set up this channel by programming it for mode 3, and setting a frequency rate for the tone.</p>
+<p>We can also program the PC Speaker directly. Looking back at [Tutorial 7] (fix link OSDev7.html), we can see that the PC speaker is mapped to port 0x61. This port defines how the speaker will operate:</p>
+<ul>
+<li><strong>Bit 0:</strong> If set (1), the state of the speaker follows bit 1</li>
+<li><strong>Bit 1:</strong> If set (1), the speaker uses the PIT, If not set (0), the speaker disables its connection to the PIT</li>
+</ul>
+<p>If bit 0 is set, the rest of the byte contains a pattern of bits representing the frequency of the tone. We can generate up to 8 bit sounds from the speaker, which is kind of cool, but tricky to do.</p>
+<p>You should also notice that we can disable devices from using the PIT. At startup, the BIOS configures the speaker to use the PIT channel 2, running in mode 3. It is recommended to keep the speaker to use the PIT do to timing problems that you will run into.</p>
+<p>Here is an example:</p>
+<pre><code class="lang-armasm">; disables the speaker, and stop using channel 2
+mov  dx, 0x61
+out  dx, 0
+
+; generates tone from speaker
+out  dx, 11111101b
+</code></pre>
+<h3 id="conclusion-counters">Conclusion (counters)</h3>
+<p>Once a counter is set up, it will remain that way until it is changed by another control word.</p>
+<p>There is some cool things we can do with these counters, huh? Because channel 1 is not used anymore, we cannot assume it is safe and use it ourselves. Because of this, it is recommended to stick to channel's 0 and 2.</p>
+<p>We can use channel 0 to fire off our interrupt handler. Our interrupt handler can increment a counter used by our kernel. This special little counter variable, plays a very important role in the system: The System Timer. We will see all of this soon, don't worry ;)</p>
+<p>Alright...So, we looked at pin configurations, and the three timers used by different devices for..err...timing. Whats next?</p>
+<p>When programming these timers, we have to initialize them. Remember that each channel supports 6 different modes. Some of these modes are very useful. Other modes are not. Lets take a look at each of these modes for better understanding of them. Please note that this gets a little detailed, but I am sure you already knew or were expecting that 😁</p>
+<h3 id="8253-channel-modes">8253 Channel Modes</h3>
+<p>Remember that each counter can be programmed in 1 of 6 modes. This is done by sending an <strong>Initialization Control Word (ICW)</strong> to the controller. We will look at the format of this command word later. For now, lets look at each mode.</p>
+<h4 id="mode-0-interrupt-on-terminal-count">Mode 0: Interrupt on Terminal Count</h4>
+<p>In this mode, the counter will be programmed to an initil <strong>COUNT</strong> value and afterwords counts down at a rate to the input clock frequency (The <strong>CLK</strong> signal). When <strong>COUNT</strong> is equal to 0, and after the <strong>Control Word</strong> is written, the counter enables its <strong>OUT</strong> pin (by setting its line high) to signal the device it is connected to. Counting starts one clock cycle after the <strong>COUNT</strong> is programmed. The OUT line remains high until the counter is reloaded with a new value or the same value or until another control word is written to the controller.</p>
+<p>What this mode basically does is allow us to set a timer that counts down to 0. After which, we will need to reload a new count number to it, or a new control word to re-initialize the counter.</p>
+<h4 id="mode-1-hardware-triggered-one-shot">Mode 1: Hardware Triggered One-Shot</h4>
+<p>In this mode, the counter is programmed to give an output pulse every certain number of clock pusles. The <strong>OUT</strong> line is set to high as soon as a <strong>Control Word</strong> is written. After <strong>COUNT</strong> is written, the counter waits until the rising edge of the <strong>GATE</strong> input. If the trigger occurs during the pulse output, the 8253 will be retriggered again. One clock cycle after the rising edge of <strong>GATE</strong> is detected, <strong>OUT</strong> will become and remain low until <strong>COUNT</strong> reaches 0. <strong>OUT</strong> will then be set high until the next trigger and wait again until the rising edge of the <strong>GATE</strong> input is detected.</p>
+<h4 id="mode-2-rate-generator">Mode 2: Rate Generator</h4>
+<p>This mode configures the counter to be a <strong>&quot;divide by n&quot;</strong> counter, which is commonly used to generate a real-time system clock.</p>
+<p>The counter is programmed to an initial <strong>COUNT</strong> value. Counting starts at the next clock cycle. <strong>OUT</strong> remains high until <strong>COUNT</strong> reaches 1. Afterwords, <strong>OUT</strong> will be set low for one clock pulse. <strong>OUT</strong> is then set back high, and <strong>COUNT</strong> is reset back to its initial value. This process repeats until a new control word is sent to the controller.</p>
+<p>The time between the high pulses depends on the current value in <strong>COUNT</strong>, and is calculated using the following formula:</p>
+<p><code>COUNT = input (Hz) / Frequency of output</code></p>
+<p><strong>COUNT</strong> never reaches 0. It only ranges from n to 1, where n is the initial COUNT value.</p>
+<p>Okay, lets stop for a moment. Remember that Counter 0 is connected to the PIC? <strong>Counter 0's OUT line indirectly connects to the PIC's IR0 line</strong>. Knowing that, when the IR0 line is low, the PIC will call the IRQ 0 handler defined by us.</p>
+<p>If we set the counter to Mode 2, we can set up the timer to fire off our interrupt at a constant rate. All we need to do is determine what the COUNT value should be based off of the above formula. This is used very often in setting up the <strong>System Timer</strong> for the operating system. After all, IRQ 0 is now being called for every clock tick at a frequency rate that we defined.</p>
+<p>Yes, Mode 2 is an important mode, indeed.</p>
+<h4 id="mode-3-square-wave-generator">Mode 3: Square Wave Generator</h4>
+<p>This mode is quite similar to Mode 2. However, <strong>OUT</strong> will be high for half of the period, and low for the other half. If <strong>COUNT</strong> is odd, <strong>OUT</strong> will be high for (n+1)/2 counts. If <strong>COUNT</strong> is even, <strong>OUT</strong> will be low for (n-1)/2 counts.</p>
+<p>Everything else is the same from Mode 2. We will need to use the formula from Mode 2 to set up the initial <strong>COUNT</strong> value.</p>
+<p>If the speaker is configured to use the PIT, the channel that it uses typically should be set to use this mode.</p>
+<h4 id="mode-4-software-triggered-strobe">Mode 4: Software Triggered Strobe</h4>
+<p>The counter is programmed to an initial <strong>COUNT</strong> value. Counting starts at the next clock cycle. <strong>OUT</strong> remains high until <strong>COUNT</strong> reaches 0. The counter will then set <strong>OUT</strong> low for one clock cycle. Afterwords, it resets <strong>OUT</strong> to high again.</p>
+<h4 id="mode-5-hardware-triggered-strobe">Mode 5: Hardware Triggered Strobe</h4>
+<p>The counter is programmed to an initial <strong>COUNT</strong> value. <strong>OUT</strong> remains high until the controller detects the rising edge of the <strong>GATE</strong> input. When this happens, the counting starts. When <strong>COUNT</strong> reaches 0, <strong>OUT</strong> goes low for one clock cycle. Afterwords, <strong>OUT</strong> is set high again. This cycle repeats when the controller detects the next rising edge of <strong>GATE</strong>.</p>
+<h3 id="8253-registers">8253 Registers</h3>
+<p>The 8253 contains a few registers that we can access. Most of these registers are very simular to each other, so I will just put them in the same table for clarity. This table displays each register and their functionality when the corresponding lines on the 8253 are active. <strong>Notice how the RD and WR lines determine the read and write operation. Also notice how the A0 and A1 lines determin what register we are accessing.</strong></p>
+<p>Looking at the port table from [Tutorial 7] (Fix link), we can see that the <strong>System Timer</strong> is mapped by the BIOS to use ports 0x40-0x4F. Each port address is a byte in size.</p>
+<h4 id="8253-pit-internal-registers-table">8253 PIT Internal Registers Table</h4>
+<table>
+<thead>
+<tr>
+<th>Register Name</th>
+<th>Port Address</th>
+<th>RD line</th>
+<th>WR line</th>
+<th>A0 line</th>
+<th>A1 line</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Counter 0</td>
+<td>0x40</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>Load Counter 0</td>
+</tr>
+<tr>
+<td>Counter 0</td>
+<td>0x40</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>Reads Counter 0</td>
+</tr>
+<tr>
+<td>Counter 1</td>
+<td>0x41</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>Load Counter 1</td>
+</tr>
+<tr>
+<td>Counter 1</td>
+<td>0x41</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>Reads Counter 1</td>
+</tr>
+<tr>
+<td>Counter 2</td>
+<td>0x42</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>Load Counter 2</td>
+</tr>
+<tr>
+<td>Counter 2</td>
+<td>0x42</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>Reads Counter 2</td>
+</tr>
+<tr>
+<td>Control Word</td>
+<td>0x43</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>Write Control Word</td>
+</tr>
+<tr>
+<td>NA</td>
+<td></td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>No Operation</td>
+</tr>
+</tbody>
+</table>
+<p>All other port addresses from 0x44-0x4f are undefined.</p>
+<p>The system will activate the correct lines depending on the operation we are performing. When setting the counter registers, we need to first let the controller know how we are going to load it. This is done by first setting up the control word. Lets take a look closer at these registers...</p>
+<h3 id="counter-registers">Counter Registers</h3>
+<p>Each counter register holds the <strong>COUNT</strong> value used by the PIT to count down from. They are all 16-bit registers. When writing or reading from these registers, you must first send a control word to the PIT. You might wonder why we cannot just do it directly. There is a reason for this, and it has to do with the size of the data. The PIT only has 8 data lines (Pins D0-D7). However, the counter registers are all 16 bits, not 8.</p>
+<p>Because of this, how does the PIT know what data you are writing to its counter register? How does it know what byte within the counter registers 16 bits are you setting? <strong><em>It doesn't.</em></strong> Sending a command word allows you to let the PIT know to expect incoming data, and what to do with it. We will look at that next.</p>
+<h3 id="control-word-register">Control Word Register</h3>
+<p>THIS will be important to us.</p>
+<p>This is an important register used to determin and set the operation modes for the controller. This is accessed by enabling the RD, A0, and A1 lines. This register can only be written to, not read from.</p>
+<p>The control word register uses a simple format. At first I was thinking of using a table here, but it may be easier in a list format so here it is:</p>
+<ul>
+<li><strong>Bit 0: (BCP)</strong> Binary Counter
+<ul>
+<li><strong>0:</strong> Binary</li>
+<li><strong>1:</strong> Binary Coded Decimal (BCD)</li>
+</ul>
+</li>
+<li><strong>Bit 1-3: (M0, M1, M2)</strong> Operating Mode. See above sections for a description of each.
+<ul>
+<li><strong>000:</strong> Mode 0: Interrupt or Terminal Count</li>
+<li><strong>001:</strong> Mode 1: Programmable one-shot</li>
+<li><strong>010:</strong> Mode 2: Rate Generator</li>
+<li><strong>011:</strong> Mode 3: Square Wave Generator</li>
+<li><strong>100:</strong> Mode 4: Software Triggered Strobe</li>
+<li><strong>101:</strong> Mode 5: Hardware Triggered Strobe</li>
+<li><strong>110:</strong> Undefined; Don't use</li>
+<li><strong>111:</strong> Undefined; Don't use</li>
+</ul>
+</li>
+<li><strong>Bits 4-5: (RL0, RL1)</strong> Read/Load Mode. We are going to read or send data to a counter register
+<ul>
+<li><strong>00:</strong> Counter value is latched into an internal control register at the time of the I/O write operation.</li>
+<li><strong>01:</strong> Read or Load Least Significant Byte (LSB) only</li>
+<li><strong>10:</strong> Read or Load Most Significant Byte (MSB) only</li>
+<li><strong>11:</strong> Read or Load LSB first then MSB</li>
+</ul>
+</li>
+<li><strong>Bits 6-7: (SC0-SC1)</strong> Select Counter. See above sections for a description of each.
+<ul>
+<li><strong>00:</strong> Counter 0</li>
+<li><strong>01:</strong> Counter 1</li>
+<li><strong>10:</strong> Counter 2</li>
+<li><strong>11:</strong> Illegal value</li>
+</ul>
+</li>
+</ul>
+<p>Alright, then! bit of stuff going on here, don't you think? So...All we need to do is build up the control word by writing to the control word register to initialize the controller, right? Of course! Sort of...</p>
+<p>Basically, we want to initialize a <strong>counter</strong> for a specific purpose. So, we have to build up the control word to set up the counter, the counters counting mode and operating mode. THEN, we initialize the counter itself. Remember that, once initialized, the counter can carry on itself (depending on its mode), so we only need to do this once.</p>
+<p>Lets give an example and put everything together, shall we?</p>
+<p>Lets pretend we already have a PIC initialized and interrupt 0 handler. We want to set up a timer to fire off IRQ 0 every 100Hz (once every 10 milliseconds). We know that channel 0 of the PIT is connected to the PIC's IR0 line, so we can program channel 0 to do this.</p>
+<pre><code class="lang-armasm">; COUNT = input hz / frequency
+
+    mov  dx, 1193180 / 100  ; 100hz, or 10 milliseconds
+
+    ; FIRST send the command word to the PIT. Sets binary counting,
+    ; Mode 3, Read or Load LSB first then MSB, Channel 0
+
+    mov  al, 110110b
+    out  0x43, al
+
+    ; Now we can write to channel 0. Because we set the &quot;Load LSB first then MSB&quot; bit, that is
+    ; the way we send it
+
+    mov  ax, dx
+    out  0x40, al   ;LSB
+    xchg  ah, al
+    out  0x40, al   ;MSB
+</code></pre>
+<p>Notice how we set up the control word first, THEN write to the counter 0 register.</p>
+<p>Is that it!?? Yep. The above will program counter 0 to fire IRQ0 every 10 milliseconds.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>The 8253 and 8254 PIT's are very usefull little chips. They can be used in alot of different devices, and used for alot of different purposes.</p>
+<p>For our needs, we can both have a nice signaled output via the PC speaker and a system timer that is a very important aspect on all modern system software. We have even looked at another way of working with the speaker directly, and even disable its connection to the PIT, which has advantages and disadvantags. It is up to the system software designer to decide and outweight the pros and cons of the different and unlimited possibilities when developing their system.</p>
+<p>We have looked at the PIT in depth, pin configuations, and their connections on a standard x86-based PC motherboard. The PIT itself is useually integrated with the motherboard's southbridge in modern computers.</p>
+<p><strong>Tutorial 16: Kernel: Timing and Exception Handling</strong> puts everything from the [8259A PIC] (OSDevPic.html fix link) and this tutorial together. It impliments and creates interfaces for both devices. Mabey even a little bit more...</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/Z2b.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1382 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Computer Systems Architecture | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Computer Systems Architecture | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="computer-systems-architecture">Computer Systems Architecture</h1>
+
+<p>We are going to first look at the x86 architecture in detail. This will be important to us, especially in protected mode, and understanding how protected mode works.</p>
+<p>We are going to cover every single thing of how the computer works and operates down to the bit level. To understand how this fits in with the BIOS during bootup, you have to remember that you can &quot;start&quot; other processors. The BIOS does just this with the main processor, and we can do the same to support multi processor systems.</p>
+<p>We will cover:</p>
+<ul>
+<li>The 80x86 Registers</li>
+<li>System Organization</li>
+<li>The System Bus</li>
+<li>Real Mode Memory Map</li>
+<li>How an instruction executes</li>
+<li>Software Ports</li>
+</ul>
+<p>In some ways, this is like a system architecture tutorial. However, we are going to look at the architecture from an OS development point of view. Also, <strong>We will cover every single thing within the architecture.</strong></p>
+<p>Understanding the basic concepts will make understanding <strong>Protected Mode</strong> in a lot more detail. In the next tutorial, we are going to use everything we learn here to switch into protected mode.</p>
+<p><em>let's have some fun, shall we...?</em></p>
+<h2 id="the-world-of-protected-mode">The World of Protected Mode</h2>
+<p>We all heard this term before, haven't we? Protected Mode (PMode) is an operation mode available from the 80286 and later processors. PMode was primarily designed to increase the stability of the systems.</p>
+<p>As you know from the previous tutorials, Real Mode has some big problems. For one, we can write a byte anywhere we want. This can overwrite code or data, that may be used by software ports, the processor, or even ourselves. And yet, we can do this in over 4,000 different ways--both directly and indirectly!</p>
+<p>Real Mode has no <strong>Memory Protection</strong>. All data and code are dumped into a single all purpose use memory block.</p>
+<p>In Real Mode, you are limited to 16 bit registers. Because of this, you are limited to 1 MB of memory.</p>
+<p>No support for hardware level <strong>Memory Protection</strong> or <strong>Multitasking</strong>.</p>
+<p>Quite possibly the biggest problem, was that there is no such thing as &quot;rings&quot;. All programs execute at Ring 0 level, as every program has full control over the system. This means, in a single tasking environment, a single instruction (such as <strong>cli/hlt</strong>) can crash the entire OS if you are not careful.</p>
+<p>a lot of this should sound familiar from when we covered Real Mode in depth. Protected Mode fixes all of these problems.</p>
+<p>Protected Mode:</p>
+<ul>
+<li>Has <strong>Memory Protection</strong></li>
+<li>Has hardware support for <strong>Virtual Memory</strong> and <strong>Task State Switching (TSS)</strong></li>
+<li>Hardware support for interrupting programs and executing another</li>
+<li>4 Operating Modes: <strong>Ring 0, Ring 1, Ring 2, Ring 3</strong></li>
+<li>Access to 32 bit registers</li>
+<li>Access to up to 4 GB of memory</li>
+</ul>
+<p>We covered the Rings of Assembly Language in a previous tutorial. Remember that <strong>we are in Ring 0, while normal applications are in Ring 3 (Usually).</strong> We have access to special instructions and registers that normal applications do not. In this tutorial, we are going to be using the <strong>LGDT</strong> instruction, along with a <strong>far jump</strong> using our own defined segment, and the use of the <strong>processor control registers.</strong> None of this is available in normal programs.</p>
+<p>Understanding the system architecture and how the processor works will help us understand this a lot better.</p>
+<h2 id="system-architecture">System Architecture</h2>
+<p>The x86 family of computers follow the <em>Van Neumann Architecture</em>. The Van Neumann Architecture is a design specification that states a typical computer system has three main components:</p>
+<ul>
+<li>Central Processing Unit (CPU)</li>
+<li>Memory</li>
+<li>Input/output (IO)</li>
+</ul>
+<p>For example:</p>
+<p><img src="../../resources/images/Arch.jpg" alt="Van Nuemann System architecture"></p>
+<p>There are a couple of important things to note. As you know, the CPU fetches data and instructions from memory. The Memory Controller is responsible for calculating the exact RAM chip and memory cell that it resides in. Because of this, <strong>The CPU communicates with the Memory Controller.</strong></p>
+<p>Also, notice the &quot;I/O Devices&quot;. They are connected to the system bus. <strong>All I/O Ports are mapped to a given memory location. This allows us to use the IN and OUT instructions.</strong></p>
+<p>The hardware devices can access memory through the System Bus. It also allows us to notify a device when something is happening. For example, if we write a byte to a memory location for a <strong>hardware device controller</strong> to read, <strong>the processor can signal the device that there are data at that address.</strong> It does this through the <strong>Control Bus</strong> part of the entire <strong>System Bus</strong>. This is basically how software interacts with hardware devices. We will go into much more detail later as this is the <strong>only</strong> way to communicate to devices in protected mode, hence this is important.</p>
+<p>We will cover everything in detail first. Then, we will combine them and learn how they all work together, by watching an instruction get executed at the hardware level. From here, we will talk about I/O Ports, and how software interacts with hardware.</p>
+<p>As you have experience with x86 Assembly, Some or even a lot of this should be familiar. However, we are going to cover a lot of things most assembly books don't cover in detail. More specifically, things specific to Ring 0 programs.</p>
+<h2 id="the-system-bus">The System Bus</h2>
+<p>The <strong>System Bus</strong> is also known as the <strong>Front Side Bus</strong> that connects the CPU to the <strong>Northbridge</strong> on a motherboard.</p>
+<p>The System Bus is a combination of the <strong>Data Bus</strong>, <strong>Address Bus</strong>, and <strong>Control Bus</strong>. <strong>Each electronic line on this bus represents a single bit</strong>. The voltage level used to represent a &quot;zero&quot; and &quot;one&quot; is based off <strong>Standard Transistor-Transistor Logic (TTL) Levels.</strong> We don't need to know this though. TTL is a part of <strong>Digital Logic Electronics</strong>, at which computers are built.</p>
+<p>As you know, the System Bus is made up of 3 buses. let's look at them in detail, shall we?</p>
+<h3 id="data-bus">Data Bus</h3>
+<p>The data bus is the series of electronic lines that which data can be carried over. The size of the data bus is 16 lines/bits, 32 lines/bits, or 64 lines/bits. Note the direct relationship between an electronic line and a single bit.</p>
+<p>This means, <strong>A 32 bit processor has and uses a 32 bit data bus.</strong> This means, it can handle a 4 byte piece of data simultaneously. Knowing this, we can watch the data sizes in our programs, and help increase speed.</p>
+<p>How? The processor will need to pad 1,2,4,8, and 16 bit data to the size of the data bus with 0's. Larger pieces of data will need to be broken (and padded) so the processor can send the bytes correctly over the data bus. <strong>Sending a piece of data that is the size of the data bus will be faster because no extra processing is done.</strong></p>
+<p>For example, let's say we have a 64 bit data type, but a 32 bit data bus. In the first <strong>Clock Cycle</strong>, only the first 32 bits are sent through the data bus to the Memory Controller. In the second <strong>Clock Cycle</strong>, the processor references the last 32 bits. <strong>Note: Notice that, the larger the data type, the more clock cycles it will take!</strong></p>
+<p>Generally, the terms &quot;32 bit processor&quot;, &quot;16 bit processor&quot;, etc. generally refers to the size of the data bus. So, a &quot;32 bit processor&quot; uses a 32 bit data bus.</p>
+<h3 id="address-bus">Address Bus</h3>
+<p>Whenever the processor or an I/O device needs to reference memory, it places its address on the Address Bus. Okay, we all know that a <strong>Memory Address</strong> represents a location in memory. This is an abstraction though.</p>
+<p>A &quot;Memory Address&quot; is <strong>just a number used by the Memory Controller.</strong> That's it. The Memory Controller takes the number from this bus, and interprets it as a memory location. <strong>Knowing the size of each RAM chip The Memory Controller could easily reference the exact RAM chip and byte offset in it.</strong> Beginning with <strong>Memory Cell 0</strong>, the Memory Controller interprets this offset as the <strong>Address that we want</strong>.</p>
+<p>The Address Bus is connected to the processor through the <strong>Control Unit (CU)</strong>, and the <strong>I/O Controller</strong>. The <strong>Control Unit</strong> is inside the processor, so we will look at that later. The <strong>I/O Controller</strong> controls the interface to hardware devices. We will look at that later.</p>
+<p>Just like with the Data Bus, <strong>Each Electronic line represents a single bit.</strong> Because there are only two unique values in a bit, <strong>There is exactly 2^n unique address that a CPU can access.</strong> Therefore, <strong>The number of bits/lines in the Address Bus represents the maximum memory the CPU can access.</strong></p>
+<p>In the 8080 through 80186 processor each had <strong>20 line/bit address busses</strong>. The 80286 and 80386 has 24 lines/bits, and the 80386+ has 32 lines/bits.</p>
+<p>Remember that the entire x86 family is designed to be portable with all older processors. This is why it starts in Real Mode. <strong>Their processor architectures were limited to 1 MB because they only had access to 20 address lines -- line 0 through line 19.</strong></p>
+<p>This is important to us, <strong>Because this limitation still applies to us!</strong> What we need to do is <strong>Enable access through the 20th address line. This will allow our OS to access more then 4 GB of memory.</strong> More on this later.</p>
+<h3 id="control-bus">Control Bus</h3>
+<p>Okay, we could place data on the Data Bus, and reference memory addresses using the Address Bus. But, how do we know what to do with this data? Are we reading it from memory? Or we writing the data?</p>
+<p>The Control Bus is a series of lines/bits that represent what a device is trying to do. For example, the processor would set the READ bit or WRITE bit to let the Memory Controller know it wants to read or write the data in the Data Bus from the memory location stored in the Address Bus.</p>
+<p>The Control Bus also allows the processor to signal a device. This lets a device that we need its attention. For example, perhaps we need the device to read from the memory location from the Address Bus? This will let the device know of what we need. <strong>This is important in I/O Software ports.</strong></p>
+<p>Of course, remember the system bus is not directly connected to hardware devices. Instead, it is connected to a central controller--<strong>The I/O Controller</strong>, which, in turn, signals the devices.</p>
+<p>That's all there is to the system bus. It is the pathway for accessing and reading memory from the processor (Through its <strong>Control Unit (CU)</strong>) and the I/O devices (<strong>Through the I/O Controller</strong>) to the <strong>Memory Controller</strong>, which is responsible for calculating the exact RAM chip and finding the memory cell we want to access.</p>
+<p><strong>&quot;Controller&quot;</strong> ... You will hear me say this term a lot. I will explain why later.</p>
+<h2 id="memory-controller">Memory Controller</h2>
+<p>The Memory Controller is the primary interface between the System Bus (aka, Front Side Bus(FSB) ) on the motherboard to the physical RAM chips.</p>
+<p>We seen the term <strong>Controller</strong> before, haven't we? What exactly is a controller?</p>
+<h3 id="controllers">Controllers</h3>
+<p>A Controller provides basic hardware control functionality. <strong>It also provides the basic interface between hardware and software.</strong> This is important to us. Remember that in protected mode, we will <strong>not have <em>any</em> interrupts available to us</strong>. In the bootloader, we used several interrupts to communicate with the hardware. <strong>Using these interrupts in protected mode will cause a Triple Fault.</strong> Yikes--so what are we to do?</p>
+<p>We will need to communicate to the hardware directly. We do this through the controllers. (We will talk more about how controllers work later when we cover the I/O Subsystem).</p>
+<h3 id="the-memory-controller">The Memory Controller</h3>
+<p>The Memory Controller provides a way of reading and writing memory locations through software. The Memory Controller is also responsible for the constant refreshing of the RAM chips to insure they retain the information.</p>
+<p>Memory Controllers a <strong>Multiplexer</strong> and <strong>Demultiplexer</strong> circuits to select the exact RAM chip, and location that references the address in the Address Bus.</p>
+<h4 id="double-data-rate-ddr-controller">Double Data Rate (DDR) Controller</h4>
+<p>A DDR Controller is used to refresh DDR SDRAM, which uses the <strong>System Clock</strong> pulse to allow reading and writing memory.</p>
+<h4 id="dual-channel-controller">Dual Channel Controller</h4>
+<p>A Dual Channel Controller are used where DRAM devices are separated into two small busses, allowing reading and writing two memory locations at once. This helps increasing speed when accessing RAM.</p>
+<h4 id="memory-controller-conclusion">Memory Controller Conclusion</h4>
+<p>The Memory Controller takes the address we put into the Address Bus. This is good and all, but how do we tell the Memory Controller to read or write memory? And where does it get its data from? When reading memory, <strong>The processor sets the Read bit in the Control Bus</strong>. similarly, <strong>The processor sets the Write bit when writing memory on the Control Bus</strong>.</p>
+<p>Remember that the <strong>Control Bus</strong> allows the processor to control how other devices use the bus.</p>
+<p>The data the Memory Controller uses is inside the Data Bus. The Address to use is in the Address Bus.</p>
+<h5 id="reading-memory">Reading Memory</h5>
+<p>When reading memory, The Processor places the absolute address to read from on the Address Bus. The processor then sets the READ control line.</p>
+<p>The Memory Controller now has control. The controller converts the absolute address into a physical RAM location using its <strong>Multiplexer</strong> circuit, and places the data into the Data Bus. It then resets the READ bit to 0, and sets the READY bit.</p>
+<p>The processor now knows the data is now in the data bus. It copies this data, and executes the rest of the instruction...perhaps store it in BX?</p>
+<h5 id="writing-memory">Writing Memory</h5>
+<p>The process of writing memory is similar.</p>
+<p>First, the processor places the memory address into the Address Bus. It then places the data to write into the Data Bus. Then, it sets the WRITE bit in the Control Bus.</p>
+<p>This lets the Memory Controller know to write the data in the Data Bus to the Absolute address in the Address Bus. When done, the Memory Controller resets the WRITE bit, and sets the READY bit on the Control Bus.</p>
+<h5 id="memory-read-write-conclusion">Memory Read-Write Conclusion</h5>
+<p>We do not communicate directly with the Memory Controller through software, but instead, we communicate indirectly with it. <strong>Whenever we read or write memory, we are using the Memory Controller. This is the interface between our software and the Memory Controller / RAM Chip Hardware.</strong></p>
+<p>Yippee--let's take a look at the I/O Subsystem now, shall we? Oh wait! What about that 1337 <strong>Multiplexer</strong> circuit? That is a physical electronic circuit in the Memory Controller. To understand how it works, one has to know <strong>Digital Logic Electronics</strong>. Because this is irrelevant to us, we are not going to cover it here. If you would like to know more, Google!</p>
+<h2 id="io-subsystem">I/O Subsystem</h2>
+<p>The I/O Subsystem simply represents <strong>Port I/O</strong>. <strong>This is the basic system that provides the interface between software and hardware controllers.</strong></p>
+<p>let's look closer...</p>
+<h3 id="ports">Ports</h3>
+<p>A <strong>Port</strong> simply provides an interface between two devices. There are two types of ports: <strong>Hardware Ports</strong> and <strong>Software Ports</strong>.</p>
+<h4 id="hardware-ports">Hardware Ports</h4>
+<p>A Hardware Port provides the interface between two physical devices. This port is usually a connection device of sorts. This includes, but is not limited to: <strong>Serial Ports, Parallel ports, PS/2 Ports, 1394, FireWire, USB Ports, etc.</strong></p>
+<p>These ports are usually on the sides/back/or front of a typical computer system.</p>
+<p>Okay... um, if you want to see a port, just follow any line that connects to your computer. Please, for the sake of Jeeves, Don't ask me what these do--you have got to already now! Seriously!</p>
+<p>In typical electronics, the pins in these ports carry signals that represent different things depending on the hardware device. These pins represent, just like the system bus--wait for it... Bits! Each pin represents a single bit. Yep--that's it.</p>
+<p>Two general classifications for Hardware Ports include &quot;Male&quot; and &quot;Female&quot; ports. Male ports are connections where the pins emerge from the connector. Female ports are the opposite of this. Hardware ports are accessed through Controllers. More on this later...</p>
+<h4 id="software-ports">Software Ports</h4>
+<p>THIS will be very important to us. This is our interface to the hardware. A <strong>Software Port</strong> is a number. That's it. This number represents a hardware controller... Kind of.</p>
+<p>You may know that several port numbers could represent the same controller. The reason? <strong>Memory Mapped I/O</strong>. The basic idea is that we communicate to hardware by specifying certain memory addresses. <strong>The port number represents this address.</strong> ... Once more, kind of. The meaning of the addresses could represent a specific register in a device, or a control register.</p>
+<p>We will look more closer later.</p>
+<h3 id="memory-mapping">Memory Mapping</h3>
+<p>On the x86 Architecture, the processor uses specific memory locations to represent certain things.</p>
+<p>For example, <strong>The address 0xA000:0 represents the start of VRAM in the video card.</strong> By writing bytes to this location, you effectively change what is currently in video memory, and effectively, what is displayed on screen.</p>
+<p>Other memory addresses can represent something else--let's say, a register perhaps for the Floppy Drive Controller (FDC)?</p>
+<p>Understanding what addresses are what is critical, and very important to us.</p>
+<h4 id="x86-real-mode-memory-map">x86 Real Mode Memory Map</h4>
+<p>General x86 Real Mode Memory Map:
+|Memory Locations|Used for|
+|---|---|
+|0x00000000 - 0x000003FF| Real Mode Interrupt Vector Table|
+|0x00000400 - 0x000004FF| BIOS Data Area|
+|0x00000500 - 0x00007BFF| Unused|
+|0x00007C00 - 0x00007DFF| Our Bootloader|
+|0x00007E00 - 0x0009FFFF| Unused|
+|0x000A0000 - 0x000BFFFF| Video RAM (VRAM) Memory|
+|0x000B0000 - 0x000B7777| Monochrome Video Memory|
+|0x000B8000 - 0x000BFFFF| Color Video Memory|
+|0x000C0000 - 0x000C7FFF| Video ROM BIOS|
+|0x000C8000 - 0x000EFFFF| BIOS Shadow Area|
+|0x000F0000 - 0x000FFFFF| System BIOS|</p>
+<p><strong>Note: It is possible to remap all of the above devices to use different regions of memory.</strong> This is what the BIOS POST does to map the devices to the table above.</p>
+<p>Okay, this is cool and all. Because these addresses represent different things, by reading (or writing) to specific addresses, we get obtain (or change) information with ease from different parts of the computer.</p>
+<p>For example, remember when we talked about <strong>INT 0x19</strong>? We referenced that writing the value 0x1234 at 0x0040:0x0072, and jumping to 0xFFFF:0, we effectively warm reboot the computer. (similar to Windows ctrl+alt+del.) Remembering the conversion between segment:offset addressing mode and absolute addressing, we can convert <strong>0x0040:0x0072</strong> to the absolute address <strong>0x000000472</strong>, a byte within the BIOS data area.</p>
+<p>Another example is text output. But writing two bytes into <strong>0x000B8000</strong>, we can effectively change what is in text mode memory. Because this is constantly refreshed when displayed, it effectively displays the character on screen. Cool?</p>
+<p>let's go back to port mapping, shall we? We will look back at this table a lot more later.</p>
+<h4 id="port-mapping---memory-mapped-io">Port Mapping - Memory Mapped I/O</h4>
+<p>A &quot;Port Address&quot; is a special number that each Controller listens to. <strong>When booting, the ROM BIOS assigns different numbers to these controller devices.</strong> It starts the primary processor, loads the BIOS program at 0xFFFF:0 (<strong>Remember this? Compare this with the table in the previous section</strong>).</p>
+<p>The ROM BIOS Assigns these numbers to different controllers, so controllers have a way to identify themselves. This allows the BIOS to set up the Interrupt Vector Table, which communicates to the hardware using this special number.</p>
+<p>The processor uses the same system bus when working with I/O Controllers. <strong>The processor puts the special port number into the Address Bus</strong>, as if it was reading memory. It also sets the READ or WRITE lines on the control bus as well. This is cool, but there's a problem: How does the processor differentiate between writing memory and accessing a controller?</p>
+<p>The processor sets another line on the control bus--An I/O ACCESS line. <strong>If this line is set, The I/O Controllers from within the I/O Subsystem watches the Address Bus. If the Address Bus corresponds to a number that is assigned to the device, that device takes the value from the data bus and acts upon it.</strong> The Memory Controller ignores any request if this line is set. So, if the port number has not been assigned, absolutely nothing happens. No controller acts on it, and the Memory Controller ignores it.</p>
+<p>let's take a look at these port addresses. <strong>This is very important! This is the <em>only</em> way of communicating with hardware in protected mode!</strong>:</p>
+<h5 id="default-x86-port-address-assignments">Default x86 Port Address Assignments</h5>
+<table border="1">
+<tbody>
+<tr>
+<th colspan="5">Default x86 Port Address Assignments</th>
+</tr>
+<tr>
+<td>Address Range</td>
+<td>First QWORD</td>
+<td>Second QWORD</td>
+<td>Third QWORD</td>
+<td>Fourth QWORD</td>
+</tr>
+<tr>
+<td>0x000-0x00F</td>
+<td colspan="4">DMA Controller Channels 0-3</td>
+</tr>
+<tr>
+<td>0x010-0x01F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x020-0x02F</td>
+<td>Interrupt Controller 1</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td>0x030-0x03F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x040-0x04F</td>
+<td>System Timers</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td>0x050-0x05F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x060-0x06F</td>
+<td>Keyboard/PS2 Mode (Port 0x60)  
+Speaker (0x61)</td>
+<td>Keyboard/PS2 Mouse (0x64)</td>
+<td colspan="2">System Use</td>
+</tr>
+<tr>
+<td>0x070-0x07F</td>
+<td>RTC/CMOS/NMI (0x70, 0x71)</td>
+<td colspan="3">DMA Controller Channels 0-3</td>
+</tr>
+<tr>
+<td>0x080-0x08F</td>
+<td>DMA Page Register 0-2 (0x81 - 0x83)</td>
+<td>DMA Page Register 3 (0x87)</td>
+<td>DMA Page Register 4-6 (0x89-0x8B)</td>
+<td>DMA Page Register 7 (0x8F)</td>
+</tr>
+<tr>
+<td>0x090-0x09F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x0A0-0x0AF</td>
+<td>Interrupt Controller 2 (0xA0-0xA1)</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td>0x0B0-0x0BF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x0C0-0x0CF</td>
+<td colspan="4">DMA Controller Channels 4-7 (0x0C0-0x0DF), bytes 1-16</td>
+</tr>
+<tr>
+<td>0x0D0-0x0DF</td>
+<td colspan="4">DMA Controller Channels 4-7 (0x0C0-0x0DF), bytes 16-32</td>
+</tr>
+<tr>
+<td>0x0E0-0x0EF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x0F0-0x0FF</td>
+<td colspan="4">Floating Point Unit (FPU/NPU/Mah Copprocessor)</td>
+</tr>
+<tr>
+<td>0x100-0x10F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x110-0x11F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x120-0x12F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x130-0x13F</td>
+<td colspan="4">SCSI Host Adapter (0x130-0x14F), bytes 1-16</td>
+</tr>
+<tr>
+<td>0x140-0x14F</td>
+<td colspan="2">SCSI Host Adapter (0x130-0x14F), bytes 17-32</td>
+<td colspan="2">SCSI Host Adapter (0x140-0x15F), bytes 1-16</td>
+</tr>
+<tr>
+<td>0x150-0x15F</td>
+<td colspan="4">SCSI Host Adapter (0x140-0x15F), bytes 17-32</td>
+</tr>
+<tr>
+<td>0x160-0x16F</td>
+<td colspan="2">System Use</td>
+<td colspan="2">Quaternary IDE Controller, master slave</td>
+</tr>
+<tr>
+<td>0x170-0x17F</td>
+<td colspan="2">Secondary IDE Controller, Master drive</td>
+<td colspan="2">System Use</td>
+</tr>
+<tr>
+<td>0x180-0x18F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x190-0x19F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x1A0-0x1AF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x1B0-0x1BF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x1C0-0x1CF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x1D0-0x1DF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x1E0-0x1EF</td>
+<td colspan="2">System Use</td>
+<td colspan="2">Tertiary IDE Controller, master slave</td>
+</tr>
+<tr>
+<td>0x1F0-0x1FF</td>
+<td colspan="2">Primary IDE Controller, master slave</td>
+<td colspan="2">System Use</td>
+</tr>
+<tr>
+<td>0x200-0x20F</td>
+<td colspan="2">Joystick Port</td>
+<td colspan="2">System Use</td>
+</tr>
+<tr>
+<td>0x210-0x21F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td rowspan="3">0x220-0x22F</td>
+</tr>
+<tr>
+<td colspan="4">Sound Card</td>
+</tr>
+<tr>
+<td>Non-NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td>0x230-0x23F</td>
+<td colspan="4">SCSI Host Adapter (0x220-0x23F), bytes 17-32)</td>
+</tr>
+<tr>
+<td rowspan="4">0x240-0x24F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td colspan="4">Sound Card</td>
+</tr>
+<tr>
+<td>Non-NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x240-0x25F) Bytes 1-16</td>
+</tr>
+<tr>
+<td>0x250-0x25F</td>
+<td colspan="4">NE2000 Network Card (0x240-0x25F) Bytes 17-32</td>
+</tr>
+<tr>
+<td rowspan="4">0x260-0x26F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td colspan="4">Sound Card</td>
+</tr>
+<tr>
+<td>Non-NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x240-0x27F) Bytes 1-16</td>
+</tr>
+<tr>
+<td rowspan="4">0x270-0x27F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>System Use</td>
+<td>Plug and Play System Devices</td>
+<td colspan="2">LPT2 - Second Parallel Port</td>
+</tr>
+<tr>
+<td colspan="2">System Use</td>
+<td colspan="2">LPT3 - Third Parallel Port (Monochrome Systems)</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x260-0x27F) Bytes 17-32</td>
+</tr>
+<tr>
+<td rowspan="4">0x280-0x28F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td colspan="4">Sound Card</td>
+</tr>
+<tr>
+<td>Non NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 1-16</td>
+</tr>
+<tr>
+<td>0x290-0x29F</td>
+<td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 17-32</td>
+</tr>
+<tr>
+<td rowspan="3">0x2A0-0x2AF</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>Non NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 1-16</td>
+</tr>
+<tr>
+<td>0x2B0-0x2BF</td>
+<td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 17-32</td>
+</tr>
+<tr>
+<td>0x2C0-0x2CF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x2D0-0x2DF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x2E0-0x2EF</td>
+<td colspan="2">System Use</td>
+<td colspan="2">COM4 - Fourth Serial Port</td>
+</tr>
+<tr>
+<td>0x2F0-0x2FF</td>
+<td colspan="2">System Use</td>
+<td colspan="2">COM2 - Second Serial Port</td>
+</tr>
+<tr>
+<td rowspan="4">0x300-0x30F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>Sound Card / MIDI Port</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td>Non NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+</tr>
+<tr>
+<td>0x310-0x31F</td>
+<td colspan="4">NE2000 Network Card (0x300-0x32F) Bytes 17-32</td>
+</tr>
+<tr>
+<td rowspan="4">0x320-0x32F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>Sound Card / MIDI Port (0x330, 0x331)</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 17-32</td>
+</tr>
+<tr>
+<td colspan="4">SCSI Host Adapter (0x330-0x34F) Bytes 1-16</td>
+</tr>
+<tr>
+<td rowspan="4">0x330-0x33F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>Sound Card / MIDI Port</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td>Non NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+</tr>
+<tr>
+<td rowspan="5">0x340-0x34F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td colspan="4">SCSI Host Adapter (0x330-0x34F) Bytes 17-32</td>
+</tr>
+<tr>
+<td colspan="4">SCSI Host Adapter (0x340-0x35F) Bytes 1-16</td>
+</tr>
+<tr>
+<td>Non NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x340-0x35F) Bytes 1-16</td>
+</tr>
+<tr>
+<td rowspan="3">0x350-0x35F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td colspan="4">SCSI Host Adapter (0x340-0x35F) Bytes 17-32</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+</tr>
+<tr>
+<td rowspan="4">0x360-0x36F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>Tape Accelerator Card (0x360)</td>
+<td colspan="2">System Use</td>
+<td>Quaternary IDE Controller (Slave Drive)(0x36E-0x36F)</td>
+</tr>
+<tr>
+<td>Non NE2000 Network Card</td>
+<td colspan="3">System Use</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+</tr>
+<tr>
+<td rowspan="4">0x370-0x37F</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>Tape Accelerator Card (0x370)</td>
+<td>Secondary IDE Controller (Slave Drive)</td>
+<td colspan="2">LPT1 - First Parallel Port (Color systems)</td>
+</tr>
+<tr>
+<td colspan="2">System Use</td>
+<td colspan="2">LPT2 - Second Parallel Port (Monochrome Systems)</td>
+</tr>
+<tr>
+<td colspan="4">NE2000 Network Card (0x360-0x37F) Bytes 1-16</td>
+</tr>
+<tr>
+<td>0x380-0x38F</td>
+<td colspan="2">System Use</td>
+<td>Sound Card (FM Synthesizer)</td>
+<td>System Use</td>
+</tr>
+<tr>
+<td>0x390-0x39F</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x3A0-0x3AF</td>
+<td colspan="4">System Use</td>
+</tr>
+<tr>
+<td>0x3B0-0x3BF</td>
+<td colspan="3">VGA/Monochrome Video</td>
+<td>LPT1 - First Parallel Port (Monochrome Systems)</td>
+</tr>
+<tr>
+<td>0x3C0-0x3CF</td>
+<td colspan="4">VGA/CGA Video</td>
+</tr>
+<tr>
+<td>0x3D0-0x3DF</td>
+<td colspan="4">VGA/CGA Video</td>
+</tr>
+<tr>
+<td rowspan="3">0x3E0-0x3EF</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td>Tape Accelerator Card (0x370)</td>
+<td>System Use</td>
+<td colspan="2">COM3 - Third Serial Port</td>
+</tr>
+<tr>
+<td colspan="3">System Use</td>
+<td>Tertiary IDE Controller (Slave Drive)(0x3EE-0x3EF)</td>
+</tr>
+<tr>
+<td rowspan="3">0x3F0-0x3FF</td>
+<td colspan="4"></td>
+</tr>
+<tr>
+<td colspan="2">Floppy Disk Controller</td>
+<td colspan="2">COM1 - First Serial Port</td>
+</tr>
+<tr>
+<td>Tape Accelerator Card (0x3F0)</td>
+<td>Primary IDE Controller (Slave Drive)(0x3F6-0x3F7)</td>
+<td colspan="2">System Use</td>
+</tr>
+</tbody>
+</table>
+<p>This table is not complete, and hopefully has no errors in it. I will add to this table as time goes on, and more devices are developed.</p>
+<p>All of these memory ranges are used by certain controllers--as the above table displays. The exact meaning of a port address depends on the controller. It could represent a control register, state register virtually anything. This is unfortunate.</p>
+<p><strong>I highly recommend to print out a copy of the above table. We will need to reference it every time we are communicating with hardware.</strong></p>
+<p>I will update (at the beginning of the tutorial), if I have updated the table. That way, you can print out the table again, insuring everyone has the latest copy.</p>
+<p>With all of this in mind, let's put it all together...</p>
+<h4 id="in-and-out-instructions">IN and OUT Instructions</h4>
+<p>The x86 processor has two instructions used for port I/O. They are <strong>IN</strong> and <strong>OUT</strong>.</p>
+<p>These instructions tell the processor that we want to communicate to a device. This insures the processor sets the I/O DEVICE line on the control bus.</p>
+<p>let's have a complete example, and try to see if we can read from the keyboard controllers input buffer.</p>
+<p>let's see... Looking at our trusty Port table above, we can see the Keyboard Controller is in port addresses <strong>0x60 through 0x6F</strong>. The table displays that the first QWORD and second QWORD (Starting from port address 0x60) is for the keyboard and PS/2 Mouse. The last two QWORDS are for system use, so we will ignore it.</p>
+<p>Okay, so our keyboard controller is mapped to ports 0x60 through, technically, port 0x68. This is cool, but what does it mean to us? This is device specific, remember?</p>
+<p>For our keyboard, <strong>Port 0x60 is a control register, Port 0x64 is a status register.</strong> Remember from before--I said we would here these terms a lot more, and in different contexts. <strong>If bit 1 in the status register is set, data is inside the input buffer.</strong> So, lessee... If we set the CONTROL register to READ, we can copy the contents of the input buffer somewhere...</p>
+<pre><code class="lang-armasm">WaitLoop:
+    in     al, 64h      ; Get status register value
+    and    al, 10b      ; Test bit 1 of status register
+    jz     WaitLoop     ; If status register bit not set, no data in buffer
+    in     al, 60h      ; Its set--Get the byte from the buffer (Port 0x60),
+                        ; and store it
+</code></pre>
+<p>This, right here, is the bases of hardware programming and device drivers.</p>
+<p>In an <strong>IN</strong> instruction, the processor places the port address--like 0x64--into the Address Bus, and sets the I/O DEVICE line in the control bus, followed by the READ line. The device that has been assigned to 0x60 by the ROM BIOS-- In this case, the Status Register in the keyboard Controller, knows its a read operation because the READ line is set. So, it copies data from some location inside the keyboard registers onto the Data Bus, resets the READ and I/O DEVICE lines on the control bus, and sets the READY line. Now, the processor has the data from the Data Bus that was read.</p>
+<p>An <strong>OUT</strong> instruction is similar. The processor copies the byte to be written into the Data Bus (Zero extending it to the Data Bus Width). Then, it sets the WRITE and I/O DEVICE lines on the control bus. It then copies the port address--let's say--0x60, into the Address Bus. <strong>Because the I/O DEVICE Line is set, it is a signal that tells all controllers to watch the address bus. If the number on the address bus corresponds with there assigned number, the device acts on that data.</strong> In our case--The Keyboard Controller. The Keyboard controller knows its a WRITE operation because the WRITE line is set in the control bus. So, it copies the value on the data bus into its Control Register--which was assigned port address 0x60. The Keyboard Controller the resets the WRITE and I/O DEVICE line, sets the READY line on the control bus, and the processor is back in control.</p>
+<p><strong>Port mapping and Port I/O are very important. It is our only way of communicating with hardware in protected mode. Remember: Interrupts are not available until we write them. To write them, along with any hardware routine--such as input and output, requires us to write drivers. All of this requires direct hardware access. If you don't feel comfortable with this, practice a little first, and reread this section. If you have any questions, let me know.</strong></p>
+<h2 id="the-processor">The Processor</h2>
+<h3 id="special-instructions">Special Instructions</h3>
+<p>Most 80x86 instructions can be executed by any program. However, there are some instructions that only Kernel-level software can access. Because of this, some of these instructions may not be familiar to our readers. We will require the use of most of these instructions, so understanding them is important.</p>
+<h4 id="privileged-level-ring-0-instructions">Privileged Level (Ring 0) Instructions</h4>
+<table>
+<thead>
+<tr>
+<th>Instruction</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LGDT</td>
+<td>Loads an address of a GDT into GDTR</td>
+</tr>
+<tr>
+<td>LLDT</td>
+<td>Loads an address of a LDT into LDTR</td>
+</tr>
+<tr>
+<td>LTR</td>
+<td>Loads a Task Register into TR</td>
+</tr>
+<tr>
+<td>MOV Control Register</td>
+<td>Copy data and store in Control Registers</td>
+</tr>
+<tr>
+<td>LMSW</td>
+<td>Load a new Machine Status WORD</td>
+</tr>
+<tr>
+<td>CLTS</td>
+<td>Clear Task Switch Flag in Control Register CR0</td>
+</tr>
+<tr>
+<td>MOV Debug Register</td>
+<td>Copy data and store in debug registers</td>
+</tr>
+<tr>
+<td>INVD</td>
+<td>Invalidate Cache without writeback</td>
+</tr>
+<tr>
+<td>INVLPG</td>
+<td>Invalidate TLB Entry</td>
+</tr>
+<tr>
+<td>WBINVD</td>
+<td>Invalidate Cache with writeback</td>
+</tr>
+<tr>
+<td>HLT</td>
+<td>Halt Processor</td>
+</tr>
+<tr>
+<td>RDMSR</td>
+<td>Read Model Specific Registers (MSR)</td>
+</tr>
+<tr>
+<td>WRMSR</td>
+<td>Write Model Specific Registers (MSR)</td>
+</tr>
+<tr>
+<td>RDPMC</td>
+<td>Read Performance Monitoring Counter</td>
+</tr>
+<tr>
+<td>RDTSC</td>
+<td>Read time Stamp Counter</td>
+</tr>
+</tbody>
+</table>
+<p>Executing any of the above instructions by any other program that does not have Kernel mode access (Ring 0) will generate a <strong>General Protection Fault</strong>, or a <strong>Triple Fault</strong>.</p>
+<p>Do not worry if you do not understand these instructions. I will cover each of them throughout the series as we need them.</p>
+<h3 id="80x86-registers">80x86 Registers</h3>
+<p>The x86 processor has a lot of different <strong>registers</strong> for storing its current state. Most applications only have access to the <strong>general, segment, and eflags</strong>. Other registers are specific to Ring 0 programs, such as our Kernel.</p>
+<p>The x86 family has the following registers: <strong>RAX (EAX(AX/AH/AL)), RBX (EBX(BX/BH/BL)), RCX (ECX(CX/CH/CL)), RDX (EDX(DX/DH/DL)), CS,SS,ES,DS,FS,GS, RSI (ESI (SI)), RDI (EDI (DI)), RBP (EBP (BP)). RSP (ESP (SP)), RIP (EIP (IP)), RFLAGS (EFLAGS (FLAGS)), DR0, DR1, DR2, DR3, DR4, DR5, DR6, DR7, TR1, TR2, TR3, TR4, TR5, TR6, TR7, CR0, CR1, CR2, CR3, CR4, CR8, ST, mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, GDTR, LDTR, IDTR, MSR, and TR</strong>. All of these registers are stored in a special area of memory inside the processor called a <strong>Register File</strong>. Please see the <strong>Processor Architecture</strong> section for more information. Other registers include, but may not be in the <strong>Register File</strong>, include: <strong>PC, IR, vector registers, and Hardware Registers.</strong></p>
+<p>a lot of these registers are <strong>only</strong> available to real mode ring 0 programs. And for very good reasons, too. Most of these registers effect a lot of states within the processor. Incorrectly setting them can easily triple fault the CPU. Other cases, might cause the CPU to malfunction. (Most notably, the use of TR4,TR5,TR6,TR7)</p>
+<p>Some of the other registers are <strong>internal to the CPU</strong>, and <strong>cannot</strong> be accessed through normal means. One would need to reprogram the processor itself in order to access them. Most notably, IR, the vector registers.</p>
+<p>We will need to know some of these special registers, so let's take a look closer, shall we?</p>
+<p><strong>Note: Think of the CPU as any normal device that we need to communicate with. The concept of Control Registers (and registers themselves) will be important later on when we talk to other devices.</strong></p>
+<p><strong>Also, please note that some registers are undocumented. Because of this, there may be more registers then those listed.</strong> If you know of any, please <a href="mailto:neon6000@aol.com">Let me know</a>, so that I can add them. 😁</p>
+<h3 id="general-purpose-registers">General Purpose Registers</h3>
+<p>These are 32 bit registers that can be used for almost any purpose. Each of these registers have a special purpose as well, however.</p>
+<ul>
+<li>EAX - Accumulator Register. Primary purpose: Math calculations</li>
+<li>EBX - Base Address Register. Primary purpose: Indirectly access memory through a base address.</li>
+<li>ECX - Counter Register. Primary purpose: Use in counting and looping.</li>
+<li>EDX - Data Register. Primary purpose: um... store data. Yep, that's about it 😁</li>
+</ul>
+<p>Each of these 32 bit registers has two parts. The <strong>High order word</strong> and <strong>low order word</strong>. The high order word is the upper 16 bits. <strong>The low order word is the lower 16 bits.</strong></p>
+<p>On 64 bit processors, these registers are 64 bits wide, and or named <strong>RAX, RBX, RCX, RDX</strong>. The lower 32 bits is the 32 bit <strong>EAX</strong> register.</p>
+<p>The upper 16 bits does not have a special name associated with them. However, <strong>The lower 16 bits do. These names have an appended 'H' (for higher 8 bits in low word), or an appended 'L' for lower 8 bits.</strong></p>
+<p>For example, in RAX, we have:</p>
+<pre><code class="lang-html">                                           +--- AH ----+--- AL ---+
+                                           |           |          |
+    +-------------------------------------------------------------+
+    |                 |                    |                      |
+    +-------------------------------------------------------------+
+    |                 |                                           |
+    |                 +--------EAX lower 32 bits------------------| -- Available only on 32 bit processors.
+    |                                                             |
+    |------------------ RAX Complete 64 bits----------------------| -- Available only on 64 bit processors.
+</code></pre>
+<p>What does this mean? <strong>AH and AL are a part of AX, which, in turn, is a part of EAX. Thus, modifying any of these names effectively modifies the same register - EAX.</strong></p>
+<p>This, in turns, modifies RAX, on 64 bit machines.</p>
+<p>The above is also true with BX, CX, and DX.</p>
+<p>General purpose registers can be used within any program, from Ring 0 to Ring 4. Because they are basic assembly language, I will assume you already know how they work.</p>
+<h3 id="segment-registers">Segment Registers</h3>
+<p>The segment registers modify the current segment addresses in real mode. They are all 16 bit.</p>
+<ul>
+<li>CS - Segment address of code segment</li>
+<li>DS - Segment address of data segment</li>
+<li>ES - Segment address of extra segment</li>
+<li>SS - Segment address of stack segment</li>
+<li>FS - Far Segment address</li>
+<li>GS - General Purpose Register</li>
+</ul>
+<p>Remember: <strong>Real Mode uses the segment:offset memory addressing model.</strong> The <strong>segment address</strong> is stored within a segment register. Another register, such as <strong>BP, SP, or BX</strong> can store the <strong>offset</strong> address.</p>
+<p>It is usually referenced like: <strong>DS:SI</strong>, where DS contains the segment address, and SI contains the offset address.</p>
+<p>Segment registers can be used within any program, from Ring 0 to Ring 4. Because they are basic assembly language, I will assume you already know how they work.</p>
+<h2 id="index-registers">Index Registers</h2>
+<p>The x86 uses several registers that help when access memory.</p>
+<ul>
+<li>SI - Source Index</li>
+<li>DI - Destination Index</li>
+<li>BP - Base Pointer</li>
+<li>SP - Stack Pointer</li>
+</ul>
+<p>Each of these registers store a 16 bit base address (that may be used as an offset address as well.)</p>
+<p>On 32 bit processors, these registers are <strong>32 bits</strong> and have the names <strong>ESI, EDI, EBP, and ESP</strong>.</p>
+<p>On 64 bit processors, each register is 64 bits in size, and have the names <strong>RSI, RDI, RBP, and RSP</strong>.</p>
+<p>The 16 bit registers are a subset of the 32 bit registers, which is a subset of the 64 bit registers; the same way with RAX.</p>
+<p>The <strong>Stack Pointer</strong> is automatically incremented and decremented a certain amount of bytes whenever certain instructions are encountered. Such instructions include <em><em>push</em>, pop</em> instructions, ret/iret, call, syscall** etc.</p>
+<p><strong>The C Programming Language, in fact most languages, use the stack regularly. We will need to insure we set the stack up at a good address to insure C works properly. Also, remember: The stack grows <em>downward</em>!</strong></p>
+<h3 id="instruction-pointer--program-counter">Instruction Pointer / Program Counter</h3>
+<p>The Instruction Pointer (IP) register stores the current offset address of the currently executing instruction. Remember: <strong>This is an offset address, <em>Not</em> an absolute address!</strong></p>
+<p>The Instruction Pointer (IP) is sometimes also called the Program Counter (PC).</p>
+<p>On 32 bit machines, IP is 32 bits in size and uses the name <strong>EIP</strong>.</p>
+<p>On 64 bit machines, IP is 64 bits in size, and uses the name <strong>RIP</strong>.</p>
+<h3 id="instruction-register">Instruction Register</h3>
+<p>This is an internal processor register that cannot be accessed through normal means. It is stored within the <strong>Control Unit (CU)</strong> of the processor inside the <strong>Instruction Cache</strong>. It stores the current instruction that is being translated to <strong>Microinstructions</strong> for use internally by the processor. Please see <strong>Processor Architecture</strong> for more information.</p>
+<h3 id="eflags-register">EFlags Register</h3>
+<p>The EFLAGS register is the x86 Processor Status Register. It is used to determine the um.. current status. We have actually used this a lot already so far. A simple example: <strong>jc, jnc, jb, jnb Instruction</strong></p>
+<p>Most instructions manipulate the EFLAGS register so that you can test for conditions (Like if the value was lower or higher then another).</p>
+<p><strong>EFLAGS</strong> is composed of the <strong>FLAGS</strong> register. similarity, <strong>RFLAGS</strong> is composed of <strong>EFLAGS</strong> and <strong>FLAGS</strong>. i.e.:</p>
+<pre><code class="lang-html"> +---------- EFLAGS (32 Bits) ------+
+ |                                  |
+ +-FLAGS(16 bits)-+                 |
+ |                |                 |
+ ====================================================================  &lt; Register Bits
+ |                                                                  |
+ +------------------------- RFLAGS (64 Bits) -----------------------+
+ |                                                                  |
+Bit 0                                                              Bit 63
+</code></pre>
+<h4 id="flags-register-status-bits-table">FLAGS Register Status Bits table</h4>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Abbrivation</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>CF</td>
+<td>Carry Flag - Status bit</td>
+</tr>
+<tr>
+<td>1</td>
+<td></td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td>PF</td>
+<td>CF</td>
+<td>Parity Flag</td>
+</tr>
+<tr>
+<td>3</td>
+<td></td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AF</td>
+<td>Adjust Flag - Status bit</td>
+</tr>
+<tr>
+<td>5</td>
+<td></td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td>6</td>
+<td>ZF</td>
+<td>Zero Flag - Status bit</td>
+</tr>
+<tr>
+<td>7</td>
+<td>SF</td>
+<td>Sign Flag - Status bit</td>
+</tr>
+<tr>
+<td>8</td>
+<td>TF</td>
+<td>Trap Flag (Single Step) - System Flag</td>
+</tr>
+<tr>
+<td>9</td>
+<td>IF</td>
+<td>Interrupt Enabled Flag - System Flag</td>
+</tr>
+<tr>
+<td>10</td>
+<td>DF</td>
+<td>Direction Flag - Control Flag</td>
+</tr>
+<tr>
+<td>11</td>
+<td>OF</td>
+<td>Overflow Flag - Status bit</td>
+</tr>
+<tr>
+<td>Dec-13</td>
+<td>IOPL</td>
+<td>I/O Priviledge Level (286+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>14</td>
+<td>NT</td>
+<td>Nested Task Flag (286+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>15</td>
+<td></td>
+<td>Reserved</td>
+</tr>
+</tbody>
+</table>
+<h4 id="eflags-register-status-bits-table">EFLAGS Register Status Bits table</h4>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Abbrivation</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td>RF</td>
+<td>Resume Flag (386+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>17</td>
+<td>VM</td>
+<td>v8086 Mode Flag (386+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>18</td>
+<td>AC</td>
+<td>Alignment Check (486SX+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>19</td>
+<td>VIF</td>
+<td>Virtual Interrupt Flag (Pentium+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>20</td>
+<td>VIP</td>
+<td>Virtual Interrupt Pending (Pentium+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>21</td>
+<td>ID</td>
+<td>Identification (Pentium+ Only) - Control Flag</td>
+</tr>
+<tr>
+<td>22-31</td>
+<td></td>
+<td>Reserved</td>
+</tr>
+</tbody>
+</table>
+<h4 id="rflags-register-status-bits-table">RFLAGS Register Status Bits table</h4>
+<table>
+<thead>
+<tr>
+<th>Bit Number</th>
+<th>Abbrivation</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32-63</td>
+<td></td>
+<td>Reserved</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>IO Privilege Level (IOPL)</strong> controls the current ring level required to use certain instructions. For example, the <strong>CLI, STI, IN and OUT</strong> instructions will only execute if the current Privilege Level is equal, or greater, then the IOPL. If not, a <strong>General Protection Fault (GPF)</strong> will be generated by the processor.</p>
+<p>Most operating systems set the IOPF to 0 or 1. This means that only Kernel level software can use these instructions. This is a very good thing. After all, if an application issues a CLI, it can effectively stop the Kernel from running.</p>
+<p>For most operations, we only need to use the FLAGS register. Notice that the last 32 bits of the RFLAGS register is null, null, non existent, there for viewing pleasure. So, um... yeah. For speed purposes, of course, but a lot of bytes being wasted... ...yeah.</p>
+<p>Because of the size of this table, I recommend printing it out for reference later.</p>
+<h3 id="test-registers">Test Registers</h3>
+<p>The x86 family uses some registers for testing purposes. Many of these registers are undocumented. On the x86 series, these registers are <strong>TR4,TR5,TR6,TR7</strong>.</p>
+<p><strong>TR6</strong> is the most commonly used for command testing, and <strong>TR7</strong> for a test data register. One can use the <strong>MOV</strong> instruction to access them. <strong>There are only available in Ring 0 for both PMode and real mode. Any other attempt will cause a General Protection Fault (GPF) leading to a Triple Fault.</strong></p>
+<h3 id="debug-registers">Debug Registers</h3>
+<p>These registers are used for program debugging. They are <strong>DR0,DR1,DR2,DR3,DR4,DR5,DR6,DR7</strong>. Just like the test registers, they can be accessed using the <strong>MOV</strong> instruction, and only in Ring 0. <strong>Any other attempt will cause a General Protection Fault (GPF) leading to a Triple Fault.</strong></p>
+<h4 id="breakpoint-registers">Breakpoint Registers</h4>
+<p>The registers <strong>DR0, DR1, DR2, DR3</strong> store an <strong>Absolute Address</strong> of a breakpoint condition. If <strong>Paging</strong> is enabled, the address will be converted to its Absolute address. These breakpoint conditions are further defined in DR7.</p>
+<h4 id="debug-control-register">Debug Control Register</h4>
+<p>DR7 is a 32 bit register that uses a bit pattern to identify the current debugging task. Here it is:</p>
+<ul>
+<li><strong>Bit 0...7</strong> - Enable the four debug registers (See below)</li>
+<li><strong>Bit 8...14</strong> - ?</li>
+<li><strong>Bit 15...23</strong> - When the breakpoints will trigger. Each 2 bits represents a single Debug Register. This can be one of the following:
+<ul>
+<li><strong>00</strong> - Break on execution</li>
+<li><strong>01</strong> - Break on data write</li>
+<li><strong>10</strong> - Break on IO read or write. No hardware currently supports this.</li>
+<li><strong>11</strong> - Break on data read or write</li>
+</ul>
+</li>
+<li><strong>Bit 24...31</strong> - Defines how large of memory to watch. Each 2 bits represents a single Debug Register. This can be one of the following:
+<ul>
+<li><strong>00</strong> - One bytes</li>
+<li><strong>01</strong> - Two bytes</li>
+<li><strong>10</strong> - Eight bytes</li>
+<li><strong>11</strong> - Four bytes</li>
+</ul>
+</li>
+</ul>
+<p>The Debug Registers uses two methods to enable. This is <strong>Local</strong> and <strong>Global</strong> levels. If you are using different <strong>Tasks</strong> such as in <strong>Paging</strong>, all <strong>Local debug changes only effect that task.</strong> The processor automatically clears all local changes when switching between tasks. Global tasks, however, are not.</p>
+<p>In Bits 0...7 in the above list:</p>
+<ul>
+<li><strong>Bit 0:</strong> Enable local DR0 register</li>
+<li><strong>Bit 1:</strong> Enable global DR0 register</li>
+<li><strong>Bit 2:</strong> Enable local DR1 register</li>
+<li><strong>Bit 3:</strong> Enable global DR1 register</li>
+<li><strong>Bit 4:</strong> Enable local DR2 register</li>
+<li><strong>Bit 5:</strong> Enable global DR2 register</li>
+<li><strong>Bit 6:</strong> Enable local DR3 register</li>
+<li><strong>Bit 7:</strong> Enable global DR3 register</li>
+</ul>
+<h4 id="debug-status-register">Debug Status Register</h4>
+<p>This is used by debuggers to determine what happened when the error occured. <strong>When the processor runs into an enabled exception error, it sets the low 4 bits of this register and executes the Exception Handler.</strong></p>
+<p><strong>Warning: The debug status register, DR6, is never cleared. If you have the program continue, insure you clear this register!</strong></p>
+<h3 id="model-specific-register">Model Specific Register</h3>
+<p>This is a special control register that provides special processor specific features that may not be on others. As these are system level, Only Ring 0 programs can access this register.</p>
+<p>Because these registers are specific to each processor, the actual register may change.</p>
+<p>The x86 has two special instructions that are used to access this register:</p>
+<ul>
+<li><strong>RDMSR</strong> - Read from MSR</li>
+<li><strong>WRMSR</strong> - Write from MSR</li>
+</ul>
+<p>The registers are very processor specific. Because of this, it is wise to use the CPUID instruction before using them.</p>
+<p>To access a given register, one must pass the instructions an <strong>Address</strong> which represents the register you want access to.</p>
+<p>Through the years, Intel has used some MSRs that are not machine specific. These MSRs are common within the x86 architecture.</p>
+<h4 id="model-specific-registers-msrs-table">Model Specific Registers (MSRs) table</h4>
+<table>
+<thead>
+<tr>
+<th>Register Address</th>
+<th>Register Name</th>
+<th>IA-32 Processor Family</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x0</td>
+<td>IA32_PS_MC_ADDR</td>
+<td>Pentium Processors</td>
+</tr>
+<tr>
+<td>0x1</td>
+<td>IA32_PS_MC_TYPE</td>
+<td>Pentium 4 Processors</td>
+</tr>
+<tr>
+<td>0x6</td>
+<td>IA32_PS_MONITOR_FILTER_SIZE</td>
+<td>Pentium Processors</td>
+</tr>
+<tr>
+<td>0x10</td>
+<td>IA32_TIME_STAMP_COUNTER</td>
+<td>Pentium Processors</td>
+</tr>
+<tr>
+<td>0x17</td>
+<td>IA32_PLATFORM_ID</td>
+<td>P6 Processors</td>
+</tr>
+<tr>
+<td>0x1B</td>
+<td>IA32_APIC_BASE</td>
+<td>P6 Processors</td>
+</tr>
+<tr>
+<td>0x3A</td>
+<td>IA32_FEATURE_CONTROL</td>
+<td>Pentium 4 / Processor 673</td>
+</tr>
+<tr>
+<td>0x79</td>
+<td>IA32_BIOS_UPDT_TRIG</td>
+<td>P6 Processors</td>
+</tr>
+<tr>
+<td>0x8B</td>
+<td>IA32_BIOS_SIGN_ID</td>
+<td>P6 Processors</td>
+</tr>
+<tr>
+<td>0x9B</td>
+<td>IA32_SMM_MONITOR_CTL</td>
+<td>Pentium 4 / Processor 672</td>
+</tr>
+<tr>
+<td>0xC1</td>
+<td>IA32_PMC0</td>
+<td>Intel Core Duo</td>
+</tr>
+<tr>
+<td>0xC2</td>
+<td>IA32_PMC1</td>
+<td>Intel Core Duo</td>
+</tr>
+<tr>
+<td>0xE7</td>
+<td>IA32_MPERF</td>
+<td>Intel Core Duo</td>
+</tr>
+<tr>
+<td>0xE8</td>
+<td>IA32_APERF</td>
+<td>Intel Core Duo</td>
+</tr>
+<tr>
+<td>0xFE</td>
+<td>IA32_MTRRCAP</td>
+<td>P6 Processors</td>
+</tr>
+<tr>
+<td>0x174</td>
+<td>IA32_SYSENTER_CS</td>
+<td>P6 Processors</td>
+</tr>
+<tr>
+<td>0x175</td>
+<td>IA32_SYSENTER_ESP</td>
+<td>P6 Processors</td>
+</tr>
+<tr>
+<td>0x176</td>
+<td>IA32_SYSENTER_IP</td>
+<td>P6 Processors</td>
+</tr>
+</tbody>
+</table>
+<p>There are a lot more MSR's then those that are listed. Please see <a href="http://developer.intel.com/design/processor/manuals/253669.pdf">Appendix B from the Intel Development Manuals</a> for the complete list.</p>
+<p>I'm not sure what MSRs we will be referencing as the Series is still in development. I will add onto this list as needed.</p>
+<h4 id="rdmsr-instruction">RDMSR Instruction</h4>
+<p>This instruction loads the MSR specified by CX into EDX:EAX.</p>
+<p>This instruction is a <strong>privileged</strong> instruction, and can only be executed at <strong>Ring 0 (Kernel Level).</strong> A <strong>General Protection Fault,</strong> or <strong>Triple Fault</strong> will occur if a nonprivileged application attempts to execute this instruction, or the value in CS does not represent a valid MSR Address.</p>
+<p>This instruction does not effect any flags.</p>
+<p>Here is an example of using this instruction (You will see this again later in the tutorials):</p>
+<pre><code class="lang-armasm">; This reads from the IA32_SYSENTER_CS MSR
+
+mov    cx, 0x174    ; Register 0x174: IA32_SYSENTER_CS
+rdmsr               ; Read in the MSR
+
+; Now EDX:EAX contains the lower and upper 32 bits of the 64 bit register
+</code></pre>
+<p>Cool, huh?</p>
+<h4 id="wrmsr-instruction">WRMSR Instruction</h4>
+<p>This instruction writes to the MSR specified by CX the 64 bit value stored in EDX:EAX.</p>
+<p>This instruction is a <strong>privileged</strong> instruction, and can only be executed at <strong>Ring 0 (Kernel Level).</strong> A <strong>General Protection Fault,</strong> or <strong>Triple Fault</strong> will occur if a nonprivileged application attempts to execute this instruction, or the value in CS does not represent a valid MSR Address.</p>
+<p>This instruction does not effect any flags.</p>
+<p>Here is an example of how it is used:</p>
+<pre><code class="lang-armasm">; This writes to the IA32_SYSENTER_CS MSR
+mov    cx, 0x174      ; Register 0x174: IA32_SYSENTER_CS
+wrmsr                 ; Write EDX:EAX into the MSR
+</code></pre>
+<h3 id="control-registers">Control Registers</h3>
+<p>THIS is going to be important to us.</p>
+<p>The control registers allow us to change the behavior of the processor. They are: <strong>CR0, CR1, CR2, CR3, CR4</strong>.</p>
+<h4 id="cr0-control-register">CR0 Control Register</h4>
+<p>CR0 is the primary control register. It is 32 bits, which are defined as follows:</p>
+<ul>
+<li><strong>Bit 0 (PE) : Puts the system into protected mode</strong></li>
+<li><strong>Bit 1 (MP) : Monitor Coprocessor Flag</strong> This controls the operation of the <strong>WAIT</strong> instruction.</li>
+<li><strong>Bit 2 (EM) : Emulate Flag</strong>. When set, <strong>coprocessor instructions will generate an exception</strong></li>
+<li><strong>Bit 3 (TS) : Task Switched Flag</strong> This will be set when the processor switches to another <strong>task</strong>.</li>
+<li><strong>Bit 4 (ET) : Extension Type Flag. This tells us what type of coprocessor is installed.</strong>
+<ul>
+<li>0 - 80287 is installed</li>
+<li>1 - 80387 is installed.</li>
+</ul>
+</li>
+<li><strong>Bit 5 (NE):</strong> Numeric Error
+<ul>
+<li>0 - Enable standard error reporting</li>
+<li>1 - Enable internal x87 FPU error reporting</li>
+</ul>
+</li>
+<li><strong>Bits 6-15 :</strong> Unused</li>
+<li><strong>Bit 16 (WP):</strong> Write Protect</li>
+<li><strong>Bit 17:</strong> Unused</li>
+<li><strong>Bit 18 (AM):</strong> Alignment Mask
+<ul>
+<li>0 - Alignment Check Disable</li>
+<li>1 - Alignment Check Enabled (Also requires AC flag set in EFLAGS and ring 3)</li>
+</ul>
+</li>
+<li><strong>Bits 19-28:</strong> Unused</li>
+<li><strong>Bit 29 (NW):</strong> Not Write-Through</li>
+<li><strong>Bit 30 (CD):</strong> Cache Disable</li>
+<li><strong>Bit 31 (PG) : Enables Memory Paging.</strong>
+<ul>
+<li>0 - Disable</li>
+<li>1 - Enabled and use CR3 register</li>
+</ul>
+</li>
+</ul>
+<p>Wow... a lot of new stuff, huh? let's look at Bit 0--<strong>Puts system in protected mode.</strong> This means, <strong>By setting Bit 0 in the CR0 register, we effectively enter protected mode.</strong></p>
+<p>For example:</p>
+<pre><code class="lang-armasm">mov    ax, cr0     ; get value in CR0
+or     ax, 1       ; set bit 0--enter protected mode
+mov    cr0, ax     ; Bit 0 now set, we are in 32 bit mode!
+</code></pre>
+<p>Wow! Its that easy!! Not quite 😁</p>
+<p>If you dump this code into our bootloader, its almost guaranteed to Triple Fault. Protected mode uses a different memory addressing system then real mode. Also, <strong>Remember that PMode has no interrupts</strong>. A single timer interrupt will triple fault. Also, because we use a different addressing model, <strong>CS is invalid</strong>. We would need to update CS to go into 32 bit code. And yet, <strong>We didn't set privilege levels for the memory map.</strong></p>
+<p>We will go more into detail later.</p>
+<ul>
+<li><strong>CR1 Control Register</strong>: Reserved by Intel, do not use.</li>
+<li><strong>CR2 Control Register</strong>: Page Fault Linear Address. If a Page Fault Exception occurs, CR2 contains the address that was attempted accessed</li>
+<li><strong>CR3 Control Register</strong>: Used when the PG bit in CR0 is set. Last 20 bits Contains the Page Directory Base Register (PDBR)</li>
+<li><strong>CR4 Control Register</strong>: Used in protected mode to control operations, such as v8086 mode, enabling I/O breakpoints, Page size extension and machine check exceptions.</li>
+</ul>
+<p>I don't know if we will use any of these flags or not. I decided to include it here for completeness sake. Don't worry to much if you don't understand what these are.</p>
+<ul>
+<li><strong>Bit 0 (VME) :</strong> Enables Virtual 8086 Mode Extensions</li>
+<li><strong>Bit 1 (PVI) :</strong> Enables Protected Mode Virtual Interrupts</li>
+<li><strong>Bit 2 (TSD) :</strong> Time Stamp Enable
+<ul>
+<li>0 - RDTSC instruction can be used in any privilege level</li>
+<li>1 - RDTSC instruction can only be used in ring 0</li>
+</ul>
+</li>
+<li><strong>Bit 3 (DE) :</strong> Enable Debugging Extensions</li>
+<li><strong>Bit 4 (PSE) :</strong> Page Size Extension
+<ul>
+<li>0 - Page size is 4KB</li>
+<li>1 - Page size is 4MB. With PAE, it is 2MB.</li>
+</ul>
+</li>
+<li><strong>Bit 5 (PAE) :</strong> Physical Address Extension</li>
+<li><strong>Bits 6 (MCE) :</strong> Machine Check Exception</li>
+<li><strong>Bits 7 (PGE) :</strong> Page Global Enable</li>
+<li><strong>Bits 8 (PCE) :</strong> Performance Monitoring Counter Enable
+<ul>
+<li>0 - RDPMC instruction can be used in any privilege level</li>
+<li>1 - RDPMC instruction can only be used in ring 0</li>
+</ul>
+</li>
+<li><strong>Bits 9 (OSFXSR) :</strong> OS Support for FXSAVE and FXSTOR instructions (SSE)</li>
+<li><strong>Bits 10 (OSXMMEXCPT) :</strong> OS Support for unmasked SIMD FPU exceptions</li>
+<li><strong>Bits 11-12 :</strong> Unused</li>
+<li><strong>Bits 13 (VMXE) :</strong> VMX Enable</li>
+</ul>
+<h4 id="cr8-control-register">CR8 Control Register</h4>
+<p>Provides Read and Write access to the <strong>Task Priority Register (TPR)</strong></p>
+<h3 id="pmode-segmentation-registers">PMode Segmentation Registers</h3>
+<p>The x86 family uses several registers to store the current linear address of each <strong>Segment Descriptor</strong>. More on this later.</p>
+<p>These registers are:</p>
+<ul>
+<li><strong>GDTR -</strong> Global Descriptor Table Register</li>
+<li><strong>IDTR -</strong> Interrupt Descriptor Table Register</li>
+<li><strong>GDTR -</strong> Local Descriptor Table Register</li>
+<li><strong>TR -</strong> Task Register</li>
+</ul>
+<p>We will take a look closer at these registers in the next section.</p>
+<h2 id="processor-architecture">Processor Architecture</h2>
+<p>Throughout this series, you will notice a lot of similarities between the processor and microcontrollers. That is, Microcontrollers have registers, and execute instructions similar to the processor. The CPU itself <strong>is nothing more then a specialized controller chip</strong>.</p>
+<p>We will look at the boot process again a little later, but from a very low level perspective. This will answer a lot of questions regarding how the BIOS POST actually starts, and how it executes the POST, starts the primary processor, and load the BIOS. We have covered the <strong>what</strong>, but we have not covered the <strong>how</strong> yet.</p>
+<p><strong>Note: This section is fairly technical. If you do not understand everything, do not worry, as we do not need to understand everything. I am including this section for completeness sake; to dive into the main component required in any computer system, and the one that is responsible for executing our code.</strong> How does it execute our given code? What is so special about machine language? All of this will be answered here.</p>
+<p>Later on when we dive into the <strong>Kernel</strong> and <strong>Device Driver</strong> development, you will learn that understanding the basic hardware controller components themselves can not only be a great learning experience, but sometimes a <strong>necessity</strong> in understanding how to program that controller.</p>
+<h3 id="breaking-apart-a-processor">Breaking apart a processor</h3>
+<p>We will be looking at the Pentium III processor here for explanation purposes. let's open up and disect this processor into it's individual components first:</p>
+<p><img src="../../resources/images/P3chiplarg.jpg" alt="COU's internal architecture"></p>
+<p>a lot of things in the processor, huh? Notice how complex this is. We are not going to learn much from this picture alone, so let's look at each component.</p>
+<ul>
+<li><strong>L2:</strong> Level 2 Cache</li>
+<li><strong>CLK:</strong> Clock</li>
+<li><strong>PIC: Programmable Interrupt Controller</strong></li>
+<li><strong>EBL:</strong> Front Bus Logic</li>
+<li><strong>BBL:</strong> Back Bus Logic</li>
+<li><strong>IEU:</strong> Integer Execution Unit</li>
+<li><strong>FEU:</strong> Floating Point Execution Unit</li>
+<li><strong>MOB:</strong> Memory Order Buffer</li>
+<li><strong>MIU / MMU:</strong> Memory Interface Unit / Memory Management Unit</li>
+<li><strong>DCU:</strong> Data Cache Unit</li>
+<li><strong>IFU:</strong> Instruction Fetch Unit</li>
+<li><strong>ID:</strong> Instruction Decoder</li>
+<li><strong>ROB:</strong> Re-Order Buffer</li>
+<li><strong>MS:</strong> <strong>Microinstruction</strong> Sequencer</li>
+<li><strong>BTB:</strong> Branch Target Buffer</li>
+<li><strong>BAC:</strong> Branch Allocator Buffer</li>
+<li><strong>RAT:</strong> Register Alias Table</li>
+<li><strong>SIMD:</strong> Packed floating point</li>
+<li><strong>DTLB:</strong> Data TLB</li>
+<li><strong>RS:</strong> Reservation Station</li>
+<li><strong>PMH:</strong> Page Miss Handler</li>
+<li><strong>PFU:</strong> Pre-Fetch Unit</li>
+<li><strong>TAP:</strong> Test Access Port</li>
+</ul>
+<p><em>I plan on adding to this section.</em></p>
+<h2 id="how-instructions-execute">How instructions execute</h2>
+<p>Okay, <strong>Remember that the IP Register contains the offset address of the currently executing instruction. CS contains the segment address.</strong></p>
+<p>Okay, so what exactly happens when the processor needs to execute an instruction?</p>
+<p>It first calculates the absolute address that it needs to read from. <strong>Remember that in the segment:offset model, the absolute address = segment * 16 + offset</strong>. Or, essentially, <strong>absolute address = CS * 16 + IP</strong>.</p>
+<p>The processor copies this address into the Address Bus. <strong>Remember that the address bytes is just a series of electronic lines, each representing a single bit. This bit pattern represents the binary form of the absolute address of the next instruction.</strong></p>
+<p>After this, the processor enables the &quot;Read Memory&quot; line (By setting its bit to 1). This tells the <strong>Memory Controller</strong> that we need to read from memory.</p>
+<p>The <strong>Memory Controller</strong> takes control. The Memory Controller copies the address from the Address Bus, and calculates its exact location in a particular RAM chip. The Memory Controller references this location, and copies it into the Data Bus. It does this because the &quot;Read Memory&quot; line is set on the Control Bus.</p>
+<p>The Memory Controller resets the Control Bus, so the processor knows its done executing. The processor takes the value(s) within the Data Bus, and uses its Digital Logic gates to &quot;execute&quot; it. This &quot;value&quot; is just a binary representation of a machine instruction, encoded as a series of electronic pulses.</p>
+<p>let's say, the instruction is <strong>mov ax, 0x4c00</strong> The value <strong>0xB8004C</strong> will be on the data bus for the processor. 0xB8004C is what is known as an <strong>operation code (OPCode)</strong>. Every instruction has an opcode associated with it. For the i86 architecture, our instruction would evaluate to the opcode 0xB8004C. We can convert this number to binary and can see the pattern as electronic lines, where a 1 means the line is high (active), and a 0 means the line is low:</p>
+<pre><code class="lang-armasm">101110000000000001001100
+</code></pre>
+<p>The processor follows a series of discrete instructions hard built into the digital logic circuit of the CPU. These instructions tells the processor how to encode a series of bits. All x86 processors will encode this bit pattern as our <strong>mov ax, 0x4c00</strong> instruction.</p>
+<p>Do to the increasing complexity of instructions, most newer processors actually follow their own internal instruction sets. This is not new to processors--a lot of microcontrollers may use multiple internal instruction sets to decrease the complexity of the electronics. Normally these are <strong>Macrocode</strong> and <strong>Microcode</strong>.</p>
+<p>Macrocode is an abstract set of instructions the processor uses to decode an instruction into microcode. Macrocode is normally written in a special macro language developed by the electronic engineers stored on a ROM chip inside of the controller and compiled in a macro assembler. The macro assembler assembles the macrocode into an even lower level language, which is the language of the controller: Microcode.</p>
+<p>Microcode is a very low level language developed by the electronic engineers. Microcode is used by the controller or processor to decode an instruction...such as our 0xB8004C (mov ax, 0x4c00) instruction.</p>
+<p>Using its <strong>Arithmetic Logic Unit (ALU)</strong> the CPU can get a number - 0x4C00. And copy it into AX (A simple bit copy).</p>
+<p>This example demonstrates how everything comes together. How the CPU uses the system bus, <strong>and relies on the memory controller to decode the memory location, and follow the Control Bus</strong>.</p>
+<p><strong>This is an important concept. Software Ports rely on the Memory Controller in a similar fashion.</strong></p>
+<h2 id="protected-mode---theory">Protected Mode - Theory</h2>
+<p>Okay...So why did we talk about architecture? The unfortunate truth is that in protected mode, there is no interrupts. So lessee... No interrupts. No System calls. No Standard Library. No nothing. Everything we do, we have to do ourselves. Because of this, there is no helping hand to guide us. One mistake can either crash your system, or even destroy your hardware if you are not careful. Not only floppy disks, but hard disks, external (and internal ) devices, etc.</p>
+<p>Understanding the system architecture will help us understand everything a lot better, to insure we don't make too many mistakes. Also, it gives us an introduction to direct hardware programming-- because this is the only thing we can do.</p>
+<p>You might be thinking: Wait--What about the uber-1337 C Kernel you promised us!? Well...Remember that C is a low level language, in a way. Through inline assembly, we could create an interface to the hardware. And C, just like C++, only produces x86 machine instructions that could be executed directly by the processor. <strong>Just remember, however, that there is no standard library. And, that you are programming in a very low level environment, even if you are using a high level language.</strong></p>
+<p>We will go over this when we start the Kernel.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>We want over <em>a lot</em>-Memory Mapping, Port Mapping, the x86 Port Addresses, All x86 registers, The x86 Memory Map, System Architecture, IN/OUT keywords and how they execute, and how instructions execute-step by step. We also have taken a look at basic hardware programming--in which we will be doing a lot.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T7.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

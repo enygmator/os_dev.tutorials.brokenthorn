@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>The History of OS Development | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="The History of OS Development | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="the-history-of-os-development">The History of OS Development</h1>
+
+<p>In this page, we are going to look at operating systems in a different way. We will go back in time to look at the history of operating systems. You will find there are many similarities between these vintage operating systems. These similarities will then be classified into the basic features operating systems have in common; which will also be a part of you own OS.</p>
+<p>Most of todays operating systems are graphical. These graphical user interfaces (GUI), however, provide a large abstraction layer to what is really going on in an OS.</p>
+<p>Many operating systems concepts date back to when programs were written on tape. A lot of these concepts are still in play today.</p>
+<h2 id="prehistory---the-need-for-operating-systems">Prehistory - The Need for Operating Systems</h2>
+<p>Prior to the 1950s, all programs were on punch cards. These punch cards represented a form of instructions, which would control every faucet of the computer hardware. Each piece of software would have full control of the system. Most of the time, the software would be completely different with each other. Even the versions of a program.</p>
+<p>The problem was that each program was completely different. They had to always be rewritten from scratch. There was no common support for the software, so the software had to communicate directly with the hardware. This also made portability and compatibility impossible.</p>
+<p>During the realm of Mainframe computers, creating code libraries became more feasible. While it did fix some problems, such as two versions of software being completely different, each software still had full control of hardware.</p>
+<p>If new hardware came out, the software will not work. If the software crashed, it would need to be debugged using light switches from a control panel.</p>
+<p>The idea of an interface between hardware and programs came during the Mainframe era. By having an abstraction layer to the hardware, programs will no longer need to have full control, but instead they all would use a single common interface to the hardware.</p>
+<p>What is this ultra cool interface? Why, its that sweet cuddly (sometimes nasty) thing we call an Operating System! 😀</p>
+<h2 id="1950s">1950s</h2>
+<p>The first real operating system recorded, according to Wikipedia, is the GM-NAA I/O. The SHARE Operating System was a successor of the GM-NAA I/O. SHARE provided sharing programs, managed buffers, and was the first OS to allow the execution of programs written in Assembly Language. SHARE became the standard OS for IBM computers in the late 1950s.</p>
+<p><img src="../../resources/images/SHARE.jpg" alt="SHARE"></p>
+<p>The SHARE Operating System (SOS) was the first OS to manage buffers, provide program sharing, and allow execution of assembly language programs.</p>
+<p>&quot;Managing Buffers&quot; relate to a form of &quot;Managing Memory&quot;. &quot;Program Sharing&quot; relates to using libraries from different programs.</p>
+<p><strong>The two important things to note here are that, since the beginning of time</strong> (Not really 😂), <strong>Operating Systems have been responsible for Memory Management and Program Execution/Management</strong></p>
+<p>Because this isn't the history of the world (nor that of computers) that I am narrating, lets jump ahead to the good old DOS.</p>
+<h2 id="1964---dos360-and-os360">1964 - DOS/360 and OS/360</h2>
+<p>DOS/360 (or just &quot;DOS&quot;) was a Disk Operating System was originally announced by IBM to be released on the last day of 1964. Do to some problems, IBM was forced to ship DOS/360 with 3 versions, each released June 1966.</p>
+<p>The versions were:</p>
+<ul>
+<li>BOS/360 - 8KB Configuration.</li>
+<li>DOS/360 - 16KB Configuration with disk.</li>
+<li>TOS/360 - 16KB Configuration with tape.</li>
+</ul>
+<p>A couple of important things to note is that DOS/360 offered no <strong>Multitasking</strong>, and no <strong>Memory Protection</strong>. The OS/360 was being developed about the same time by IBM. The OS/360 used &quot;OS/MFT&quot; (Multiple Fixed Transactions) to support multiple programs, with a <strong>Fixed Base Address</strong>. With OS/MVT (Multiple Variable Transaction), it can support varies program sizes.</p>
+<p>Now we have a few more interesting words - <strong>Multitasking, Memory Protection,</strong> and <strong>Fixed Base Address</strong>. Adding to before, we also have <strong>Program execution</strong> and <strong>Memory Management</strong>.</p>
+<h2 id="1969---unix-comes-along">1969 - Unix comes along</h2>
+<p>The Unix Operating System was originally written in C. Both C and Unix were originally created by AT&amp;T. Unix and C were freely distributed to government and academic institutions, causing it to be ported to a wider variety of machine families then any other OS.</p>
+<p>Unix is a <strong>multiuser</strong>, <strong>Multitasking</strong> Operating System.</p>
+<p>Unix includes a <strong>Kernel</strong>, <strong>File System</strong> and a <strong>Command Shell</strong>. There are a lot of <strong>Graphical User Interfaces (GUI)</strong> that uses the <strong>Command Shell</strong> to interact with the OS, and provide a much friendlier and nicer look.</p>
+<h2 id="1982---commodore-dos">1982 - Commodore DOS</h2>
+<p><img src="../../resources/images/DOS%5B1%5D.gif" alt="Commodore DOS"></p>
+<p>Commodore DOS (CBM DOS) was used with Commodore's 8 bit computers. Unlike the other computers before or since-which booted from disk into the systems memory at startup, CBM DOS executed internally within the drive-internal ROM chips, and was executed by an MOS 6502 CPU.</p>
+<h2 id="1985---microsoft-windows-10">1985 - Microsoft Windows 1.0</h2>
+<p><img src="../../resources/images/Windows1.gif" alt="Microsoft Windows 1.0"></p>
+<p>The first Windows was a DOS application. Its &quot;MSDOS Executive&quot; program allows the running of a program. None of the &quot;Windows&quot; could overlap, however, so each &quot;window&quot; was displayed side to side. It was not very popular.</p>
+<h2 id="1987---microsoft-windows-20">1987 - Microsoft Windows 2.0</h2>
+<p><img src="../../resources/images/Windows2.gif" alt="Microsoft Windows 2.0"></p>
+<p>The second version of Windows was still a DOS <strong>Graphical Shell</strong>, but supported overlapping windows, and more colors. However, do to the limitation of DOS, it was not widely used.</p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>DOS is a 16 bit operating system. During this time frame, DOS had to reference memory through Linear Addressing, and disks through LBA (Linear Block Addressing). Because the x86 platform is backward compatible, When the PC boots it is in 16 bit mode (Real Mode), and still has LBA. More on this later.</p>
+</div>
+<p><strong>Due to 16 bit mode limitations, DOS could not access more then 1 MB of memory. This is solved, today, by enabling the 20th address line through the Keyboard Controller. We will go over this later.</strong></p>
+<p>Because of this 1 MB limitation, Windows was far to slow, which was one primary reason of it being unpopular.</p>
+<h2 id="1987---microsoft-windows-30">1987 - Microsoft Windows 3.0</h2>
+<p><img src="../../resources/images/Windows3.gif" alt="Microsoft Windows 3.0"></p>
+<p>Windows 2.0 was completely redesigned. Windows 3.0 was still a DOS Graphical Shell, however it included A &quot;DOS Extender&quot; to allow access to 16 MB of memory, over the 1 MB limit of DOS. It is supports <strong>multitasking</strong> with DOS programs.</p>
+<p>This is the Windows that made Microsoft big. It supports resizable windows, and movable windows.</p>
+<h2 id="windows-in-relation-to-os-developers">Windows in relation to OS Developers</h2>
+<p>I have seen quite a few beginning OS developers want to develop the next Windows. While it is possible, it is extremely difficult, and is impossible with a one person team. Take a look at the above picture again. Remember that it is a <strong>graphical shell</strong> over a <strong>command shell</strong>, being executed by a <strong>Kernel</strong>. Also, remember that even Windows had to start here. The Command Shell was DOS. the Graphical Shell was &quot;Windows&quot;.</p>
+<p>In the next page, we will consolidate all the features these OSes share to help define what an OS consists of.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/1_Intro_to_OSDev/6_OSDev_History.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span>Project created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

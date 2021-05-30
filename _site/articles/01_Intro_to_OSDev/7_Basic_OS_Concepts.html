@@ -1,0 +1,214 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Basic Concepts of an Operating system | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Basic Concepts of an Operating system | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="basic-concepts-of-an-operating-system">Basic Concepts of an Operating system</h1>
+
+<p>Looking back though our small trip to memory lane brings some important new terms with it. So far, we only gave &quot;operating system&quot; a small definition. The previous page should help us in defining a better, more descriptive definition of what an operating system is.</p>
+<p>Since we now know what features most OSes have in common, to help define them better, lets put the above bolded terms into a list:</p>
+<ul>
+<li>Memory Management</li>
+<li>Program Management</li>
+<li>Multitasking</li>
+<li>Memory Protection</li>
+<li>Fixed Base Address</li>
+<li>Multi-user presence</li>
+<li>Kernel</li>
+<li>File System</li>
+<li>Command Shell</li>
+<li>Graphical User Interface (GUI)</li>
+<li>Graphical Shell</li>
+<li>Linear Block Addressing (LBA)</li>
+<li>Bootloader (From the previous tutorial)</li>
+</ul>
+<h2 id="memory-management">Memory Management</h2>
+<p>Memory Management refers to:</p>
+<ul>
+<li>Dynamically giving and using memory to and from programs that request it.</li>
+<li>Implementing a form of <strong>Paging</strong>, or even <strong>Virtual Memory</strong>.</li>
+<li>Insuring the OS Kernel does not read or write to unknown or invalid memory.</li>
+<li>Watching and handling <strong>Memory Fragmentation</strong>.</li>
+</ul>
+<h2 id="program-management">Program Management</h2>
+<p>This relates closely with Memory Management. Program Management is responsible for:</p>
+<ul>
+<li>Insuring the program doesn't write over another program.</li>
+<li>Insuring the program does not corrupt system data.</li>
+<li>Handle requests from the program to complete a task (such as allocate or deallocate memory).</li>
+</ul>
+<h2 id="multitasking">Multitasking</h2>
+<p>Multitasking refers to:</p>
+<ul>
+<li>Switching and giving multiple programs a certain timeframe to execute.</li>
+<li>Providing a <strong>Task Manager</strong> to allow switching (Such as Windows Task Manager).</li>
+<li><strong>TSS (Task State Segment) switching. Another new term!</strong></li>
+<li>Executing multiple programs simultaneously.</li>
+</ul>
+<h2 id="memory-protection">Memory Protection</h2>
+<p>This refers to:</p>
+<ul>
+<li>Accessing an invalid descriptor in protected mode (Or an invalid segment address)</li>
+<li>Overwriting the program itself.</li>
+<li>Overwriting a part or parts of another file in memory.</li>
+</ul>
+<h2 id="fixed-base-address">Fixed Base Address</h2>
+<p>A &quot;Base Address&quot; is the location where a program is loaded in memory. In normal applications programming, you wouldn't normally need this. In OS Development, however, you do.</p>
+<p>A &quot;Fixed&quot; Base Address simply means that the program will always have the same base address each time it is loaded in memory. Two example programs are the BIOS and the Bootloader.</p>
+<h2 id="multiuser">Multiuser</h2>
+<p>This refers to:</p>
+<ul>
+<li>Login and Security Protection.</li>
+<li>Ability of multiple users to work on the computer.</li>
+<li>Switching between users without loss or corruption of data.</li>
+</ul>
+<h2 id="kernel">Kernel</h2>
+<p>The Kernel is the heart of the Operating System. It provides the basic foundation, memory management, file systems, program execution, etc. We will take a closer look at the kernel very soon, don't worry 😀</p>
+<h2 id="file-system">File System</h2>
+<p>In OS Development, there is no such thing as a &quot;file&quot;. Everything could be pure binary code (from the bootsector); from the start.</p>
+<p>A File System is simply a specification that describes information regarding files. In most cases, this refers to Clusters, Segments, segment address, root directories, etc. the OS has to find the exact starting address of the file in order to load it.</p>
+<p>File Systems also describe file names. There are <strong>external</strong> and <strong>internal</strong> file names. For example, the FAT12 specification states a filename can only be 11 characters. No more, no less. Seriously. This means the filename &quot;KRNL.sys&quot;, for example, will have the internal file name <code>&quot;KRNL    SYS&quot;</code>.<br>
+We will be using FAT12 and be discussing it in detail later.</p>
+<h2 id="command-shell">Command Shell</h2>
+<p>A Command Shell sits on top the Kernel as a separate program. The Command Shell provides basic input and output through the use of typing commands. The Command Shell uses the Kernel to help with this, and complete low level tasks.</p>
+<h2 id="graphical-user-interface-gui">Graphical User Interface (GUI)</h2>
+<p>The Graphical User Interface (GUI) simply refers to the graphical interface and interactions between the Graphical Shell and the user.</p>
+<h2 id="graphical-shell">Graphical Shell</h2>
+<p>The Graphical Shell provides video routines and low level graphical abilities. It normally will be executed by the Command Shell. (As in Windows 1.0,2.0, and 3.0). Usually this is automatic these days, however.</p>
+<h2 id="linear-block-addressing-lba">Linear Block Addressing (LBA)</h2>
+<p>Operating Systems have control over <strong>every single little byte in memory</strong>. Linear Addressing refers to directly accessing linear memory.
+For example:</p>
+<pre><code class="lang-armasm">mov ax, [0x09000]    ; There is no such thing as Access Violations in OS Development
+</code></pre>
+<p>This is a good thing, but is also a very bad thing. For example:</p>
+<pre><code class="lang-armasm">mov bx, [0x7bff]       ; or some other address less then 7c00h
+mov cx, 10
+.loop1:
+    mov [bx], 0x0       ; clear bx
+    inc bx              ; go to next address
+    loop    .loop1      ; loop until cx=0
+</code></pre>
+<p>The above code seems harmless. However, if the above code was found in a bootloader, the above code will overwrite itself by 10 bytes. Ouch. The reason is that bootloaders are loaded with a Fixed address of 0x7c00:0, and the above code starts writing from 07bffh: One byte before 07c00h.</p>
+<h2 id="bootloader">Bootloader</h2>
+<p>From the previous page, we know that the bootloader is loaded by the BIOS, and is the very first program to execute on power on.</p>
+<p>The bootloader is loaded by the BIOS at absolute address <strong><code>0x7c00:0</code></strong>. After loading, the CS:IP (which you will learn about soon) is set to your bootloader, and the bootloader takes full control.</p>
+<div class="IMPORTANT">
+<h5>Important</h5>
+<p>A Floppy Sector is only 512 bytes in size. Remember that the bootloader has to fit in a single bootsector. What does this mean? The bootloader is very limited in size, and cannot exceed 512 bytes.</p>
+</div>
+<p>Most of the time, the bootloader will either just load and execute the kernel, or a <strong>Second Stage Bootloader</strong>.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In the next section we will explore the creation of a stage 1 bootloader by delving into the theory and code behind the process of booting up a machine and executing the bootloader.</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/01_Intro_to_OSDev/7_Basic_OS_Concepts.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>

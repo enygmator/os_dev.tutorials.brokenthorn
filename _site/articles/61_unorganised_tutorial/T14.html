@@ -1,0 +1,320 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Basic CRT and Code Design | BrokenThorn OS Dev Tutorials </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Basic CRT and Code Design | BrokenThorn OS Dev Tutorials ">
+    <meta name="generator" content="docfx 2.56.1.0">
+    
+    <link rel="shortcut icon" href="../../resources/icons/favicon.ico">
+    <link rel="stylesheet" href="../../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../../styles/docfx.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <meta property="docfx:navrel" content="../../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
+    
+    <meta property="docfx:rel" content="../../">
+    <meta property="docfx:newtab" content="true">
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../../index.html">
+                <img id="logo" class="svg" src="../../resources/images/favicon.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="basic-crt-and-code-design">Basic CRT and Code Design</h1>
+
+<p>We have also decided that we will be developing a hybrid kernel design for our operating system, as it uses some concepts derived from Microkernels and Monolithic kernel designs. To keep compatibility with C compilers, we will be using C instead of C++. However, I might be developing C++ versions of the source as I personally prefer C++ over C 😀</p>
+<p>So, here's what is on the list:</p>
+<ul>
+<li>Promoting Good Coding Practices</li>
+<li>Code Design and Layout</li>
+<li>Abstracting data types and basic declarations</li>
+<li>CRT: _null.h</li>
+<li>CRT: size_t.h</li>
+<li>CRT: ctype.h and cctype</li>
+<li>CRT: va_list.h and stdarg.h/csdtarg</li>
+<li>Demo: Writing Debug Printf (Will be uploaded soon)</li>
+</ul>
+<p>...That's it! This tutorial only covers the basic setup of the HAL and Kernel.</p>
+<p><em>Lets start!</em></p>
+<h2 id="before-we-begin">Before we Begin</h2>
+<p>This is our first step away from the bootloader world. Within our bootloader, we did not need to worry much about portability nor system dependency. After all, the bootloader - by its very nature - is very system dependent.</p>
+<p>This is the beginning of our own runtime library, and Hardware Abstraction Layer (HAL). Operating Systems can get very large in size. Because we do not know how large this system will be, we need to stress good coding practices from the start. Many development projects fail. It is not because it is to complex, however. Any project can be made with less complexity if designed right. This is what I want to look at next...</p>
+<h2 id="pandoras-boxes">Pandora's Boxes</h2>
+<p>The truth is, simply put, code is evil. Code can get very disorderly and ugly. It is this that adds on more complexity do to the chaotic and recursive nature of code and design. don't get me wrong, we will still need to rewrite a lot of code. The reason for this is because there is no right design.</p>
+<p>How do we stop this from happening?</p>
+<p>As long as the code is contained within a nice little box, it does not matter how disorderly or ugly the code gets on the inside. That is, <strong><em>Encapsulation</em></strong>, and the bases for nearly all of software engineering.</p>
+<p><strong>Encapsulation</strong> is a very important concept in software engineering. Even if you are not an Object Oriented Programmer, the concept of encapsulation is still there.</p>
+<h2 id="interface-and-implementation">Interface and implementation</h2>
+<p>The interface (&quot;public&quot;) part of the box is the connection from that box to the outside world. It is what connects our box to other boxes within this subsystem. The interface itself contains all of the function prototypes, structures, classes, and other definitions that the box exposes to the outside world so the outside world can use and interact with the box. This is the <strong>Interface</strong>. All of the evil code that dwells within this box that define the module, all of its functions, class routines, etc. is the modules <strong>implementation</strong>.</p>
+<p>In C, we can insure routines stay as part of the implementation by using the <strong>static</strong> keyword. Interfaces can be made by using the <strong>extern</strong> keyword. Within C++, It is encouraged to use classes, with the <strong>private, public,</strong> and <strong>protected</strong> keywords.</p>
+<h2 id="get-ready">Get Ready</h2>
+<p>We will be using the above concepts with developing our system to promote good programming practices with large scale software.</p>
+<p>Because portability between compilers is a concern, we will be developing the system using the C programming language. Please keep in mind, however, that you may use C++ if you prefer.</p>
+<p>Our primary focus is that of expandability and portability. Because of this, we will be hiding all hardware dependent implementations behind its own little box - The <strong>Hardware Abstraction Layer (HAL).</strong> Because the C++ startup runtime code it compiler dependent, we will put that in its own little box - The <strong>CRT (C++ Runtime) Library</strong>. All of this will be completely independent of the rest of the system.</p>
+<p>With all of this in mind, lets take the first step into our system...</p>
+<h2 id="code-layout-and-design">Code Layout and Design</h2>
+<p>This tutorial contains our most complex demo so far. Because of this, I would like our readers to open up the demo source, and follow along with the tutorial for better understanding of everything.</p>
+<h3 id="code-design">Code Design</h3>
+<p>It is very important to understand why we have chosen this structure for this series. The primary reason is that of <strong>encapsulation</strong>, where each directory contains a separate <strong>library module</strong>. That is, <strong>Each of these modules is a Pandora's box</strong>. It is <strong>extremely</strong> important to keep these modules as separate as possible in order to maintain code stability, structure, and portability. In order to do this, I have decided to treat each module as independent library modules.</p>
+<pre><code class="lang-html">SysBoot\
+
+      Stage1\            - Stage1 bootstrap loader
+      Stage2\            - Stage2 KRNLDR bootloader
+
+Our System Core
+=======================================
+
+SysCore\
+
+      Debug\             - Pre-Release complete builds
+      Release\           - Release builds
+      Include\           - Standard Library Include directory
+
+      Lib\             - Standard Library Runtime. Outputs Crtlib.lib or Crtlib.dll.
+      Hal\             - Hardware Abstraction Layer. Outputs Hal.lib or Hal.dll.
+      Kernel\          - Kernel Program. Outputs Krnl32.lib or KRNL32.EXE
+</code></pre>
+<p>The only thing that does not need to be built as a library module are the files within the Include/ Directory. As they are only header files, they should never have the need to contain implementations. Because of this, there is no box to open.</p>
+<p>As with applications, I have decided to make the C++ runtime code the first code to be executed. In other words, the bootloader does NOT execute the kernel. Instead, it executes the runtime code (CRTLIB), which sets up the environment for the kernel, and then executes the kernel.</p>
+<h2 id="_nullh">_null.h</h2>
+<p>Its time to start getting down to the nitty gritty of the tutorial!</p>
+<h3 id="about-c-includes">About C++ includes</h3>
+<p>If you are using C++, you might be interested about the library header files. That is, in C++, the appended *.h is dropped, and a <strong>c</strong> is prepended to all C headers. So, instead of <strong>#include &lt;stdlib.h&gt;</strong>, C++ uses <strong>#include &lt;cstdlib&gt;</strong> We would like to encourage creating an interface compatible with both languages. However, you might be wondering how do we do that?</p>
+<p>Its very simple, actually. In all compilers standard include/ directory, you will see different variants of the same file. i.e., you will see <strong>stdlib.h</strong> and <strong>cstdlib</strong>. <strong>cstdlib</strong> is simply a header file that #includes <strong>stdlib.h</strong> and no more. We will be doing the same with our library.</p>
+<p>This will allow the developers using C to use <strong>stdlib.h</strong>, while our C++ developers can still use <strong>cstdlib</strong>. This way we can both encourage good habits.</p>
+<h3 id="back-on-topic">Back on topic</h3>
+<p>The first abstraction I would like to look at is NULL. There really is not that much to say here. However, there is one small detail: The way NULL is defined depends on whether you are using C or C++.</p>
+<p><em><em>Within standard C, NULL is defined as (void</em>)0. Within C++, it is simply 0.</em>* We can determine this by using the fairly standard <strong>__cplusplus</strong> predefined constant:</p>
+<pre><code class="lang-c">// Undefines NULL
+#ifdef NULL
+#  undef NULL
+#endif
+
+#ifdef __cplusplus
+extern &quot;C&quot;
+{
+#endif
+    /* standard NULL declaration */
+#define    NULL    0
+#ifdef __cplusplus
+}
+#else
+/* standard NULL declaration */
+#define NULL    (void*)0
+#endif
+</code></pre>
+<p>There is more in this header do to the template, but this is the important part. Everything else is quite easy.</p>
+<h2 id="size_th">size_t.h</h2>
+<h2 id="about-data-hiding">About Data Hiding</h2>
+<p>Remember the Pandora's Box theory. The data types within a box are on <strong>implementation detail</strong>. Some data types are okay, however some or better kept within the implementation. <strong>size_t</strong> is one of them. By keeping the implementation details, we can modify anything we like about the data type, without effecting anything that uses that type, so long as we remain backward compatible.</p>
+<h3 id="back-onto-topic">Back onto topic</h3>
+<p>There isn't much to say about this one...</p>
+<pre><code class="lang-c">#ifdef __cplusplus
+extern &quot;C&quot;
+{
+    #endif
+
+    /* standard size_t type */
+    typedef unsigned size_t;
+
+    #ifdef __cplusplus
+}
+#endif
+</code></pre>
+<h2 id="data-type-hiding---stdinth-and-cstdint">Data Type Hiding - stdint.h and cstdint</h2>
+<p>Within the previous section, we were encouraging the importance of data hiding within an interface, However, we did not stress the importance of it with relation to portability.</p>
+<p>Each data type has a specified size to them. However, the size of each data type completely depends on the compiler and system this is being built for. Because of this, it is important to hide the data types behind a standard interface, specifically because we are working in an environment where Size Does Matter(tm).</p>
+<h3 id="stdinth">stdint.h</h3>
+<p>This is a fairly big file at about 150 lines. None of it is very hard, however. It defines different integral data types that are guaranteed to be a certain size.</p>
+<p>Lets look at the fundamental types, as we will be using them throughout the system:</p>
+<pre><code class="lang-c">typedef signed char          int8_t;
+typedef unsigned char        uint8_t;
+typedef short                int16_t;
+typedef unsigned short       uint16_t;
+typedef int                  int32_t;
+typedef unsigned             uint32_t;
+typedef long long            int64_t;
+typedef unsigned long long   uint64_t;
+</code></pre>
+<p>When compiling for a 32bit system, the above data types are guaranteed to be the same. That is, <strong>uint8_t</strong> is guaranteed to be 8 bits. <strong>uint16_t</strong> is guaranteed to be the size of a WORD (2 bytes), and so on. The size of the data type is encoded in its name, so we will always know its size.</p>
+<p>There is a lot more code in this file, but most of it is fairly easy.</p>
+<p>The file <strong>cstdint</strong> simply #includes stdint.h. This allows us to include these declarations in two ways:</p>
+<pre><code class="lang-c">#include &lt;stdint.h// C
+#include &lt;cstdint // C++ only
+</code></pre>
+<p>Please see <strong>About C++ includes...</strong> section for more information of why we have done this.</p>
+<h2 id="ctypeh-and-cctype">ctype.h and cctype</h2>
+<p><strong>ctype.h</strong> is a set of macros that help determine what type of character in a string is. It does this by following the different properties of the standard <strong>ASCII Character Set</strong>. You can get it from <a href="http://www.asciitable.com/">asciitable.com</a></p>
+<p>This header file includes several macros and constants:</p>
+<pre><code class="lang-c">extern char _ctype[];
+
+#define CT_UP    0x01    /* upper case */
+#define CT_LOW    0x02    /* lower case */
+#define CT_DIG    0x04    /* digit */
+#define CT_CTL    0x08    /* control */
+#define CT_PUN    0x10    /* punctuation */
+#define CT_WHT    0x20    /* white space (space/cr/lf/tab) */
+#define CT_HEX    0x40    /* hex digit */
+#define CT_SP    0x80    /* hard space (0x20) */
+
+#define isalnum(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_UP | CT_LOW | CT_DIG))
+#define isalpha(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_UP | CT_LOW))
+#define iscntrl(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_CTL))
+#define isdigit(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_DIG))
+#define isgraph(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_PUN | CT_UP | CT_LOW | CT_DIG))
+#define islower(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_LOW))
+#define isprint(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_PUN | CT_UP | CT_LOW | CT_DIG | CT_SP))
+#define ispunct(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_PUN))
+#define isspace(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_WHT))
+#define isupper(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_UP))
+#define isxdigit(c)    ((_ctype + 1)[(unsigned)(c)] &amp; (CT_DIG | CT_HEX))
+#define isascii(c)    ((unsigned)(c) &lt;= 0x7F)
+#define toascii(c)    ((unsigned)(c) &amp; 0x7F)
+#define tolower(c)    (isupper(c) ? c + 'a' - 'A' : c)
+#define toupper(c)    (islower(c) ? c + 'A' - 'a' : c)
+</code></pre>
+<p>Pretty simple stuff so far. The above macros may be used to determine and modify individual characters.</p>
+<p>For C++, There is also <strong>cctype</strong> that may be used instead of <strong>ctype.h</strong>.</p>
+<h2 id="va_listh-and-stdarg">va_list.h and stdarg</h2>
+<p>These are standard headers containing macros for accessing unnamed parameters whithin a variable argument list.</p>
+<h2 id="va_listh">va_list.h</h2>
+<p>va_list.h abstracts the data type used for variable length parameter lists.</p>
+<pre><code class="lang-c">/* va list parameter list */
+typedef unsigned char *va_list;
+</code></pre>
+<h3 id="stdargh-and-cstdarg">stdarg.h and cstdarg</h3>
+<p>This is our final basic library include file that we will look at. It defines some nice macros that we may use for C and C++ variable length parameter lists.</p>
+<p>These macros are fairly tricky, so lets look at them one at a time.</p>
+<h4 id="va_size">VA_SIZE</h4>
+<pre><code class="lang-c">/* width of stack == width of int */
+#define    STACKITEM    int
+
+/* round up width of objects pushed on stack. The expression before the
+&amp; ensures that we get 0 for objects of size 0. */
+#define    VA_SIZE(TYPE)                    \
+    ((sizeof(TYPE) + sizeof(STACKITEM) - 1)    \
+        &amp; ~(sizeof(STACKITEM) - 1))
+</code></pre>
+<p>This is a little tricky. VA_SIZE returns the size of the parameters pushed on the stack. Remember that C and C++ uses the stack to pass parameters to routines. On 32bit machines, each stack item is normally 32 bits.</p>
+<h4 id="va_start">va_start</h4>
+<pre><code class="lang-c">/* &amp;(LASTARG) points to the LEFTMOST argument of the function call
+(before the ...) */
+#define    va_start(AP, LASTARG)    \
+    (AP=((va_list)&amp;(LASTARG) + VA_SIZE(LASTARG)))
+</code></pre>
+<p>The standard va_start macro takes two parameters. AP is a pointer to the parameter list (of type va_list), and LASTARG, which is the last parameter in the parameter list (The parameter right before the ...).</p>
+<p>All this routine does is get the address of the last parameter, and adds the size of the parameter size to that address. If the stack size is 32, then all it does it add 32 to the last parameters address on the stack, which is where the first parameter in the parameter list is at.</p>
+<h4 id="va_end">va_end</h4>
+<pre><code class="lang-c">/* nothing for va_end */
+#define va_end(AP)
+</code></pre>
+<p>There isnt much to do here.</p>
+<h4 id="va_arg">va_arg</h4>
+<pre><code class="lang-c">#define va_arg(AP, TYPE)    \
+    (AP += VA_SIZE(TYPE), *((TYPE *)(AP - VA_SIZE(TYPE))))
+</code></pre>
+<p>This is a little tricky. va_arg() returns the next parameter in the parameter list. AP should contain the pointer to the parameter list that we are working with. TYPE contains the data type (int, char, etc.)</p>
+<p>All we need to do is add the number of bytes of the data type (TYPE) to the variable parameter list pointer (AP). This insures the variable parameter list pointer now points to the <strong>next</strong> parameter in the list.</p>
+<p>After this, we dereference that data that we have just passed (by incrementing the pointers location) and return that data.</p>
+<h2 id="demo">Demo</h2>
+<p><img src="../../resources/images/MSVCBoot.jpeg" alt="Bochs demo screenshot"></p>
+<p>This demo is fairly complex. I wanted to provide some basic C++ library routines, as well as a way to provide displaying text for debugging purposes. With this, all of the project files include the libraries for the Hardware Abstraction Layer (HAL), Kernel, and C++ Library code. In other words...It looks more complex then it actually is 😀</p>
+<p><a href="../../resources/OSDev_tools/Demo6_1.zip">Demo Download</a> (MSVC++)</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Now that the basic necessities are taken care of, in the next tutorial we will start building the actual Kernel and Hardware Abstraction Layer (HAL). We will cover error and exception handling theory and concepts, interrupt handling, the Interrupt Descriptor Table (IDT), and how to trap processor exceptions so it will no longer triple fault. We can also build our own super 1337 BSoD too 😉</p>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/enygmator/BrokenThorn-OS-Dev-Series/blob/master/docfx_base/articles/61_unorganised_tutorial/T14.md/#L1" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            <span><strong>Project (v2.0)</strong> created by <a href="https://github.com/enygmator/">@enygmator</a><br>Tutorial authored by <a href="http://www.brokenthorn.com/">BrokenThorn Entertainment Co.</a><br>Generated by <strong>DocFX v2.56.1</strong></span>
+            
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../../styles/docfx.js"></script>
+    <script type="text/javascript" src="../../styles/main.js"></script>
+  </body>
+</html>
